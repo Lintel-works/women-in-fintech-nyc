@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderInline, escText, escAttr, safeUrl, makeExcerpt, buildCardView } from '../lib/render-blocks.mjs';
+import {
+  renderInline, escText, escAttr, safeUrl, makeExcerpt,
+  buildCardView, buildPostView, coverPath, postFilename
+} from '../lib/render-blocks.mjs';
 
 /* These URLs were all mangled before 35e75f6: typo() rewrote the apostrophe
    and the ellipsis, and the bold/italic pass turned a '*' in a path into an
@@ -91,4 +94,97 @@ test('a full set of card fields joins with the middle dot and no dangling parts'
   });
   assert.equal(view.gridFootHtml, 'Manvir Singh · Jul 10 · 4 min');
   assert.equal(view.featuredMetaHtml, 'Jul 10 · 4 min read');
+});
+
+/* --------------------------------------------------- type-aware file paths */
+
+test('an fff post keeps the filename and cover path it has always had', () => {
+  const post = { type: 'fff', slug: 'shira-amrany' };
+  assert.equal(postFilename(post), 'fff-shira-amrany.html');
+  assert.equal(coverPath(post), 'images/fff-shira-amrany.jpg');
+});
+
+test('a post with no type still gets the fff paths', () => {
+  const post = { slug: 'shira-amrany' };
+  assert.equal(postFilename(post), 'fff-shira-amrany.html');
+  assert.equal(coverPath(post), 'images/fff-shira-amrany.jpg');
+});
+
+test('a news post gets the post- prefix', () => {
+  const post = { type: 'post', slug: 'october-recap' };
+  assert.equal(postFilename(post), 'post-october-recap.html');
+  assert.equal(coverPath(post), 'images/post-october-recap.jpg');
+});
+
+test('an explicit coverPath still wins', () => {
+  assert.equal(coverPath({ type: 'post', slug: 'x', coverPath: 'images/custom.jpg' }),
+    'images/custom.jpg');
+});
+
+/* ------------------------------------------------------- type-aware fallbacks */
+
+test('a news post tag chip falls back to the type, not to Fintech Female Fridays', () => {
+  assert.equal(buildPostView({ type: 'post', title: 'A Recap' }).tagText,
+    'Jobs &amp; Happenings');
+  assert.equal(buildPostView({ type: 'fff', name: 'X' }).tagText,
+    'Fintech Female Fridays');
+});
+
+test('the card badge comes from the type', () => {
+  assert.equal(buildCardView({ type: 'fff', name: 'X' }).badgeText, 'FFF');
+  assert.equal(buildCardView({ type: 'post', title: 'A Recap' }).badgeText, 'News');
+});
+
+/* The chip resolved only through cardTag and role · company, both interviewee
+   fields, so a news post rendered no chip at all. */
+test('a news post card chip falls back to its own tag', () => {
+  assert.equal(buildCardView({ type: 'post', title: 'A Recap', tag: 'Event recap' }).tagHtml,
+    'Event recap');
+});
+
+test('an fff card chip still resolves at role and company', () => {
+  const card = buildCardView({
+    type: 'fff', name: 'X', role: 'Data & Analytics Lead', company: 'Indagari', tag: 'Ignored'
+  });
+  assert.equal(card.tagHtml, 'Data &amp; Analytics Lead · Indagari');
+});
+
+test('cardTag still outranks everything', () => {
+  const card = buildCardView({
+    type: 'fff', name: 'X', role: 'R', company: 'C', cardTag: 'Hand-written', tag: 'Ignored'
+  });
+  assert.equal(card.tagHtml, 'Hand-written');
+});
+
+/* Review Focus 1: a news post has no `name`, so the card image had no alt
+   text at all -- a screen reader got nothing. */
+test('a news post card image is described by its title', () => {
+  const card = buildCardView({ type: 'post', title: 'October Recap', slug: 'october-recap' });
+  assert.equal(card.nameAttr, 'October Recap');
+});
+
+test('an fff card image is still described by the interviewee', () => {
+  const card = buildCardView({ type: 'fff', name: 'Shira Amrany', title: 'Anything' });
+  assert.equal(card.nameAttr, 'Shira Amrany');
+});
+
+test('a news post cover image is described by its title', () => {
+  assert.equal(buildPostView({ type: 'post', title: 'October Recap' }).coverAltAttr,
+    'October Recap');
+});
+
+/* Review Focus 4: author, date and read time are all optional. */
+test('a news post with no byline fields renders no separators', () => {
+  const view = buildPostView({ type: 'post', title: 'A Recap' });
+  assert.equal(view.authorText, '');
+  assert.equal(view.dateMetaText, '');
+  assert.equal(view.metaLineText, '');
+});
+
+test('a news post byline joins only what is there', () => {
+  const view = buildPostView({
+    type: 'post', title: 'A Recap', author: 'Manvir Singh', readTime: '4 min'
+  });
+  assert.equal(view.authorText, 'Manvir Singh');
+  assert.equal(view.dateMetaText, '4 min');
 });
