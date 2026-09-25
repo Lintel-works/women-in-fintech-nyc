@@ -44,8 +44,11 @@ npm run verify             # compare the build against the pre-eleventy baseline
 npm run verify:self-test   # confirm the check can still detect a change
 ```
 
-`npm run verify` canonicalizes HTML before comparing, so the whitespace a
-template engine reflows is ignored while real changes are still caught.
+`npm run verify` canonicalizes HTML before comparing, so it confirms the build
+still produces every page. Its per-page comparison is against the
+`pre-eleventy` git tag, a baseline the site has long since diverged from, so a
+"changed" line is expected on every page and is not by itself evidence of a
+regression — it only proves the page still built.
 
 ## Project structure
 
@@ -157,8 +160,18 @@ it publishes:
 
 A missing `type` means `fff`. The per-type facts live in one place,
 [`lib/post-types.mjs`](lib/post-types.mjs) — URL prefix, listing page, card
-badge, and the hero and foot partials `post.njk` includes. Adding a type is an
-entry there plus a field list in `src/admin/types.js`.
+badge, and the hero and foot partials `post.njk` includes. Adding a type takes
+more than an entry there:
+
+- an entry in `lib/post-types.mjs` — prefix, listing, collection, hero, foot,
+  card badge, tag fallback, slug source
+- a field list for the editor in `src/admin/types.js`
+- `src/_includes/<hero>.njk` and `<foot>.njk` — missing, the build fails
+  loudly and names the file
+- a listing page, `src/<listing>.html` — missing, the build **succeeds** and
+  publishes posts at a URL nothing links to, silently
+- an entry in `src/_data/nav.json` so the listing page is reachable
+- updates to the two hardcoded type lists in `tools/post-types.test.mjs`
 
 `layout` is **not** one of those facts, and cannot be: Eleventy resolves a
 template's layout before computed data runs, so every post type renders through

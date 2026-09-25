@@ -77,7 +77,10 @@ test('homeTitle still overrides the name-based fallback when title is also blank
 // drop blanks the way metaLine() does for the post page's byline.
 test('blank card fields leave no dangling separators', () => {
   const view = buildCardView({ slug: 's', name: 'No Meta', blocks: [] });
-  assert.equal(view.tagHtml, '');
+  // tagHtml now resolves to the type's fallback rather than '' -- see the
+  // card/page tag-chain fix below -- but the joined fields still drop blanks
+  // cleanly.
+  assert.equal(view.tagHtml, 'Fintech Female Fridays');
   assert.equal(view.gridFootHtml, '');
   assert.equal(view.featuredMetaHtml, '');
 });
@@ -147,6 +150,20 @@ test('an fff card chip still resolves at role and company', () => {
     type: 'fff', name: 'X', role: 'Data & Analytics Lead', company: 'Indagari', tag: 'Ignored'
   });
   assert.equal(card.tagHtml, 'Data &amp; Analytics Lead · Indagari');
+});
+
+// Finding 3 of the final review: buildPostView already fell back to the
+// type's tagFallback (a news post's PAGE shows "Jobs & Happenings"), but
+// buildCardView stopped one step short, so the same post's CARD showed no
+// chip. The two must agree -- see the comment on buildCardView's tagLine.
+test('a news post card with no tag at all falls back to the type', () => {
+  const card = buildCardView({ type: 'post', title: 'A Recap' });
+  assert.equal(card.tagHtml, 'Jobs &amp; Happenings');
+});
+
+test('an fff card with role and company is unaffected by the type fallback', () => {
+  const card = buildCardView({ type: 'fff', name: 'X', role: 'Data', company: 'Indagari' });
+  assert.equal(card.tagHtml, 'Data · Indagari');
 });
 
 test('cardTag still outranks everything', () => {

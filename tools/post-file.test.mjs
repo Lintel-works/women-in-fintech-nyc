@@ -5,6 +5,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import { serializePost, parsePost } from '../lib/post-file.mjs';
 import { buildCardView } from '../lib/render-blocks.mjs';
+import { POST_TYPES, typeOf } from '../lib/post-types.mjs';
 
 test('serializes a minimal post', () => {
   const text = serializePost({
@@ -258,17 +259,21 @@ test('a value that starts with a blank line round trips unchanged', () => {
   assert.deepEqual(readWithGrayMatter(text, 'leading-blank-line value').intro, post.intro);
 });
 
-test('every post declares a type and a gradient', () => {
+test('every post declares a known type and a gradient', () => {
   for (const file of POSTS) {
     const post = parsePost(fs.readFileSync(path.join('src/posts', file), 'utf8'));
-    assert.equal(post.type, 'fff', `${file} type`);
+    assert.ok(Object.keys(POST_TYPES).includes(post.type), `${file} type`);
     assert.match(post.gradient, /^g[1-7]$/, `${file} gradient`);
   }
 });
 
-test('slugs are unique, because two posts cannot share one permalink', () => {
-  const slugs = POSTS.map((f) => parsePost(fs.readFileSync(path.join('src/posts', f), 'utf8')).slug);
-  assert.equal(new Set(slugs).size, slugs.length, `duplicate slug among: ${slugs.join(', ')}`);
+test('permalinks are unique, because two posts cannot share one output URL', () => {
+  const permalinks = POSTS.map((f) => {
+    const post = parsePost(fs.readFileSync(path.join('src/posts', f), 'utf8'));
+    return typeOf(post).prefix + post.slug;
+  });
+  assert.equal(new Set(permalinks).size, permalinks.length,
+    `duplicate permalink among: ${permalinks.join(', ')}`);
 });
 
 test('a card typesets the way the post page does', () => {
