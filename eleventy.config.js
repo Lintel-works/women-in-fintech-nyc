@@ -57,24 +57,24 @@ export default function (eleventyConfig) {
 
   eleventyConfig.setServerOptions({ domDiff: false });
 
-  /* src/posts/posts.11tydata.js keeps a slug registry on globalThis to fail
-     the build on a duplicate permalink. `npm run dev` reuses one process
+  /* src/posts/posts.11tydata.js keeps a URL registry on globalThis to fail
+     the build on a duplicate output path. `npm run dev` reuses one process
      across rebuilds, so without a reset a post that got renamed or deleted
-     would leave a stale entry and wrongly fail the next rebuild against a
-     slug that no longer exists. Clearing it here, once per build, keeps the
-     guard scoped to what actually collides within a single build. */
+     would leave a stale entry and wrongly fail the next rebuild. Clearing it
+     here, once per build, keeps the guard scoped to what actually collides
+     within a single build. */
   eleventyConfig.on('eleventy.before', () => {
     globalThis.__postSlugs = new Map();
   });
 
-  /* An explicit collection, not `tags`: Eleventy reads `tags` for collection
-     membership before eleventyComputed resolves, so a computed `tags` value
-     is invisible to it -- and a static one on posts.11tydata.js would apply
-     to every post under src/posts/, sweeping future non-FFF post types (see
-     Phase 6) into this collection too. Filtering by `type` here, after all
-     data is available, keys membership on the field that actually varies per
-     post. Ordering is explicit for the same reason `tags` needed to be: no
-     post sets Eleventy's reserved `date` key (a display string like "Jul 10"
+  /* An explicit collection per type, not `tags`: Eleventy reads `tags` for
+     collection membership before eleventyComputed resolves, so a computed
+     `tags` value is invisible to it -- and a static one on posts.11tydata.js
+     would apply to every post under src/posts/, sweeping all post types into
+     a single collection. Filtering by `type` here, after all data is
+     available, keys membership on the field that actually varies per post.
+     Ordering is explicit for the same reason `tags` needed to be: no post
+     sets Eleventy's reserved `date` key (a display string like "Jul 10"
      isn't parseable, see posts.11tydata.js), so without an explicit sort here
      these collections would order by file mtime instead of publish date. */
   for (const [key, type] of Object.entries(POST_TYPES)) {
