@@ -1,8 +1,13 @@
 {#
-  Post layout. Every value in `post` arrives already escaped by
-  lib/render-blocks.mjs — for the attribute or the element it is printed into —
-  so each one needs `| safe`. Without it Nunjucks escapes a second time and
-  "Data &amp; Analytics" ships as "Data &amp;amp; Analytics".
+  The layout for every post type. Eleventy cannot compute a `layout`, so this
+  one file serves both types and the two regions that differ by type — the
+  hero and the foot — are included by path from `heroInclude` / `footInclude`
+  (see src/posts/posts.11tydata.js).
+
+  Every value in `post` arrives already escaped by lib/render-blocks.mjs — for
+  the attribute or the element it is printed into — so each one needs `| safe`.
+  Without it Nunjucks escapes a second time and "Data &amp; Analytics" ships as
+  "Data &amp;amp; Analytics".
 -#}
 <!doctype html>
 <html lang="en">
@@ -36,30 +41,13 @@
 {% include "mobile-drawer.njk" %}
 
 <!-- ARTICLE HERO -->
-<section class="page-hero article-hero">
-  <div class="wrap inner">
-    <div class="article-tag">{{ post.tagText | safe }}</div>
-    <h1>{{ post.titleText | safe }}</h1>
-    <div class="article-byline">
-      <img src="{{ post.headshotAttr | safe }}" alt="{{ post.nameAttr | safe }}" width="52" height="52">
-      <div class="article-who">{{ post.nameText | safe }}
-        {%- if post.roleLineText %}
-        <small>{{ post.roleLineText | safe }}</small>
-        {%- endif %}
-        {%- if post.hasLinkedin %}
-        <a href="{{ post.linkedinAttr | safe }}" target="_blank" rel="noopener">LinkedIn &rarr;</a>
-        {%- endif %}
-      </div>
-      <div class="article-meta">{{ post.metaLineText | safe }}</div>
-    </div>
-  </div>
-</section>
+{% include heroInclude %}
 
 <!-- ARTICLE -->
 <section class="section" style="padding-top: 8px;">
   <div class="wrap">
     <figure class="article-cover">
-      <img src="{{ post.coverAttr | safe }}" alt="{{ post.nameAttr | safe }}">
+      <img src="{{ post.coverAttr | safe }}" alt="{{ post.coverAltAttr | safe }}">
     </figure>
     <div class="article-body">
       {%- if post.hasIntro %}
@@ -68,12 +56,7 @@
 
       {{ post.blocksHtml | safe }}
     </div>
-    <div class="article-foot">
-      <a href="fintech-female-fridays.html" class="back-link">&larr; All Fintech Female Fridays</a>
-      {%- if post.hasLinkedin %}
-      <a href="{{ post.linkedinAttr | safe }}" class="btn btn-ghost" target="_blank" rel="noopener">Connect with {{ post.firstNameText | safe }} &rarr;</a>
-      {%- endif %}
-    </div>
+    {% include footInclude %}
   </div>
 </section>
 

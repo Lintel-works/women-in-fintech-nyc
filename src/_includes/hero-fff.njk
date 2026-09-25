@@ -1,0 +1,22 @@
+{#
+  The Fintech Female Fridays hero: the interviewee is the subject. Values
+  arrive already escaped from lib/render-blocks.mjs, so each needs `| safe`.
+-#}
+<section class="page-hero article-hero">
+  <div class="wrap inner">
+    <div class="article-tag">{{ post.tagText | safe }}</div>
+    <h1>{{ post.titleText | safe }}</h1>
+    <div class="article-byline">
+      <img src="{{ post.headshotAttr | safe }}" alt="{{ post.nameAttr | safe }}" width="52" height="52">
+      <div class="article-who">{{ post.nameText | safe }}
+        {%- if post.roleLineText %}
+        <small>{{ post.roleLineText | safe }}</small>
+        {%- endif %}
+        {%- if post.hasLinkedin %}
+        <a href="{{ post.linkedinAttr | safe }}" target="_blank" rel="noopener">LinkedIn &rarr;</a>
+        {%- endif %}
+      </div>
+      <div class="article-meta">{{ post.metaLineText | safe }}</div>
+    </div>
+  </div>
+</section>
