@@ -77,7 +77,8 @@ export const POST_TYPES = {
   fff: {
     label: 'Fintech Female Fridays',
     prefix: 'fff-',
-    layout: 'post.njk',
+    hero: 'hero-fff.njk',
+    foot: 'foot-fff.njk',
     listing: 'fintech-female-fridays.html',
     cardBadge: 'FFF',
     titleFallback: (post) => 'FinTech Female Fridays: Meet ' + (post.name || '')
@@ -85,7 +86,8 @@ export const POST_TYPES = {
   post: {
     label: 'Jobs & Happenings',
     prefix: 'post-',
-    layout: 'happenings-post.njk',
+    hero: 'hero-happenings.njk',
+    foot: 'foot-happenings.njk',
     listing: 'happenings.html',
     cardBadge: 'News',
     titleFallback: null
@@ -98,7 +100,7 @@ it from Node and the editor imports it over HTTP from the passthrough copy, so
 the two sides cannot disagree about what a type is.
 
 **The boundary with `src/admin/types.js`:** the registry owns type *identity* —
-label, URLs, layout, card badge, title fallback. `src/admin/types.js` keeps the
+label, URLs, hero and foot partials, card badge, title fallback. `src/admin/types.js` keeps the
 form field lists, because those are UI and the build has no use for them. The
 editor imports `POST_TYPES` for the label and the cover path rather than
 restating them.
@@ -109,18 +111,25 @@ as written.
 
 ### What the registry replaces
 
-**`src/posts/posts.11tydata.js`** stops hard-coding three things. `layout`,
-`active` and `permalink` become computed from the post's type:
+**`src/posts/posts.11tydata.js`** stops hard-coding three things:
 
-- `layout` — `POST_TYPES[type].layout`
 - `active` — `POST_TYPES[type].listing`, so a news post keeps
   `happenings.html` highlighted in the nav exactly as an FFF post keeps
   `fintech-female-fridays.html`
 - `permalink` — `POST_TYPES[type].prefix + slug + '.html'`
+- the hero and foot partial paths, exposed as ordinary computed keys the
+  layout includes — see "Layouts" below for why they are not a `layout` value
 
-`layout` and `active` are static front-matter keys today, not computed ones.
-They move into `eleventyComputed` alongside `permalink`, because the type is
-only known per file.
+`active` is a static front-matter key today. It moves into `eleventyComputed`
+alongside `permalink`, because the type is only known per file.
+
+**`layout` stays static and stays `post.njk`.** Eleventy computes computed data
+immediately before rendering, which is after the layout has been resolved, so
+`layout` is one of the special keys `eleventyComputed` cannot set — `permalink`
+is the documented exception. Discovered while planning this phase, against
+`/11ty/docs`, `docs/data-computed.md`: "Computed Data cannot be used to modify
+the special data properties used to configure templates (e.g. `layout`,
+`pagination`, `tags` etc.)."
 
 **`lib/render-blocks.mjs`** takes the prefix from the registry in the two
 places it is currently a literal:
@@ -189,24 +198,38 @@ post is not something the build can paper over.
 
 ### Layouts
 
-`src/_includes/post.njk` is **left untouched.** That is what guarantees the
-seven FFF pages stay byte-identical, and it is cheaper than proving a
-conditional produced the same bytes.
+Because `layout` cannot be computed, **`post.njk` stays the one and only post
+layout** and both types render through it. That is not a compromise: the head,
+the cover, the lede and the block body are identical for both types, so a
+second layout would have duplicated all of them to vary two regions.
 
-The news layout is a second file, `src/_includes/happenings-post.njk`. Only two
-regions genuinely differ:
+The two regions that genuinely differ become partials, included by path:
 
-| Region | `post.njk` | `happenings-post.njk` |
+| Region | `hero-fff.njk` | `hero-happenings.njk` |
 |---|---|---|
 | Hero | Interviewee identity card: headshot, name, role · company, LinkedIn link | Title, then `author · date · read time` |
+
+| Region | `foot-fff.njk` | `foot-happenings.njk` |
+|---|---|---|
 | Foot | "← All Fintech Female Fridays" and "Connect with {first} →" | "← All Jobs & Happenings" |
 
-Everything else is the same, and duplicating it is how the nav reached twelve
-copies. The shared parts are extracted into partials included by both layouts:
+`post.njk` includes them by variable:
 
-- `post-head.njk` — title, description, canonical, OG and Twitter tags,
-  the `post-article.css` include, the JSON-LD block
-- `post-body.njk` — the cover figure, the lede, `blocksHtml`
+```njk
+{% include post.heroInclude %}
+...
+{% include post.footInclude %}
+```
+
+Nunjucks accepts a variable template path in `{% include %}`, and
+`heroInclude` / `footInclude` are ordinary computed data keys, not special
+Eleventy ones, so the restriction that blocks a computed `layout` does not
+apply to them.
+
+The cost of this route, relative to leaving `post.njk` alone, is that the
+seven FFF pages' byte-identity now rests on a verified build rather than on an
+untouched file. `npm run verify` is that verification, and the extraction lands
+in its own commit so a whitespace regression cannot hide inside a larger diff.
 
 `buildPostView` stays the one view builder. Its person fields already resolve
 to `''` or `false` when absent (`roleLineText`, `hasLinkedin`,
@@ -395,11 +418,12 @@ unchanged and must stay green.
   rules depend on being declared after the rules they modify. `npm run verify`
   catches a mistake here, which is why the move happens in its own commit
   rather than folded into the new page.
-- **Two layouts can drift.** `post.njk` and `happenings-post.njk` share their
-  head and body through partials, so the drift surface is the hero and the
-  foot — regions that genuinely differ. If a third type appears and the
-  partials start growing conditionals, that is the signal to reconsider, not to
-  add a fourth file.
+- **Extracting the hero and foot from `post.njk` changes a file that seven
+  published pages render through.** It is the highest-risk edit in the phase.
+  The mitigation is that `npm run verify` compares all seven against the
+  pre-eleventy baseline, and the extraction is committed on its own so the diff
+  is reviewable in isolation. A whitespace-only difference is invisible to the
+  canonicalizing comparison, which is the intended tolerance, not a gap.
 - **`cardBadge: 'News'`** is a guess at copy, not a structural decision. It is
   one registry string to change.
 - **The type registry is a second place a type is declared,** next to
