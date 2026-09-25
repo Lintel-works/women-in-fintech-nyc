@@ -5,14 +5,19 @@
  */
 import { renderBlocks as renderBlockHtml, renderInline } from '/lib/render-blocks.mjs';
 import { serializePost, parsePost } from '/lib/post-file.mjs';
+import { POST_TYPES, postTitle } from '/lib/post-types.mjs';
 import { slugify, isUrlSafe, badSlugChars } from './text.js';
 import { TYPES, BLOCK_LABELS, BLOCK_FIELDS, blankBlock } from './types.js';
 
-var STORAGE_KEY = 'wif.admin.draft.v1';
-
 var typeKey = (new URLSearchParams(location.search).get('type')) || 'fff';
-if (!TYPES[typeKey]) typeKey = 'fff';
-var def = TYPES[typeKey];
+if (!TYPES[typeKey] || !POST_TYPES[typeKey]) typeKey = 'fff';
+
+/* Identity from lib/, form fields from types.js. */
+var def = Object.assign({}, POST_TYPES[typeKey], TYPES[typeKey]);
+
+/* Per type, so switching types does not restore an interview into a news form
+   or the other way round. */
+var STORAGE_KEY = 'wif.admin.draft.v1.' + typeKey;
 
 var model = emptyModel();
 var slugTouched = false;
@@ -66,9 +71,9 @@ function downloadBlob(blob, filename) {
 function resolved() {
   var m = {};
   Object.keys(model).forEach(function (k) { m[k] = model[k]; });
-  m.slug = model.slug || slugify(model.name);
+  m.slug = model.slug || slugify(model[def.slugSource] || '');
   m.coverPath = (model.coverPath || '').trim() ||
-    ('images/fff-' + (m.slug || 'post') + '.' + outputExt());
+    ('images/' + def.prefix + (m.slug || 'post') + '.' + outputExt());
   m.headshot = m.coverPath;
   return m;
 }
@@ -184,7 +189,7 @@ function renderFields() {
     input.addEventListener(f.type === 'select' ? 'change' : 'input', function () {
       model[f.key] = input.value;
 
-      if (f.key === 'name' && !slugTouched) {
+      if (f.key === def.slugSource && !slugTouched) {
         model.slug = slugify(input.value);
         var slugInput = $('f-slug');
         if (slugInput) slugInput.value = model.slug;
@@ -537,16 +542,33 @@ async function openPostFile(file) {
     toast('That post uses a block this editor does not know: ' + unknown.join(', '));
     return;
   }
+  /* The form only has inputs for the current type's fields, so loading a post
+     of another type would drop everything the form cannot show -- and a later
+     save would write the file back without it. */
+  var fileType = String(post.type || 'fff').trim() || 'fff';
+  if (!POST_TYPES[fileType]) {
+    toast('That post has a type this editor does not know: ' + fileType);
+    return;
+  }
+  if (fileType !== typeKey) {
+    toast('That is a ' + POST_TYPES[fileType].label + ' post. Change the type at the top of the form, then open it again.');
+    return;
+  }
   model = Object.assign(emptyModel(), post, { date: post.displayDate });
   slugTouched = true;   // an opened post owns its slug; the name must not rewrite it
   renderAll();
   save();
-  toast('Opened ' + (post.name || post.slug));
+  toast('Opened ' + (post.name || post.title || post.slug));
 }
 
 function downloadPost() {
   var m = resolved();
-  if (!m.slug) { toast('Add a name first'); return; }
+  var firstField = def.slugSource === 'title' ? 'title' : 'name';
+  if (!m.slug) { toast('Add a ' + firstField + ' first'); return; }
+  /* A Jobs & Happenings post has no title fallback to borrow, so a blank one
+     would publish as an empty headline and an empty card. Refuse it here,
+     where the author can see the field, rather than letting the file out. */
+  if (!postTitle(m)) { toast('Add a post title — this post type has no default title.'); return; }
   var bad = badSlugChars(m.slug);
   if (bad.length) { toast(SLUG_MESSAGE + bad.join(' ')); return; }
   var post = Object.assign({}, m, { type: typeKey, displayDate: m.date });
@@ -622,11 +644,20 @@ function init() {
   Object.keys(TYPES).forEach(function (key) {
     var opt = document.createElement('option');
     opt.value = key;
-    opt.textContent = TYPES[key].label;
+    opt.textContent = POST_TYPES[key].label;
     select.appendChild(opt);
   });
   select.value = typeKey;
   select.disabled = Object.keys(TYPES).length < 2;
+
+  /* Switching type reloads with ?type=, which is where typeKey comes from.
+     Each type keeps its own autosaved draft, so nothing is lost either way. */
+  select.addEventListener('change', function () {
+    var next = select.value;
+    if (next === typeKey) return;
+    if (!POST_TYPES[next]) { select.value = typeKey; return; }
+    location.search = '?type=' + encodeURIComponent(next);
+  });
 
   renderAddRow();
   renderAll();

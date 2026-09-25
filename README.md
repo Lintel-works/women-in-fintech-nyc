@@ -229,9 +229,10 @@ section will show its fallback. To run the function locally use `vercel dev`
 
 ## Post editor
 
-`admin/index.html` is a client-side authoring tool for Fintech Female Fridays
-posts. There is no backend and no database: it opens a post file from
-`src/posts/` and gives you one back.
+`admin/index.html` is a client-side authoring tool for both post types —
+Fintech Female Fridays interviews and Jobs & Happenings posts. There is no
+backend and no database: it opens a post file from `src/posts/` and gives you
+one back.
 
 > **It has to be served.** The editor imports the same ES modules the build
 > renders with (`/lib/render-blocks.mjs`, `/lib/post-file.mjs`), so opening
@@ -242,12 +243,15 @@ posts. There is no backend and no database: it opens a post file from
 
 To edit an existing post:
 
-1. **Open post** → pick the file from `src/posts/`. The form and the preview
+1. **Pick the type** at the top of the form. It decides which fields you get
+   and where the post publishes. Opening a post of the other type tells you to
+   switch first, rather than loading it with fields missing.
+2. **Open post** → pick the file from `src/posts/`. The form and the preview
    fill in; a file it cannot read is refused with the line to fix, rather than
    half-loaded.
-2. Edit, watching the live preview. The preview is the article body only — the
+3. Edit, watching the live preview. The preview is the article body only — the
    hero, nav and footer come from the build.
-3. **Download post file** → save `<slug>.html` back into `src/posts/`,
+4. **Download post file** → save `<slug>.html` back into `src/posts/`,
    overwriting the original. Eleventy publishes it as `fff-<slug>.html`.
 
 A new post is the same minus step 1, plus **Download renamed image** → save it

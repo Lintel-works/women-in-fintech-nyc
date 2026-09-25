@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   POST_TYPES, DEFAULT_TYPE, typeKeyOf, typeOf, postTitle, sortedPostsOfType
 } from '../lib/post-types.mjs';
+import { TYPES } from '../src/admin/types.js';
 
 test('the registry holds exactly the two types the site publishes', () => {
   assert.deepEqual(Object.keys(POST_TYPES).sort(), ['fff', 'post']);
@@ -95,4 +96,38 @@ test('every type names a hero, a foot, a listing page and a prefix', () => {
       assert.ok(type[field].length, `${key}.${field} must not be empty`);
     }
   }
+});
+
+/* Half-adding a type is the failure this catches: an entry in one registry and
+   not the other means either a post type the editor cannot write, or a form
+   that produces files the build rejects. */
+test('the editor has a form for every registered type, and no others', () => {
+  assert.deepEqual(Object.keys(TYPES).sort(), Object.keys(POST_TYPES).sort());
+});
+
+test('every editor type has fields and the full block list', () => {
+  for (const [key, def] of Object.entries(TYPES)) {
+    assert.ok(Array.isArray(def.fields) && def.fields.length, `${key} needs fields`);
+    assert.deepEqual([...def.blocks].sort(),
+      ['heading', 'image', 'list', 'paragraph', 'qa', 'quote']);
+  }
+});
+
+/* The field a post's slug is derived from has to be a field the form actually
+   shows, or the slug never fills in. */
+test('each type derives its slug from one of its own required fields', () => {
+  for (const [key, type] of Object.entries(POST_TYPES)) {
+    const field = TYPES[key].fields.find((f) => f.key === type.slugSource);
+    assert.ok(field, `${key}.slugSource "${type.slugSource}" is not a field on the form`);
+    assert.equal(field.required, true, `${key}.slugSource must be required`);
+  }
+});
+
+test('a news post form has no interviewee fields', () => {
+  const keys = TYPES.post.fields.map((f) => f.key);
+  for (const absent of ['name', 'role', 'company', 'linkedin']) {
+    assert.ok(!keys.includes(absent), `post form must not carry "${absent}"`);
+  }
+  assert.ok(keys.includes('title'));
+  assert.ok(keys.includes('author'));
 });

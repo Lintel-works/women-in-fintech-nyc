@@ -48,6 +48,46 @@ const FFF_FIELDS = [
     help: 'Optional. Blank = the cover image. Emitted as an absolute URL.' }
 ];
 
+/* --------------------------------------------------- Jobs & Happenings fields */
+
+/* No name, role, company or linkedin: those describe an interviewee. The
+   title is required and has no fallback -- a news post cannot borrow the FFF
+   "Meet {name}" default, so a blank one is refused at download rather than
+   published as an empty headline. */
+const POST_FIELDS = [
+  { key: 'title', label: 'Post title', type: 'text', required: true,
+    placeholder: 'October in review: three sold-out nights',
+    help: 'Required. Drives the slug and the filename.' },
+  { key: 'slug', label: 'Slug', type: 'text', required: true, mono: true,
+    prefix: 'post-', suffix: '.html',
+    help: 'Auto-filled from the title. Edit it and it stops following. The file downloads as <code>&lt;slug&gt;.html</code>; the build adds the <code>post-</code> prefix. Letters, digits and hyphens only.' },
+  { key: 'tag', label: 'Tag / category', type: 'text',
+    placeholder: 'Event recap',
+    help: 'The uppercase chip above the headline and on the card. Blank = “Jobs &amp; Happenings”.' },
+  { key: 'author', label: 'Written by', type: 'text',
+    placeholder: 'Manvir Singh' },
+  { key: 'date', label: 'Publish date', type: 'text', placeholder: 'Oct 14',
+    help: 'Displayed as typed, matching the existing cards.' },
+  { key: 'isoDate', label: 'ISO date', type: 'date',
+    help: 'Machine-readable date. Also what orders the listing page.' },
+  { key: 'readTime', label: 'Read time', type: 'text', placeholder: '4 min' },
+  { key: 'gradient', label: 'Card gradient', type: 'select',
+    options: ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7'],
+    help: 'The duotone wash over the cover on the listing card.' },
+  { key: 'intro', label: 'Intro / hook', type: 'textarea', rows: 6, required: true,
+    placeholder: 'The opening paragraph…',
+    help: 'Also the default source for the card excerpt and meta description.' },
+  { key: 'excerpt', label: 'Card excerpt', type: 'textarea', rows: 3,
+    help: 'Optional. Blank = first ~240 characters of the intro.' },
+  { key: 'metaDescription', label: 'Meta description', type: 'textarea', rows: 2,
+    maxlength: 200,
+    help: 'Optional. Blank = first ~155 characters of the intro.' },
+  { key: 'ogTitle', label: 'Social (OG) title', type: 'text',
+    help: 'Optional. Blank = post title.' },
+  { key: 'ogImage', label: 'Social (OG) image', type: 'text',
+    help: 'Optional. Blank = the cover image. Emitted as an absolute URL.' }
+];
+
 /* ------------------------------------------------------------ block form */
 
 const BLOCK_LABELS = {
@@ -98,12 +138,17 @@ export function blankBlock(type) {
 
 /* ------------------------------------------------------------- page type */
 
+/* Both types take the same blocks. A recap that quotes a speaker has the same
+   need for `qa` as an interview does. */
+const ALL_BLOCKS = ['qa', 'heading', 'paragraph', 'quote', 'image', 'list'];
+
+/* Form fields only. A type's identity -- its label, URL prefix, listing page,
+   card badge and partials -- lives in lib/post-types.mjs, which editor.js
+   merges in. This file stays free of that import so it can be loaded from Node
+   by the test that checks the two registries have the same types. */
 export const TYPES = {
-  fff: {
-    label: 'Fintech Female Fridays',
-    fields: FFF_FIELDS,
-    blocks: ['qa', 'heading', 'paragraph', 'quote', 'image', 'list']
-  }
+  fff: { fields: FFF_FIELDS, blocks: ALL_BLOCKS },
+  post: { fields: POST_FIELDS, blocks: ALL_BLOCKS }
 };
 
 export { BLOCK_LABELS, BLOCK_FIELDS };
