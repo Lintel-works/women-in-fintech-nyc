@@ -1,0 +1,56 @@
+---
+active: "happenings.html"
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jobs &amp; Happenings — NYC Fintech Women</title>
+<meta name="description" content="Event recaps, announcements, and news from the NYC Fintech Women community." />
+<link rel="stylesheet" href="site.css" />
+<style>
+{% include "post-cards.css" %}
+  /* The empty state. This page ships with nothing in it: the first Jobs &
+     Happenings post is published by an author, not committed with the site. */
+  .nothing-yet { max-width: 720px; margin: 0 auto; padding: 48px 0 8px; text-align: center; color: var(--muted); font-size: 17px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+{% include "nav.njk" %}
+
+{% include "mobile-drawer.njk" %}
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="wrap inner">
+    <div class="kicker">Jobs &amp; Happenings</div>
+    <h1>What's <em>happening</em> across the community.</h1>
+    <p>Event recaps, announcements, and news from the women building financial services in New York, San Francisco, and Chicago.</p>
+  </div>
+</section>
+
+{% import "post-card.njk" as cards %}
+
+<!-- POSTS -->
+<section class="section" style="padding-top: 8px;">
+  <div class="wrap">
+{% set posts = collections.happenings %}
+{% if posts.length %}
+    <div class="blog-grid">
+{% for post in posts %}{{ cards.grid(post.data.card) }}{% endfor %}
+    </div>
+{% else %}
+    <p class="nothing-yet">Nothing here yet — check back soon.</p>
+{% endif %}
+  </div>
+</section>
+
+<!-- FOOTER -->
+{% include "footer.njk" %}
+
+<script src="nav-mobile.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@
 {% endmacro %}
 
 {% macro grid(card) %}
-      <a class="post" href="{{ card.href | safe }}"><div class="post-img {{ card.gradient | safe }}"><span class="num">FFF</span><img src="{{ card.coverAttr | safe }}" alt="{{ card.nameAttr | safe }}"></div><div class="post-body">{% if card.tagHtml %}<div class="post-tag">{{ card.tagHtml | safe }}</div>{% endif %}<h3>{{ card.titleHtml | safe }}</h3><p class="ex">{{ card.excerptHtml | safe }}</p><div class="post-foot"><span>{{ card.gridFootHtml | safe }}</span><span class="read">Read &rarr;</span></div></div></a>
+      <a class="post" href="{{ card.href | safe }}"><div class="post-img {{ card.gradient | safe }}"><span class="num">{{ card.badgeText | safe }}</span><img src="{{ card.coverAttr | safe }}" alt="{{ card.nameAttr | safe }}"></div><div class="post-body">{% if card.tagHtml %}<div class="post-tag">{{ card.tagHtml | safe }}</div>{% endif %}<h3>{{ card.titleHtml | safe }}</h3><p class="ex">{{ card.excerptHtml | safe }}</p><div class="post-foot"><span>{{ card.gridFootHtml | safe }}</span><span class="read">Read &rarr;</span></div></div></a>
 {% endmacro %}
 
 {% macro home(card) %}

@@ -13,6 +13,8 @@ Static marketing website for NYC Fintech Women, a community for women building c
 | Co-Founder Matching | `co-founder-matching.html` |
 | Meet the Team | `meet-the-team.html` |
 | FFF post pages | `fff-<slug>.html` (built from `src/posts/<slug>.html`) |
+| Jobs & Happenings | `happenings.html` |
+| Jobs & Happenings post pages | `post-<slug>.html` (built from `src/posts/<slug>.html`) |
 | Post editor | `admin/index.html` |
 
 ## Tech stack
@@ -140,11 +142,27 @@ and which mobile drawer group starts open.
 
 ### Posts
 
-All seven Fintech Female Fridays posts live in `src/posts/` as data. A post
-file is front matter and nothing else: the metadata, an `intro`, and a `blocks`
-list of `paragraph`, `heading`, `qa`, `quote`, `list` and `image` entries that
-`lib/render-blocks.mjs` turns into the page. Eleventy writes each one to
-`fff-<slug>.html`, where every inbound link already points.
+Posts live in `src/posts/` as data, one file each. A post file is front matter
+and nothing else: the metadata, an `intro`, and a `blocks` list of `paragraph`,
+`heading`, `qa`, `quote`, `list` and `image` entries that
+`lib/render-blocks.mjs` turns into the page.
+
+Each file carries a `type`, and that one field decides everything about where
+it publishes:
+
+| `type` | Section | Publishes at | Lists on |
+|---|---|---|---|
+| `fff` | Fintech Female Fridays interview | `fff-<slug>.html` | `fintech-female-fridays.html` |
+| `post` | Jobs & Happenings — recaps, announcements, news | `post-<slug>.html` | `happenings.html` |
+
+A missing `type` means `fff`. The per-type facts live in one place,
+[`lib/post-types.mjs`](lib/post-types.mjs) — URL prefix, listing page, card
+badge, and the hero and foot partials `post.njk` includes. Adding a type is an
+entry there plus a field list in `src/admin/types.js`.
+
+`layout` is **not** one of those facts, and cannot be: Eleventy resolves a
+template's layout before computed data runs, so every post type renders through
+`src/_includes/post.njk` and varies only by the partials it includes.
 
 Text in a block is the author's plain source, not HTML. Three inline markers
 are understood — `**bold**`, `*italic*` and `[text](url)` — and the renderer
