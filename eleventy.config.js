@@ -9,6 +9,8 @@
  *   api/        — Vercel reads functions from the repo root, outside src/
  *   tools/      — dev-only regression harness
  */
+import { POST_TYPES, sortedPostsOfType } from './lib/post-types.mjs';
+
 export default function (eleventyConfig) {
   // The editor is a standalone app. Keep Eleventy out of it entirely, or its
   // markup would be parsed as a template and its output path rewritten.
@@ -74,11 +76,11 @@ export default function (eleventyConfig) {
      post. Ordering is explicit for the same reason `tags` needed to be: no
      post sets Eleventy's reserved `date` key (a display string like "Jul 10"
      isn't parseable, see posts.11tydata.js), so without an explicit sort here
-     collections.fff would order by file mtime instead of publish date. */
-  eleventyConfig.addCollection('fff', (api) =>
-    api.getFilteredByGlob('src/posts/*.html')
-      .filter((post) => (post.data.type || 'fff') === 'fff')
-      .sort((a, b) => ((a.data.isoDate || '') < (b.data.isoDate || '') ? 1 : -1)));
+     these collections would order by file mtime instead of publish date. */
+  for (const [key, type] of Object.entries(POST_TYPES)) {
+    eleventyConfig.addCollection(type.collection, (api) =>
+      sortedPostsOfType(api.getFilteredByGlob('src/posts/*.html'), key));
+  }
 
   return {
     dir: {

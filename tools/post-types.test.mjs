@@ -79,3 +79,20 @@ test('a post with no isoDate sorts last rather than throwing', () => {
     ['dated', 'undated']
   );
 });
+
+/* The collection names are what the listing templates loop. A type added to
+   the registry without one would publish posts that appear on no page. */
+test('every type names a collection, and the names are distinct', () => {
+  const names = Object.values(POST_TYPES).map((type) => type.collection);
+  assert.deepEqual(names, ['fff', 'happenings']);
+  assert.equal(new Set(names).size, names.length);
+});
+
+test('every type names a hero, a foot, a listing page and a prefix', () => {
+  for (const [key, type] of Object.entries(POST_TYPES)) {
+    for (const field of ['label', 'prefix', 'listing', 'collection', 'hero', 'foot', 'cardBadge', 'tagFallback', 'slugSource']) {
+      assert.equal(typeof type[field], 'string', `${key}.${field} must be a string`);
+      assert.ok(type[field].length, `${key}.${field} must not be empty`);
+    }
+  }
+});
