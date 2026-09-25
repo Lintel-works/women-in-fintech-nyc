@@ -1,0 +1,26 @@
+{#
+  The Jobs & Happenings hero: the post is the subject, not a person. Reuses
+  .article-byline / .article-who / .article-meta rather than adding rules,
+  because post-article.css is inlined into every post page — a new rule there
+  would change all seven published FFF pages.
+
+  Every value arrives already escaped from lib/render-blocks.mjs, so each
+  needs `| safe`. author, date and read time are all optional and drop out
+  entirely when blank, leaving no empty element and no dangling separator.
+-#}
+<section class="page-hero article-hero">
+  <div class="wrap inner">
+    <div class="article-tag">{{ post.tagText | safe }}</div>
+    <h1>{{ post.titleText | safe }}</h1>
+    {%- if post.authorText or post.dateMetaText %}
+    <div class="article-byline">
+      {%- if post.authorText %}
+      <div class="article-who">{{ post.authorText | safe }}</div>
+      {%- endif %}
+      {%- if post.dateMetaText %}
+      <div class="article-meta">{{ post.dateMetaText | safe }}</div>
+      {%- endif %}
+    </div>
+    {%- endif %}
+  </div>
+</section>
