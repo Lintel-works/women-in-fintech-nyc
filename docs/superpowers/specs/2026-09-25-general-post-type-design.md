@@ -216,15 +216,17 @@ The two regions that genuinely differ become partials, included by path:
 `post.njk` includes them by variable:
 
 ```njk
-{% include post.heroInclude %}
+{% include heroInclude %}
 ...
-{% include post.footInclude %}
+{% include footInclude %}
 ```
 
 Nunjucks accepts a variable template path in `{% include %}`, and
-`heroInclude` / `footInclude` are ordinary computed data keys, not special
-Eleventy ones, so the restriction that blocks a computed `layout` does not
-apply to them.
+`heroInclude` / `footInclude` are ordinary computed data keys at the top level
+of the data cascade — not special Eleventy ones, and not part of the `post`
+view model, which is shared with the editor's preview and has no business
+knowing template paths. The restriction that blocks a computed `layout` does
+not reach them.
 
 The cost of this route, relative to leaving `post.njk` alone, is that the
 seven FFF pages' byte-identity now rests on a verified build rather than on an
