@@ -1,3 +1,7 @@
+  /* Post cards: the featured card, the grid, the gradient washes and the
+     duotone cover treatment. Shared by fintech-female-fridays.html and
+     happenings.html. Order matters: the g1-g7 gradients and the ::after
+     overlay rules modify the .post-img and .feature-img rules above them. */
 /* featured post */
   .feature { display: grid; grid-template-columns: 1.05fr 1fr; gap: 36px; align-items: stretch; background: #fff; border: 1px solid var(--line); border-radius: 26px; overflow: hidden; margin-bottom: 56px; transition: box-shadow .25s, transform .25s; }
   .feature:hover { box-shadow: 0 22px 60px rgba(59,13,58,0.12); transform: translateY(-3px); }
