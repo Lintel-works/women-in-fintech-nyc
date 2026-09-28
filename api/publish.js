@@ -17,7 +17,10 @@ import { preparePublish } from '../lib/publish.mjs';
 import { commitWithRetry, pathExists } from '../lib/github.mjs';
 import { POST_TYPES } from '../lib/post-types.mjs';
 
-const MAX_IMAGE_BYTES = 3_500_000; // under Vercel's 4.5 MB body cap, with room for the JSON
+// Vercel's request body cap is 4.5 MB. Base64 inflates bytes by 4/3, so a
+// 3 MB image becomes ~4 MB of base64 text -- leaving ~500 KB of the cap for
+// the post text and the surrounding JSON.
+const MAX_IMAGE_BYTES = 3_000_000;
 
 function readCookie(header, name) {
   for (const part of String(header || '').split(';')) {
@@ -25,6 +28,21 @@ function readCookie(header, name) {
     if (key === name) return rest.join('=');
   }
   return null;
+}
+
+// Buffer.from(x, 'base64') does not throw on garbage -- it silently skips
+// any character outside the base64 alphabet, so a data URI's
+// "data:image/jpeg;base64," prefix decodes to wrong bytes instead of
+// failing. Re-encoding the decoded bytes and comparing to the input (modulo
+// '=' padding) catches that: a clean base64 string round-trips, a corrupted
+// one does not.
+export function isCleanBase64(value) {
+  const str = String(value == null ? '' : value);
+  if (!str) return false;
+  const decoded = Buffer.from(str, 'base64');
+  if (decoded.length === 0) return false;
+  const reencoded = decoded.toString('base64');
+  return reencoded.replace(/=+$/, '') === str.replace(/=+$/, '');
 }
 
 export default async function handler(request, response) {
@@ -54,6 +72,32 @@ export default async function handler(request, response) {
     return response.status(400).json({ message: prepared.message });
   }
 
+  const files = [{ path: prepared.path, content: prepared.text, encoding: 'utf-8' }];
+
+  // Every check here is pure and local, so it all runs before the first
+  // network call: a bad image should never cost a GitHub round trip, and an
+  // author with a too-large photo should never be told "GitHub is down"
+  // when GitHub was never asked.
+  if (payload.image && payload.image.base64) {
+    const bytes = Math.floor(String(payload.image.base64).length * 0.75);
+    if (bytes > MAX_IMAGE_BYTES) {
+      return response.status(400).json({
+        message: 'That cover image is too large to publish. Choose a smaller one.'
+      });
+    }
+    if (!isCleanBase64(payload.image.base64)) {
+      return response.status(400).json({
+        message: 'That cover image could not be read. Try choosing it again.'
+      });
+    }
+    const prefix = POST_TYPES[prepared.type].prefix;
+    files.push({
+      path: `src/images/${prefix}${prepared.slug}.jpg`,
+      content: String(payload.image.base64),
+      encoding: 'base64'
+    });
+  }
+
   // Create versus update means nothing without this check: two different
   // titles can slugify the same way, and a "new" post landing on an existing
   // path would silently replace somebody else's work.
@@ -78,27 +122,14 @@ export default async function handler(request, response) {
     return response.status(502).json({ message: 'Publishing failed. Nothing was changed.' });
   }
 
-  const files = [{ path: prepared.path, content: prepared.text, encoding: 'utf-8' }];
-
-  if (payload.image && payload.image.base64) {
-    const bytes = Math.floor(String(payload.image.base64).length * 0.75);
-    if (bytes > MAX_IMAGE_BYTES) {
-      return response.status(400).json({
-        message: 'That cover image is too large to publish. Choose a smaller one.'
-      });
-    }
-    const prefix = POST_TYPES[prepared.type].prefix;
-    files.push({
-      path: `src/images/${prefix}${prepared.slug}.jpg`,
-      content: String(payload.image.base64),
-      encoding: 'base64'
-    });
-  }
+  // git blame reads better with a name than with an email address; the
+  // session only carries an email, so fall back to its local part.
+  const authorName = session.sub.includes('@') ? session.sub.split('@')[0] : session.sub;
 
   const commit = {
     token, owner, repo, branch,
     message: `Publish ${prepared.slug}\n\nPublished from the editor by ${session.sub}.`,
-    author: { name: session.sub, email: session.sub },
+    author: { name: authorName, email: session.sub },
     files
   };
 

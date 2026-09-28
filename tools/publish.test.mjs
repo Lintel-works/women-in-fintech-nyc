@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { preparePublish } from '../lib/publish.mjs';
+import { isCleanBase64 } from '../api/publish.js';
 
 test('a valid post prepares to file text at a computed path', () => {
   const result = preparePublish({
@@ -37,4 +38,18 @@ test('preparePublish performs no I/O and no network call', () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('a data-URI-prefixed string is rejected, not silently decoded', () => {
+  // FileReader.readAsDataURL is the common browser path and produces
+  // exactly this shape. Buffer.from(x, 'base64') does not throw on the
+  // ':' ';' ',' characters -- it skips them and decodes garbage.
+  const clean = Buffer.from('a small jpeg-shaped blob').toString('base64');
+  const prefixed = `data:image/jpeg;base64,${clean}`;
+  assert.equal(isCleanBase64(prefixed), false);
+});
+
+test('a clean base64 string passes', () => {
+  const clean = Buffer.from('a small jpeg-shaped blob').toString('base64');
+  assert.equal(isCleanBase64(clean), true);
 });
