@@ -49,6 +49,15 @@ active: "co-founder-matching.html"
   /* success */
   .success { display: none; text-align: center; padding: 24px 8px; }
   .success.show { display: block; animation: pop .4s ease; }
+  /* The honeypot. Off-screen rather than display:none or type=hidden, because
+     some bots skip both; a real person never reaches it, and it is removed
+     from the tab order and hidden from screen readers so it cannot trap one. */
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .form-error { display: none; margin: 0 0 22px; padding: 18px 20px; border-radius: 16px; background: #fff4f4; border: 1px solid #f3c9c9; }
+  .form-error.show { display: block; }
+  .form-error h3 { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: #9b1c1c; margin: 0 0 6px; }
+  .form-error p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.5; }
+  .form-error a { color: var(--pink); font-weight: 600; }
   @keyframes pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
   .success .ico { width: 64px; height: 64px; border-radius: 50%; background: var(--soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
   .success .ico::after { content: ""; width: 22px; height: 12px; border-left: 3px solid var(--pink); border-bottom: 3px solid var(--pink); transform: rotate(-45deg) translateY(-3px); }
@@ -93,7 +102,18 @@ active: "co-founder-matching.html"
 
     <!-- FORM -->
     <div class="form-card">
+      <div class="form-error" id="cfm-error" role="alert" aria-live="assertive">
+        <h3>That didn&rsquo;t send.</h3>
+        <p id="cfm-error-text">Something went wrong on our side. Your answers are still here — try again in a moment, or email <a href="mailto:hello@nycfintechwomen.com?subject=Co-founder%20matching">hello@nycfintechwomen.com</a> and we&rsquo;ll pick it up from there.</p>
+      </div>
+
       <form id="cfm-form" novalidate>
+        <!-- Honeypot: not a real field. A visitor never sees it, so anything
+             in it is a bot. aria-hidden and tabindex keep it away from anyone
+             using a keyboard or a screen reader. -->
+        <div class="hp" aria-hidden="true">
+          <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
         <h2>Find your co-founder</h2>
         <p class="sub">Takes about 3 minutes. Required fields are marked <span style="color: var(--pink);">*</span>.</p>
 
@@ -174,7 +194,22 @@ active: "co-founder-matching.html"
     el.addEventListener('input', () => { if (el.closest('.field').classList.contains('invalid')) validateField(el); });
   });
 
-  form.addEventListener('submit', (e) => {
+  /* Stamped on load so the server can tell a person from a script that posts
+     the instant the page exists. Forgeable, and the server treats it as a hint
+     rather than a control. */
+  const loadedAt = Date.now();
+  const errorBox = document.getElementById('cfm-error');
+  const errorText = document.getElementById('cfm-error-text');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const submitLabel = submitBtn ? submitBtn.textContent : '';
+
+  function showError(message) {
+    if (message) errorText.textContent = message;
+    errorBox.classList.add('show');
+    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     let valid = true;
     let firstBad = null;
@@ -184,10 +219,44 @@ active: "co-founder-matching.html"
       valid = valid && ok;
     });
     if (!valid) { firstBad && firstBad.focus(); return; }
-    form.style.display = 'none';
-    success.classList.add('show');
-    const y = success.getBoundingClientRect().top + window.scrollY - 120;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+
+    errorBox.classList.remove('show');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+
+    const payload = Object.fromEntries(new FormData(form));
+    payload.kind = 'co-founder';
+    payload.elapsedMs = Date.now() - loadedAt;
+    /* The skill chips are spans toggled with a class, not inputs, so FormData
+       never sees them. Read them explicitly or they are silently dropped. */
+    payload.skills = Array.prototype.slice
+      .call(form.querySelectorAll('[data-group="skills"] .opt.sel'))
+      .map(el => el.textContent.trim());
+
+    try {
+      const response = await fetch('/api/form', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        /* The form stays visible with every answer intact. It used to be
+           hidden BEFORE anything was sent, which is how a failed submission
+           still looked like a success. */
+        showError(data.message);
+        return;
+      }
+
+      form.style.display = 'none';
+      success.classList.add('show');
+      const y = success.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } catch (err) {
+      showError('We could not reach the site to send that. Check your connection and try again.');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitLabel; }
+    }
   });
 </script>
 <script src="nav-mobile.js"></script>
