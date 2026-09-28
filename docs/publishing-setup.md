@@ -6,10 +6,18 @@ editor, and each action becomes one commit on `main`. Nobody needs a git
 checkout to run a site update after this is done.
 
 Three things have to exist before publishing works: a GitHub App installed on
-this repository, at least one author account, and five environment variables
-set in Vercel. None of them can be created from this document — a person with
-access to the NYC Fintech Women GitHub organization and this Vercel project
-has to do it.
+this repository, at least one author account, and Vercel environment
+variables for both. None of them can be created from this document — a person
+with access to the NYC Fintech Women GitHub organization and this Vercel
+project has to do it.
+
+**This project must also already be a Vercel project connected to this GitHub
+repository, with automatic deploys enabled on `main`.** Everything below
+assumes a push to `main` triggers a Vercel build and deploy on its own —
+that connection is set up once, outside this document, in the Vercel
+dashboard (Project → Settings → Git). Without it, a publish still commits
+successfully, but the site never updates and "Live in about a minute" (the
+editor's own success message) never becomes true.
 
 ## 1. Create the GitHub App
 
@@ -36,42 +44,52 @@ Steps:
    repository's file contents.
 4. Under **Where can this GitHub App be installed?**, choose "Only on this
    account."
-5. Create the app. On its settings page, note the **App ID** — it identifies
-   the app but is not itself a secret used by this project.
+5. Create the app. On its settings page, note the **App ID** — this becomes
+   `GITHUB_APP_ID` below.
 6. Generate a private key (**Generate a private key** button). This downloads
-   a `.pem` file. This project's server code does not consume the private key
-   directly (see the caveat below) — keep it somewhere safe regardless, since
-   it's how you mint new installation tokens.
+   a `.pem` file. Keep it somewhere safe — this is what becomes
+   `GITHUB_APP_PRIVATE_KEY`, and it is the one credential that makes
+   publishing work at all. Anyone with this file can commit to this
+   repository as the App.
 7. Install the app: from the app's settings page, **Install App**, choose the
    organization, and select **Only select repositories** → this repository
    only. Do not grant it access to any other repository.
 8. After installing, note the **installation ID** — visible in the URL of the
    installation's settings page
    (`github.com/organizations/<org>/settings/installations/<installation id>`).
+   This becomes `GITHUB_INSTALLATION_ID` below.
 
-### Getting a token into `GITHUB_TOKEN`
+**Branch protection on `main` will break publishing, and the error it
+produces does not say so.** If `main` has a branch protection rule that
+blocks direct pushes (required reviews, required status checks, etc.), the
+App's commit is rejected by GitHub with a 403, and `lib/github.mjs` reports
+every 403 the same way it reports a genuinely bad credential: "The site's
+GitHub access is not working — contact the site owner." If publishing was
+working and then suddenly isn't, and nothing about the App or its key
+changed, check whether a branch protection rule was added or tightened on
+`main` before assuming the credential itself is the problem.
 
-`api/publish.js` and `api/unpublish.js` send `GITHUB_TOKEN` straight to the
-GitHub API as a bearer token (see `lib/github.mjs`) — there is no code in this
-project that mints or refreshes a token from the App's private key. What
-`GITHUB_TOKEN` must hold is a **GitHub App installation access token** for the
-installation from step 8.
+### How the token actually works — nothing to paste, nothing that expires
 
-**This token expires one hour after it is issued — this is GitHub's platform
-behavior, not a choice made here.** There is no refresh logic in this
-codebase, so publishing will start failing with "The site's GitHub access is
-not working" roughly an hour after `GITHUB_TOKEN` is set, until it is
-regenerated. This is recorded under **Known issues** below; treat it as
-something to solve (a scheduled job that mints a fresh token and updates the
-Vercel env var, or a small serverless function that exchanges the private key
-for a token on demand) before relying on this for day-to-day publishing.
+Earlier drafts of this setup had you mint a GitHub App installation token by
+hand and paste it into a `GITHUB_TOKEN` environment variable. **That approach
+does not work for unattended, long-term use: an installation token expires
+one hour after it is issued (GitHub's own platform behaviour, not a choice
+made here), and there is nobody around to notice or refresh it.** Publishing
+would work for about an hour after setup and then fail permanently.
 
-To mint a token by hand for now: sign a JWT with the private key from step 6
-and the App ID from step 5, then call
-`POST /app/installations/<installation id>/access_tokens` with that JWT as
-the bearer token. GitHub's own guide for this exact flow is
-["Authenticating as a GitHub App installation"](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation).
-Paste the resulting token into `GITHUB_TOKEN` in Vercel.
+This project does not do that. `/api/publish` and `/api/unpublish`
+(`lib/github-auth.mjs`) mint a **fresh** installation token from the App's
+private key on every single request, using it once and discarding it. What
+you configure is the durable credential — the App ID, the private key, and
+the installation ID — never a token itself. Nothing here ever goes stale.
+
+**A note on pasting the private key into Vercel:** a `.pem` file is
+multi-line, and pasting it into a single Vercel environment variable field
+sometimes turns its real line breaks into literal `\n` two-character
+sequences instead of preserving them. `lib/github-auth.mjs` normalises either
+form automatically, so paste the key however Vercel's field gives it back to
+you — you do not need to manually re-insert line breaks.
 
 ### Vercel environment variables (Production)
 
@@ -80,7 +98,9 @@ Variables**, add these for the **Production** environment:
 
 | Variable | Value |
 |---|---|
-| `GITHUB_TOKEN` | The installation access token from above |
+| `GITHUB_APP_ID` | The App ID from step 5 |
+| `GITHUB_APP_PRIVATE_KEY` | The full contents of the `.pem` file from step 6 |
+| `GITHUB_INSTALLATION_ID` | The installation ID from step 8 |
 | `GITHUB_OWNER` | The GitHub organization or user that owns this repository |
 | `GITHUB_REPO` | This repository's name |
 
@@ -88,8 +108,17 @@ Variables**, add these for the **Production** environment:
 `api/unpublish.js`) — only set it if publishing should target a different
 branch.
 
-Redeploy after setting them; Vercel Functions only read environment variables
-present at build/deploy time.
+**Do not set `GITHUB_TOKEN` in Production.** It exists only as a test-only
+override (used by this project's own test suite, and useful for local
+`vercel dev` experimentation) that bypasses minting entirely and uses
+whatever value it holds as the bearer token verbatim. If it is set, publishing
+uses it — and reintroduces the exact one-hour expiry problem the App-based
+design above exists to avoid. `lib/github-auth.mjs` logs a warning every time
+it is used, specifically so this cannot fail silently, but the warning only
+reaches a Vercel function log nobody is reading. Simplest fix: don't set it.
+
+Redeploy after setting the variables above; Vercel Functions only read
+environment variables present at build/deploy time.
 
 ## 2. Create the first author
 
@@ -97,14 +126,19 @@ Publishing has no self-service sign-up. An author account is one line in the
 `AUTH_USERS` environment variable, added by whoever manages the Vercel
 project.
 
-**Passwords must be generated, never chosen.** There is no rate limiting on
-`/api/login` (see `api/login.js`) — nothing here slows down or blocks repeated
-guesses. The only thing standing between an attacker and a login is the
-password's own entropy. A chosen password, however "random" it feels, is
-guessable in ways a human can't judge; a machine-generated one isn't.
+**Passwords must be generated, never chosen.** There is no separate rate
+limiting on `/api/login` (see `api/login.js`) — a bad guess costs nothing in
+terms of a lockout or a delay imposed by this project's own code. What does
+slow a guess down is `lib/password.mjs`'s use of scrypt, which is
+deliberately slow by design; that is a real, intentional defence, just not a
+rate limiter. It only works if the password itself is hard to guess in the
+first place — a machine-generated password has that property, a chosen one
+(however "random" it feels to the person choosing it) usually doesn't.
 
 ```bash
-# 1. AUTH_SECRET — generate once, shared by every author. Rotating it signs
+# 1. AUTH_SECRET — generate once, shared by every author. Must be at least
+#    32 characters (api/login.js refuses a shorter one outright, treating it
+#    as "not configured" rather than accepting a weak one). Rotating it signs
 #    everyone out at once; that's the intended way to force a re-login.
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
@@ -118,7 +152,10 @@ node tools/hash-password.mjs 'the password printed in step 2'
 ```
 
 `AUTH_USERS` is a JSON object mapping the author's email to the `<salt>:<hash>`
-line from step 3:
+line from step 3. **The email key must be lowercase** — `api/login.js`
+lowercases whatever the sign-in form submits before looking it up, so an
+uppercase (or mixed-case) key here can never match and that author's correct
+password will always be refused:
 
 ```json
 {"jane@example.com": "a1b2c3...:d4e5f6..."}
@@ -139,13 +176,19 @@ real GitHub App installed as above. This cannot be done from inside this
 document or by an agent without those credentials — someone with the author
 password and access to the deployed site has to walk through it.
 
-1. **Sign in.** Open `/admin`, enter the author's email and generated
+1. **Choose the post type, then sign in.** Open `/admin`, and pick "Jobs &
+   Happenings" or "Fintech Female Fridays" from the type selector at the top
+   FIRST. Switching type reloads the page (`src/admin/editor.js`'s type
+   selector navigates to `?type=...`), which resets the in-memory
+   "signed in" state along with everything else on the page — sign in
+   afterwards, not before, or the Publish button will look disabled even
+   though sign-in just succeeded. Enter the author's email and generated
    password. Expected: the sign-in status line reads "Signed in as
    `<email>`."
-2. **Publish a news post with a cover image.** Pick type "Jobs & Happenings,"
-   fill in a title and at least one block, attach a cover image, click
-   Publish. Expected: a success message naming a URL of the form
-   `/post-<slug>.html`.
+2. **Publish a news post with a cover image.** With "Jobs & Happenings"
+   already selected, fill in a title and at least one block, attach a cover
+   image, click Publish. Expected: a success message naming a URL of the
+   form `/post-<slug>.html`.
 3. **Confirm one commit, both files.** On GitHub, check the latest commit on
    `main`. Expected: exactly one new commit, authored by the signed-in
    author's email, containing both `src/posts/<slug>.html` and
@@ -165,24 +208,27 @@ password and access to the deployed site has to walk through it.
      -H 'content-type: application/json' -d '{}'
    ```
    Expected: `401`, and no new commit appears on `main`.
-7. **Publish a post titled `...`.**  In the editor, set the title to exactly
-   three dots and attempt to publish. Expected: `400` with an author-readable
-   message (not a raw error or stack trace), and no new commit on `main`.
+7. **Call `/api/publish` with a valid session but an invalid payload.** A
+   blank title cannot reach the server at all — the editor refuses it
+   client-side before a request is ever sent, so that is not a usable test of
+   the server's own validation. Instead, sign in through the editor (step 1),
+   open your browser's dev tools → Application/Storage → Cookies, copy the
+   value of `wif_session`, and send a payload the client itself would never
+   construct:
+   ```bash
+   curl -i -X POST https://<production-url>/api/publish \
+     -H 'content-type: application/json' \
+     -H 'cookie: wif_session=<paste the value>' \
+     -d '{"type":"not-a-real-type","mode":"create","fields":{},"blocks":[]}'
+   ```
+   Expected: `400` with an author-readable message naming the valid post
+   types (not a raw error or stack trace), and no new commit on `main`.
 
 ## Known issues
 
-- **PNG "keep original" cover images publish broken.** If an author checks
-  "keep original" on a PNG cover image, the post's front matter records
-  `images/<prefix><slug>.png`, but `api/publish.js` always writes the
-  uploaded image to `src/images/<prefix><slug>.jpg` regardless of the
-  original format — the editor's publish path (`coverAsBase64` in
-  `src/admin/editor.js`) always re-encodes to JPEG. The published post ends
-  up pointing at a `.png` file that was never written, so its cover image is
-  broken. This is a known bug, not yet fixed as of this document. Workaround
-  until fixed: don't check "keep original" when publishing (as opposed to
-  downloading) a PNG cover.
-- **`GITHUB_TOKEN` expires after one hour.** See "Getting a token into
-  `GITHUB_TOKEN`" above — this project has no code that refreshes an
-  installation token, so publishing will start failing roughly an hour after
-  the token is set, with the message "The site's GitHub access is not
-  working," until someone mints a fresh token and updates the Vercel env var.
+- **Cover images publish only as JPG or PNG.** "Keep original" in the editor
+  is refused, in the editor, with a clear message for any other format
+  (webp, avif, gif) — `api/publish.js` only ever writes a `.jpg` or a `.png`,
+  so publishing one of those would either be silently rewritten or refused by
+  the server with no context. Uncheck "keep original" to publish a webp/avif/
+  gif cover as a resized JPG instead, or convert it to a JPG or PNG first.

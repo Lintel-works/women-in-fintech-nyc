@@ -38,8 +38,12 @@ Then visit [http://localhost:8080](http://localhost:8080).
 ### Verifying a change didn't break anything
 
 ```bash
-npm test                   # post-file round trip, the seven committed posts,
-                           # and the renderer's escaping and links
+npm test                   # every tools/*.test.mjs suite: post-file round
+                           # trip and the seven committed posts, the
+                           # renderer's escaping and links, slug/post-type
+                           # rules, and the publishing/session/GitHub-auth
+                           # suites covering /api/publish, /api/unpublish,
+                           # login and the editor's own publish/unpublish code
 npm run verify             # compare the build against the pre-eleventy baseline
 npm run verify:self-test   # confirm the check can still detect a change
 ```
@@ -87,16 +91,30 @@ imported.
 │   ├── images/
 │   └── admin/           # Post editor (not linked from the site)
 ├── api/                 # Vercel Functions — must stay at the repo root,
-│   └── events.js        # NOT in src/, or Vercel won't detect them
-├── lib/                 # Shared by the build and the editor; served at /lib/
-│   ├── render-blocks.mjs   # Turns a post's blocks into HTML
-│   └── post-file.mjs       # Reads and writes the src/posts/ file format
-├── tools/               # Dev-only (not deployed)
+│   ├── events.js        # NOT in src/, or Vercel won't detect them
+│   ├── login.js         # Sign-in: exchanges email+password for a session cookie
+│   ├── publish.js       # Publish/update a post from the editor, one commit
+│   └── unpublish.js     # Remove a published post, one commit
+├── lib/                 # Node-only modules, plus the four served at /lib/
+│   │                    # for the editor to import (see eleventy.config.js's
+│   │                    # addPassthroughCopy -- the rest are NOT public):
+│   ├── render-blocks.mjs    # Turns a post's blocks into HTML (served)
+│   ├── post-file.mjs        # Reads and writes the src/posts/ file format (served)
+│   ├── post-types.mjs       # The fff/post type registry (served)
+│   ├── slug.mjs             # slugify(), shared by the editor and the server (served)
+│   ├── publish-validate.mjs # Validates a publish payload, computes its path
+│   ├── publish.mjs          # Serializes + render-gates + parse-gates a post
+│   ├── github.mjs           # Git Data API: read/commit/delete via the Contents/Git APIs
+│   ├── github-auth.mjs      # Mints a GitHub App installation token per request
+│   ├── session.mjs          # Signs/verifies the editor's session cookie
+│   └── password.mjs         # scrypt password hashing for AUTH_USERS
+├── tools/               # Dev-only (not deployed) -- the *.test.mjs files
+│   │                    # here are what `npm test` runs; see below
 │   ├── htmlcanon.mjs
 │   ├── snapshot.mjs
 │   ├── import-wix-post.mjs # One-shot: Wix archive -> src/posts/
-│   ├── post-file.test.mjs
-│   └── render-blocks.test.mjs
+│   └── hash-password.mjs   # Hashes a password for an AUTH_USERS entry --
+│                            # see docs/publishing-setup.md
 ├── eleventy.config.js
 ├── _site/               # Build output — generated, gitignored
 └── design/              # Reference PDFs from the design process
@@ -254,19 +272,19 @@ section will show its fallback. To run the function locally use `vercel dev`
 | Variable | Used by | Purpose |
 |---|---|---|
 | `LUMA_API_KEY` | `api/events.js` | Reads the Luma calendar for the events section. See [Luma events integration](#luma-events-integration). |
-| `AUTH_SECRET` | `api/login.js`, `api/publish.js`, `api/unpublish.js` | Signs the editor's session cookie. Rotating it signs every author out. |
-| `AUTH_USERS` | `api/login.js` | JSON map of author email → scrypt hash, produced by `node tools/hash-password.mjs`. |
-| `GITHUB_TOKEN` | `api/publish.js`, `api/unpublish.js` | A GitHub App installation token with Contents: Read and write, used to commit published posts. |
+| `AUTH_SECRET` | `api/login.js`, `api/publish.js`, `api/unpublish.js` | Signs the editor's session cookie. At least 32 characters. Rotating it signs every author out. |
+| `AUTH_USERS` | `api/login.js` | JSON map of lowercase author email → scrypt hash, produced by `node tools/hash-password.mjs`. |
+| `GITHUB_APP_ID` | `api/publish.js`, `api/unpublish.js` (via `lib/github-auth.mjs`) | The GitHub App's id, used to mint a fresh installation token on every publish/unpublish request. |
+| `GITHUB_APP_PRIVATE_KEY` | same | The App's private key (PEM). A fresh commit token is minted from this, per request — nothing here expires the way a pasted token would. |
+| `GITHUB_INSTALLATION_ID` | same | The App's installation on this repository. |
+| `GITHUB_TOKEN` | same | **Test-only override.** When set, used directly as the bearer token instead of minting one — bypassing the three variables above entirely. Reintroduces a one-hour expiry if left set in Production; `lib/github-auth.mjs` warns loudly every time it's used for exactly that reason. Leave unset in Production. |
 | `GITHUB_OWNER` | `api/publish.js`, `api/unpublish.js` | The repository owner the editor commits to. |
 | `GITHUB_REPO` | `api/publish.js`, `api/unpublish.js` | The repository name the editor commits to. |
 | `GITHUB_BRANCH` | `api/publish.js`, `api/unpublish.js` | Optional; defaults to `main`. |
 
-`.env.example` documents `LUMA_API_KEY`, `AUTH_SECRET` and `AUTH_USERS` for
-local development. The `GITHUB_*` variables are Production-only in this
-project's Vercel settings — publishing to a real repository from a local
-`vercel dev` session isn't part of the intended workflow, so they aren't in
-`.env.example`. Full setup for the publishing variables, including why a
-GitHub App and not a personal access token, is in
+`.env.example` documents every variable above, including the `GITHUB_*` ones.
+Full setup for the publishing variables — creating the GitHub App, installing
+it, and why an App and not a personal access token — is in
 [`docs/publishing-setup.md`](docs/publishing-setup.md).
 
 ## Post editor
@@ -277,7 +295,8 @@ backend and no database: it opens a post file from `src/posts/` and gives you
 one back.
 
 > **It has to be served.** The editor imports the same ES modules the build
-> renders with (`/lib/render-blocks.mjs`, `/lib/post-file.mjs`), so opening
+> renders with (`/lib/render-blocks.mjs`, `/lib/post-file.mjs`, `/lib/post-types.mjs`,
+> `/lib/slug.mjs`), so opening
 > `src/admin/index.html` from disk no longer works — every import fails and the
 > page tells you so. Run `npm run dev` and open
 > [http://localhost:8080/admin/](http://localhost:8080/admin/) with the trailing
@@ -316,6 +335,11 @@ password; a successful sign-in shows "Signed in as `<email>`." Without signing
 in, the editor still works fully for writing, previewing and downloading — only
 the Publish and Unpublish buttons are disabled.
 
+**Pick the type before signing in, not after.** Switching type reloads the
+page (it navigates to `?type=...`), which resets sign-in along with
+everything else — signing in and then switching type will leave Publish
+looking disabled even though sign-in just succeeded.
+
 **Unpublish** removes a live post (and its cover image, if the post's own
 `coverPath` still matches the convention the editor writes) in one commit. It
 only unlocks for a post this session has actually opened or just published —
@@ -336,10 +360,13 @@ move a draft between machines.
 
 ### Maintenance
 
-The editor has no copy of anything. It imports `lib/render-blocks.mjs` for the
-preview and `lib/post-file.mjs` for the file format, so a change to either is
-picked up by the editor and the build at once — and the site nav, drawer and
-footer live only in `src/_includes/`.
+The editor has no copy of anything. It imports `lib/render-blocks.mjs`,
+`lib/post-file.mjs`, `lib/post-types.mjs` and `lib/slug.mjs`, so a change to
+any of them is picked up by the editor and the build at once — and the site
+nav, drawer and footer live only in `src/_includes/`. `eleventy.config.js`
+passes through exactly these four modules and nothing else from `lib/` —
+`lib/session.mjs`, `lib/password.mjs`, `lib/github.mjs` and the rest stay
+server-only.
 
 `admin/` is deployed but unlinked. `robots.txt` keeps it out of search
 results; it does not make it private — anyone with the URL can open it, write,
@@ -347,11 +374,10 @@ preview and download. Publishing and unpublishing are the only actions behind
 a password (see "Signing in and publishing" above); reaching the editor itself
 still needs no credential.
 
-**Known issue:** publishing a PNG cover image with "keep original" checked
-produces a broken cover — the post records a `.png` path but the server always
-writes the uploaded image as `.jpg`. See
-[`docs/publishing-setup.md`](docs/publishing-setup.md#known-issues) for
-detail and the workaround.
+**Known issue:** cover images can only be published as a JPG or a PNG.
+"Keep original" on a webp/avif/gif file is refused in the editor with a clear
+message rather than silently written under the wrong extension — see
+[`docs/publishing-setup.md`](docs/publishing-setup.md#known-issues).
 
 ## Design
 
