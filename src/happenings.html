@@ -1,5 +1,10 @@
 ---
 active: "happenings.html"
+# Held back from launch. The page is kept intact but not emitted, so it cannot
+# be reached or crawled -- leaving it built-but-unlinked would still serve it at
+# /happenings.html. Re-enabling is deleting this one line, dropping `hidden`
+# from the post type in lib/post-types.mjs, and restoring the three nav entries.
+permalink: false
 ---
 <!doctype html>
 <html lang="en">

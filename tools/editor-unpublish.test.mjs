@@ -97,6 +97,16 @@ async function loadEditor(typeParam) {
   if (typeof globalThis.addEventListener !== 'function') globalThis.addEventListener = function () {};
   const editorUrl = new URL('../src/admin/editor.js', import.meta.url).href + '?instance=' + loadCount;
   await import(editorUrl);
+  /* The type these tests asked for must be the type the editor actually
+     loaded. Jobs & Happenings is hidden for launch, and editor.js falls back
+     to fff for a type it will not offer -- so without this check a change to
+     that fallback would leave every test below silently exercising the FFF
+     form while claiming to test the news form. Failing loudly is the point. */
+  assert.equal(
+    doc.getElementById('type-select').value,
+    typeParam || 'post',
+    'the editor loaded a different type than the test asked for'
+  );
   return doc;
 }
 

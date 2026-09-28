@@ -1017,14 +1017,23 @@ function renderAll() {
 
 function init() {
   var select = $('type-select');
-  Object.keys(TYPES).forEach(function (key) {
+  /* A hidden type is not offered, but it IS still shown when it is the type
+     already loaded via ?type=. That keeps a deliberate escape hatch: if a type
+     is hidden while published posts of it still exist, someone can reach the
+     editor with ?type= to open and unpublish them, and switch back afterwards.
+     Without the exception the control would carry a value with no matching
+     option, which renders blank. */
+  var offered = Object.keys(TYPES).filter(function (key) {
+    return !POST_TYPES[key].hidden || key === typeKey;
+  });
+  offered.forEach(function (key) {
     var opt = document.createElement('option');
     opt.value = key;
     opt.textContent = POST_TYPES[key].label;
     select.appendChild(opt);
   });
   select.value = typeKey;
-  select.disabled = Object.keys(TYPES).length < 2;
+  select.disabled = offered.length < 2;
 
   /* Switching type reloads with ?type=, which is where typeKey comes from.
      Each type keeps its own autosaved draft, so nothing is lost either way. */
