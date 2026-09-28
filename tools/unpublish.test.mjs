@@ -264,6 +264,75 @@ test('a GitHub auth failure on the existence check is reported without ever nami
   }
 }));
 
+// FIX 5 (final wave): fff and post share one src/posts/ namespace,
+// addressed only by slug. validatePublish already checks `type` coming IN;
+// nothing used to check it going OUT, so {type:'post', slug:'shira-amrany'}
+// deleted the FFF post at that slug with zero type mismatch in sight.
+test('unpublishing the wrong type for a real post is refused as not-found, and commits nothing', () => withEnv(async () => {
+  const fffPost = serializePost({ type: 'fff', slug: 'shira-amrany', name: 'Shira Amrany', blocks: [] });
+  const fetchStub = stubFetch([contentsResponse(fffPost)]); // getFileContent only
+  try {
+    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'shira-amrany' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 404, 'a type mismatch must not be distinguishable from not-found');
+    assert.match(response.body.message, /no published post/i);
+    assert.equal(fetchStub.calls.length, 1, 'must stop after reading the file -- no commit calls');
+  } finally {
+    fetchStub.restore();
+  }
+}));
+
+test('unpublishing the matching type still deletes normally', () => withEnv(async () => {
+  const fffPost = serializePost({ type: 'fff', slug: 'shira-amrany', name: 'Shira Amrany', blocks: [] });
+  const fetchStub = stubFetch([
+    contentsResponse(fffPost),
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  try {
+    const request = makeRequest({ cookie: validCookie(), body: { type: 'fff', slug: 'shira-amrany' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200);
+  } finally {
+    fetchStub.restore();
+  }
+}));
+
+// FIX 4 (final wave): the cover cleanup must find a PNG cover, not just a
+// JPEG one -- extending Ruling 22's protection to the extension api/publish.js
+// can now actually write (Ruling 24: keep-original honours a PNG).
+test('a PNG cover at the conventional path is deleted too', () => withEnv(async () => {
+  const post = serializePost({
+    type: 'post', slug: 'october-recap', title: 'October Recap',
+    coverPath: 'images/post-october-recap.png',
+    blocks: []
+  });
+  const fetchStub = stubFetchWithBodies([
+    contentsResponse(post),
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  try {
+    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200);
+    const treeCall = fetchStub.calls.find((c) => c.url.endsWith('/git/trees'));
+    const paths = treeCall.body.tree.map((entry) => entry.path);
+    assert.deepEqual(paths.sort(), ['src/images/post-october-recap.png', 'src/posts/october-recap.html'].sort());
+  } finally {
+    fetchStub.restore();
+  }
+}));
+
 test('a GitHub auth failure on the commit itself is reported without ever naming the token', () => withEnv(async () => {
   const post = serializePost({ type: 'post', slug: 'october-recap', title: 'October Recap', blocks: [] });
   const fetchStub = stubFetch([
@@ -278,5 +347,70 @@ test('a GitHub auth failure on the commit itself is reported without ever naming
     assert.ok(!JSON.stringify(response.body).includes(ENV.GITHUB_TOKEN));
   } finally {
     fetchStub.restore();
+  }
+}));
+
+// FIX 3 (final wave): with no GITHUB_TOKEN override, the handler must mint an
+// installation token from the App credentials before its first GitHub Data
+// API call -- proving the App path is actually wired in, not just present as
+// unused code in lib/github-auth.mjs.
+const APP_ENV = {
+  AUTH_SECRET: 'a-test-secret-that-is-long-enough',
+  GITHUB_APP_ID: '1',
+  GITHUB_APP_PRIVATE_KEY: '',   // set per-test below with a real generated PEM
+  GITHUB_INSTALLATION_ID: '999',
+  GITHUB_OWNER: 'owner',
+  GITHUB_REPO: 'repo',
+  GITHUB_BRANCH: 'main'
+};
+
+function withAppEnv(fn) {
+  const saved = {};
+  for (const key of Object.keys(APP_ENV)) { saved[key] = process.env[key]; process.env[key] = APP_ENV[key]; }
+  delete process.env.GITHUB_TOKEN;
+  return Promise.resolve()
+    .then(fn)
+    .finally(() => {
+      for (const key of Object.keys(APP_ENV)) process.env[key] = saved[key];
+      process.env.GITHUB_TOKEN = ENV.GITHUB_TOKEN;
+    });
+}
+
+test('with no GITHUB_TOKEN override, an installation token is minted before the first GitHub call', () => withAppEnv(async () => {
+  const { generateKeyPairSync } = await import('node:crypto');
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  process.env.GITHUB_APP_PRIVATE_KEY = privateKey.export({ type: 'pkcs1', format: 'pem' });
+
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push(String(url));
+    if (String(url).includes('/access_tokens')) {
+      return { ok: true, status: 201, json: async () => ({ token: 'ghs_minted' }) };
+    }
+    return { ok: false, status: 404, json: async () => ({}) }; // getFileContent: not found is fine here
+  };
+  try {
+    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(calls[0].includes('/access_tokens'), true, 'the token must be minted before any other GitHub call');
+    assert.equal(response.statusCode, 404); // getFileContent 404 -> not-found
+  } finally {
+    globalThis.fetch = original;
+  }
+}));
+
+test('a malformed App private key is reported distinctly from a GitHub-rejected credential', () => withAppEnv(async () => {
+  process.env.GITHUB_APP_PRIVATE_KEY = 'not a real pem';
+  const restore = noNetwork();
+  try {
+    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 503);
+    assert.match(response.body.message, /key could not be read/);
+  } finally {
+    restore();
   }
 }));

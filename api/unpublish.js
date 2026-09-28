@@ -4,20 +4,22 @@
  * post is a matter of time, and without this the only recovery is somebody
  * with a checkout running git revert -- the exact dependency this phase is
  * built to remove.
+ *
+ * Env: see api/publish.js -- both endpoints read the same variables and mint
+ * a GitHub credential the same way.
  */
-import { verifySession, authorNameFromSub } from '../lib/session.mjs';
+import { verifySession, authorNameFromSub, readCookie } from '../lib/session.mjs';
 import { slugify, postPath } from '../lib/publish-validate.mjs';
 import { commitWithRetry, getFileContent } from '../lib/github.mjs';
+import { resolveGithubToken } from '../lib/github-auth.mjs';
 import { parsePost } from '../lib/post-file.mjs';
-import { POST_TYPES } from '../lib/post-types.mjs';
+import { POST_TYPES, typeKeyOf, coverPathFor } from '../lib/post-types.mjs';
 
-function readCookie(header, name) {
-  for (const part of String(header || '').split(';')) {
-    const [key, ...rest] = part.trim().split('=');
-    if (key === name) return rest.join('=');
-  }
-  return null;
-}
+// The two extensions api/publish.js can have written a cover image as (see
+// its ALLOWED_COVER_EXTS) -- checked in this order against the live post's
+// own coverPath so a PNG cover is cleaned up exactly as reliably as a JPEG
+// one, closing the same gap Ruling 22 closed for the single-extension case.
+const COVER_EXTS = ['jpg', 'png'];
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -26,12 +28,13 @@ export default async function handler(request, response) {
   }
 
   const secret = process.env.AUTH_SECRET;
-  const token = process.env.GITHUB_TOKEN;
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
-  if (!secret || !token || !owner || !repo) {
-    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_TOKEN/GITHUB_OWNER/GITHUB_REPO');
+  const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
+    !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
+  if (!secret || !owner || !repo || !hasGithubCredential) {
+    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
@@ -54,9 +57,26 @@ export default async function handler(request, response) {
 
   const path = postPath(slug);
 
+  let token;
+  try {
+    token = await resolveGithubToken();
+  } catch (error) {
+    if (error.code === 'key') {
+      console.error("The site's GitHub private key could not be used", error);
+      return response.status(503).json({ message: error.message });
+    }
+    if (error.code === 'auth') {
+      console.error('GitHub rejected the publishing credential');
+      return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
+    }
+    console.error('Could not obtain a GitHub credential', error);
+    return response.status(502).json({ message: 'Unpublishing failed. Nothing was changed.' });
+  }
+
   // A destructive action must never report a success it did not verify.
-  // Reading the file also answers a second question below -- what its own
-  // coverPath is -- with one request instead of two.
+  // Reading the file also answers two further questions below -- whether
+  // it's really a post of the TYPE the caller named, and what its own
+  // coverPath is -- with one request instead of three.
   let content;
   try {
     content = await getFileContent({ token, owner, repo, branch, path });
@@ -74,20 +94,39 @@ export default async function handler(request, response) {
 
   const files = [{ path, delete: true }];
 
-  // Only remove the cover image when the live post's own coverPath is
-  // exactly the path this editor derives by convention. A hand-set or
-  // legacy coverPath may be shared with another post, or may predate this
-  // editor, and deleting it would be a second destructive action the author
-  // never confirmed. If the post cannot be parsed, the image is left alone
-  // rather than guessed at -- unpublishing the post itself still proceeds.
+  // fff and post share one src/posts/ namespace, addressed only by slug --
+  // validatePublish checks `type` on the way IN but nothing used to check it
+  // on the way OUT, so a caller sending {type:'post', slug:'shira-amrany'}
+  // deleted the FFF post at that slug with no type mismatch in sight. If the
+  // live post cannot be parsed, its real type is unknowable either way, and
+  // an unreadable post someone urgently wants gone must still be removable
+  // by an operator who already knows what it is -- so only a POST THAT
+  // PARSES and disagrees with the caller's typeKey is refused.
+  let post = null;
   try {
-    const post = parsePost(content);
-    const conventionalCoverPath = `images/${type.prefix}${slug}.jpg`;
-    if (String(post.coverPath || '').trim() === conventionalCoverPath) {
-      files.push({ path: `src/${conventionalCoverPath}`, delete: true });
-    }
+    post = parsePost(content);
   } catch (error) {
-    console.error('Could not read the live post to check its cover image', error);
+    console.error('Could not read the live post to check its type and cover image', error);
+  }
+  if (post && typeKeyOf(post) !== typeKey) {
+    // Same message and status as "nothing at that address": from the
+    // caller's own typeKey's point of view, that is exactly what is true,
+    // and it does not disclose that a post of some OTHER type lives there.
+    return response.status(404).json({ message: 'There is no published post at that address.' });
+  }
+
+  // Only remove the cover image when the live post's own coverPath is
+  // exactly the path this editor derives by convention, for whichever
+  // extension api/publish.js could have written (Ruling 22, extended by
+  // FIX 4 to cover PNG as well as JPEG). A hand-set or legacy coverPath may
+  // be shared with another post, or may predate this editor, and deleting
+  // it would be a second destructive action the author never confirmed.
+  if (post) {
+    const live = String(post.coverPath || '').trim();
+    const conventional = COVER_EXTS.map((ext) => coverPathFor(typeKey, slug, ext));
+    if (conventional.includes(live)) {
+      files.push({ path: `src/${live}`, delete: true });
+    }
   }
 
   try {

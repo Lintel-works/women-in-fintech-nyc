@@ -2,33 +2,44 @@
  * repository.
  *
  * Order matters and every step refuses before the next: verify the session,
- * validate the payload, render it, and only then touch GitHub. Nothing is
- * committed until the post is known to build.
+ * validate the payload, render it, and only then touch GitHub -- and minting
+ * a GitHub credential counts as touching GitHub, so it happens after every
+ * local, pure check has already passed. Nothing is committed until the post
+ * is known to build.
  *
  * Env:
- *   AUTH_SECRET   — verifies the session cookie (see api/login.js)
- *   GITHUB_TOKEN  — the GitHub App installation token; repo contents: write
- *   GITHUB_OWNER  — repository owner
- *   GITHUB_REPO   — repository name
- *   GITHUB_BRANCH — defaults to main
+ *   AUTH_SECRET             — verifies the session cookie (see api/login.js)
+ *   GITHUB_APP_ID           — the GitHub App's id, used to mint a fresh
+ *                             installation token on every request
+ *   GITHUB_APP_PRIVATE_KEY  — the App's private key (PEM)
+ *   GITHUB_INSTALLATION_ID  — the App's installation on this repository
+ *   GITHUB_TOKEN            — test-only override: used verbatim as the
+ *                             bearer token instead of minting one. Left set
+ *                             in production it reintroduces the one-hour
+ *                             expiry an installation token carries -- see
+ *                             lib/github-auth.mjs, which warns loudly on
+ *                             every use.
+ *   GITHUB_OWNER            — repository owner
+ *   GITHUB_REPO             — repository name
+ *   GITHUB_BRANCH           — defaults to main
  */
-import { verifySession, authorNameFromSub } from '../lib/session.mjs';
+import { verifySession, authorNameFromSub, readCookie } from '../lib/session.mjs';
 import { preparePublish } from '../lib/publish.mjs';
 import { commitWithRetry, pathExists } from '../lib/github.mjs';
-import { POST_TYPES } from '../lib/post-types.mjs';
+import { resolveGithubToken } from '../lib/github-auth.mjs';
+import { POST_TYPES, coverPathFor } from '../lib/post-types.mjs';
 
 // Vercel's request body cap is 4.5 MB. Base64 inflates bytes by 4/3, so a
 // 3 MB image becomes ~4 MB of base64 text -- leaving ~500 KB of the cap for
 // the post text and the surrounding JSON.
 const MAX_IMAGE_BYTES = 3_000_000;
 
-function readCookie(header, name) {
-  for (const part of String(header || '').split(';')) {
-    const [key, ...rest] = part.trim().split('=');
-    if (key === name) return rest.join('=');
-  }
-  return null;
-}
+// The only two extensions api/unpublish.js's derived-path deletion (Ruling
+// 22) knows to look for. Anything else would publish a cover the editor
+// cannot later clean up, so it is refused here even if a client somehow
+// sent one -- the editor itself refuses "keep original" on webp/avif/gif
+// before this is ever reached (src/admin/editor.js outputExt()).
+const ALLOWED_COVER_EXTS = new Set(['jpg', 'png']);
 
 // Buffer.from(x, 'base64') does not throw on garbage -- it silently skips
 // any character outside the base64 alphabet, so a data URI's
@@ -52,12 +63,13 @@ export default async function handler(request, response) {
   }
 
   const secret = process.env.AUTH_SECRET;
-  const token = process.env.GITHUB_TOKEN;
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
-  if (!secret || !token || !owner || !repo) {
-    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_TOKEN/GITHUB_OWNER/GITHUB_REPO');
+  const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
+    !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
+  if (!secret || !owner || !repo || !hasGithubCredential) {
+    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
@@ -90,12 +102,39 @@ export default async function handler(request, response) {
         message: 'That cover image could not be read. Try choosing it again.'
       });
     }
-    const prefix = POST_TYPES[prepared.type].prefix;
+    // Honours the extension the editor actually produced -- "keep original"
+    // on a PNG must publish a .png, not a JPEG mislabelled as one (Ruling
+    // 24). Anything outside the allowlist is refused rather than guessed
+    // at: the editor already refuses "keep original" on webp/avif/gif
+    // before a request is ever sent, so reaching this branch with one means
+    // something other than the shipped UI sent the request.
+    const ext = String(payload.image.ext || 'jpg').toLowerCase();
+    if (!ALLOWED_COVER_EXTS.has(ext)) {
+      return response.status(400).json({
+        message: `That cover image's file type (.${ext}) cannot be published. Use a JPG or PNG, or leave "keep original" unchecked.`
+      });
+    }
     files.push({
-      path: `src/images/${prefix}${prepared.slug}.jpg`,
+      path: `src/${coverPathFor(prepared.type, prepared.slug, ext)}`,
       content: String(payload.image.base64),
       encoding: 'base64'
     });
+  }
+
+  let token;
+  try {
+    token = await resolveGithubToken();
+  } catch (error) {
+    if (error.code === 'key') {
+      console.error("The site's GitHub private key could not be used", error);
+      return response.status(503).json({ message: error.message });
+    }
+    if (error.code === 'auth') {
+      console.error('GitHub rejected the publishing credential');
+      return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
+    }
+    console.error('Could not obtain a GitHub credential', error);
+    return response.status(502).json({ message: 'Publishing failed. Nothing was changed.' });
   }
 
   // Create versus update means nothing without this check: two different
@@ -104,8 +143,13 @@ export default async function handler(request, response) {
   try {
     const exists = await pathExists({ token, owner, repo, branch, path: prepared.path });
     if (payload.mode === 'create' && exists) {
+      // Not "open the existing post to edit it": that post may be the OTHER
+      // type (fff and post share one src/posts/ namespace, addressed only
+      // by slug), and the editor refuses to open a post of the wrong type
+      // for the form that's currently up (src/admin/editor.js openPostFile).
+      // Naming a fix that might not work is worse than naming none.
       return response.status(409).json({
-        message: 'A post already exists at that address. Change the title, or open the existing post to edit it.'
+        message: 'A post already exists at that address. Change the title, or edit the slug field to choose a different address.'
       });
     }
     if (payload.mode === 'update' && !exists) {

@@ -5,7 +5,7 @@
  */
 import { renderBlocks as renderBlockHtml, renderInline } from '/lib/render-blocks.mjs';
 import { serializePost, parsePost } from '/lib/post-file.mjs';
-import { POST_TYPES, postTitle } from '/lib/post-types.mjs';
+import { POST_TYPES, postTitle, coverPathFor } from '/lib/post-types.mjs';
 import { slugify, isUrlSafe, badSlugChars } from './text.js';
 import { TYPES, BLOCK_LABELS, BLOCK_FIELDS, blankBlock } from './types.js';
 
@@ -91,8 +91,12 @@ function resolved() {
      compute for the same field -- the fallback to the source field when the
      slug is untouched or empty is unchanged. */
   m.slug = slugify(model.slug) || slugify(model[def.slugSource] || '');
+  // coverPathFor is the one cover-path convention, shared with the renderer
+  // (lib/render-blocks.mjs) and both publish endpoints (api/publish.js,
+  // api/unpublish.js) -- there used to be four separate implementations of
+  // this same shape.
   m.coverPath = (model.coverPath || '').trim() ||
-    ('images/' + def.prefix + (m.slug || 'post') + '.' + outputExt());
+    coverPathFor(typeKey, m.slug, outputExt());
   m.headshot = m.coverPath;
   return m;
 }
@@ -525,6 +529,21 @@ var EXT_BY_MIME = {
   'image/webp': 'webp', 'image/avif': 'avif', 'image/gif': 'gif'
 };
 
+/* api/publish.js only ever writes a .jpg or a .png -- the same two formats
+   coverAsBase64() below can actually produce. "Keep original" on anything
+   else (webp/avif/gif, all reachable via EXT_BY_MIME above) has to be
+   refused HERE, in the editor, with a message the author can act on --
+   letting it through and having the server's own allowlist silently refuse
+   it (or worse, silently rewrite the extension) is exactly the kind of
+   unverified "Published." this phase exists to rule out. */
+var PUBLISHABLE_COVER_EXTS = { jpg: true, png: true };
+
+function coverExtIsPublishable() {
+  if (!cover.file) return true;
+  if (!($('img-keep') && $('img-keep').checked)) return true; // will be re-encoded to jpg
+  return !!PUBLISHABLE_COVER_EXTS[cover.ext];
+}
+
 function onFilePicked(file) {
   if (!file) return;
   if (cover.blobUrl) URL.revokeObjectURL(cover.blobUrl);
@@ -547,13 +566,41 @@ var COVER_QUALITY = 0.82;
    carrying that prefix. Resolves null when no cover was chosen, so the
    caller can publish a post with no image.
 
-   Always re-encodes to JPEG, unlike downloadRenamedImage's PNG-transparency
-   bypass below -- that checkbox is for a file the author keeps locally, but
-   the publish payload has no such option: api/publish.js's own read-back
-   check assumes the JPEG this function always produces. */
+   "Keep original" now takes the same path here as it does in
+   downloadRenamedImage below: the original bytes pass straight through with
+   no re-encoding, for a jpg or a png (coverExtIsPublishable() has already
+   refused anything else before this is ever called). That is the fix for
+   Ruling 24 -- a kept-original PNG used to be re-encoded to JPEG here
+   regardless, so the file api/publish.js wrote never matched the .png path
+   the post's own front matter recorded. The one real constraint driving
+   this is the WRITTEN FILE PATH: api/publish.js writes
+   `<prefix><slug>.<ext>` with ext coming from this payload, so whatever
+   bytes are sent here must actually be encoded the way that extension
+   claims, or the published cover is broken the moment a browser tries to
+   decode it as that format. */
 function coverAsBase64() {
   return new Promise(function (resolve, reject) {
     if (!cover.file) { resolve(null); return; }
+    if ($('img-keep') && $('img-keep').checked) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = String(reader.result || '');
+        var comma = result.indexOf(',');
+        if (comma === -1) { reject(new Error('That image could not be read. Choose a JPG or PNG.')); return; }
+        var payload = result.slice(comma + 1);
+        if (!payload) { reject(new Error('That image could not be read. Choose a JPG or PNG.')); return; }
+        if (payload.length > 3_500_000) {
+          reject(new Error('That cover image is too large to publish. Choose a smaller one, or uncheck "keep original" to shrink it.'));
+          return;
+        }
+        resolve(payload);
+      };
+      reader.onerror = function () {
+        reject(new Error('That file could not be read as an image. Choose a JPG or PNG.'));
+      };
+      reader.readAsDataURL(cover.file);
+      return;
+    }
     var img = new Image();
     img.onload = function () {
       // A truncated file, or something other than an image chosen past the
@@ -788,7 +835,12 @@ function publishPayload(image) {
     mode: (openedSlug && openedSlug === post.slug) ? 'update' : 'create',
     fields: post,
     blocks: blocks,
-    image: image ? { base64: image } : null
+    // ext travels with the image so api/publish.js writes the SAME
+    // extension this payload's bytes actually are -- coverAsBase64() only
+    // ever produces a jpg (the resize path) or, with "keep original"
+    // checked, whatever outputExt() says (refused earlier by
+    // coverExtIsPublishable() unless that is also jpg or png).
+    image: image ? { base64: image, ext: outputExt() } : null
   };
 }
 
@@ -799,8 +851,20 @@ async function publishPost() {
      round trip on it -- an author should not learn about a blank title from
      the server. buildPostObject() has already toasted the reason. */
   if (!buildPostObject()) return;
+  if (!coverExtIsPublishable()) {
+    status.textContent = 'That cover image is a .' + cover.ext + ' file with "keep original" checked — ' +
+      'only JPG and PNG can be published that way. Uncheck "keep original" (it will be resized to a JPG), ' +
+      'or choose a JPG or PNG cover instead.';
+    return;
+  }
   button.disabled = true;
-  status.textContent = 'Publishing…';
+  // A reload during "Publishing…" must be knowably safe: nothing here times
+  // out (a promise timeout was deliberately ruled against -- a slow request
+  // that eventually succeeds must not be raced against a fake failure), so
+  // the one thing an author can control if it seems stuck is told to them
+  // up front instead of left to worry that a reload might duplicate or
+  // half-finish something.
+  status.textContent = 'Publishing… if this doesn’t finish in about a minute, reload and try again — nothing has been published yet.';
   try {
     var image = await coverAsBase64();
     var payload = publishPayload(image);
