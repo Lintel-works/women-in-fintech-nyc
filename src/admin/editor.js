@@ -82,7 +82,15 @@ function downloadBlob(blob, filename) {
 function resolved() {
   var m = {};
   Object.keys(model).forEach(function (k) { m[k] = model[k]; });
-  m.slug = model.slug || slugify(model[def.slugSource] || '');
+  /* model.slug is whatever the author typed into the slug field, verbatim --
+     badSlugChars only rejects the wrong characters, not "abc--def" or
+     "-abc-" or a 90-character run, all of which the server's slugify would
+     still rewrite. Running it through slugify() here, not just displaying
+     it raw, is what keeps the filename, the coverPath below, and everything
+     buildPostObject() writes in agreement with what api/publish.js will
+     compute for the same field -- the fallback to the source field when the
+     slug is untouched or empty is unchanged. */
+  m.slug = slugify(model.slug) || slugify(model[def.slugSource] || '');
   m.coverPath = (model.coverPath || '').trim() ||
     ('images/' + def.prefix + (m.slug || 'post') + '.' + outputExt());
   m.headshot = m.coverPath;
@@ -213,6 +221,23 @@ function renderFields() {
       if (f.type === 'textarea') autoGrow(input);
       onChange();
     });
+
+    /* Canonicalise on blur only, not on every keystroke: normalising while
+       the author is still typing would collapse "a-b" to "a-" the instant
+       they type the second hyphen, mid-word. Blur is when they've moved on,
+       so this is the moment to show them the address they will actually get
+       -- resolved() already computes the canonical form silently; this makes
+       it visible instead of a surprise after publish. */
+    if (f.key === 'slug') {
+      input.addEventListener('blur', function () {
+        var canonical = slugify(input.value);
+        if (canonical === input.value) return;
+        input.value = canonical;
+        model.slug = canonical;
+        showWarning(f, wrap, warn, canonical);
+        onChange();
+      });
+    }
 
     if (f.type === 'textarea') setTimeout(function () { autoGrow(input); }, 0);
     host.appendChild(wrap);

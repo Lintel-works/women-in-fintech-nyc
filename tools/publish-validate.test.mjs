@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { slugify, postPath, validatePublish } from '../lib/publish-validate.mjs';
 import { serializePost } from '../lib/post-file.mjs';
+import { POST_TYPES } from '../lib/post-types.mjs';
 
 test('a title becomes a slug', () => {
   assert.equal(slugify('October in Review: Three Sold-Out Nights'), 'october-in-review-three-sold-out-nights');
@@ -150,3 +151,66 @@ test('a hand-edited slug publishes byte-identically to what the editor would hav
   assert.equal(result.ok, true);
   assert.equal(serializePost(result.post), serializePost(downloadedPost));
 });
+
+/* Round 3 fix: the round-2 byte-identity test above used 'oct-recap', a
+   slug already in canonical form -- it could not have caught a
+   normalisation mismatch, because there was nothing left for either side to
+   normalise. A slug typed directly into the editor's slug field was stored
+   raw (only badSlugChars gated it, which is charset-only: it accepts
+   "abc--def", "-abc-", a trailing "--", or any length), while resolved()
+   downstream sent that raw value straight through. slugify() collapses
+   repeated separators, trims leading/trailing hyphens, and caps at 80
+   characters, so the server disagreed with the client on exactly those
+   shapes. src/admin/editor.js's resolved() now runs model.slug through
+   slugify() before anything downstream (the download filename, coverPath,
+   the published payload) sees it, so the client is canonical BY
+   CONSTRUCTION and can no longer disagree with the server no matter what an
+   author typed. These four cases are the shapes that used to diverge. */
+const HAND_TYPED_SLUG_SHAPES = [
+  { typed: 'abc--def', label: 'a double hyphen' },
+  { typed: '-abc-', label: 'a leading and trailing hyphen' },
+  { typed: 'trailing--', label: 'a trailing hyphen run' },
+  { typed: 'a'.repeat(90), label: 'a slug over the 80-character cap' }
+];
+
+for (const { typed, label } of HAND_TYPED_SLUG_SHAPES) {
+  test(`a directly-typed slug with ${label} publishes byte-identically to what the editor would download`, () => {
+    const type = 'post';
+    const title = 'October in Review';
+
+    // What src/admin/editor.js's resolved() now computes for model.slug --
+    // slugify(model.slug) with the existing fallback to the source field
+    // preserved. This is the fix under test: before it, this line would
+    // have been the raw `typed` value.
+    const clientSlug = slugify(typed) || slugify(title);
+
+    // The object buildPostObject() would produce and downloadPost() would
+    // write to a file, using that canonical slug throughout -- including
+    // coverPath, which is derived from the same slug and would otherwise
+    // point at an image api/publish.js never wrote.
+    const downloadedPost = {
+      title,
+      slug: clientSlug,
+      intro: 'It was a wonderful night.',
+      coverPath: 'images/' + POST_TYPES[type].prefix + clientSlug + '.jpg',
+      headshot: 'images/' + POST_TYPES[type].prefix + clientSlug + '.jpg',
+      displayDate: 'Oct 14',
+      type,
+      blocks: []
+    };
+
+    // publishPayload()'s split: blocks and type move to their own top-level
+    // payload keys before the request is sent.
+    const { blocks, type: sentType, ...fields } = downloadedPost;
+    const result = validatePublish({ type: sentType, mode: 'create', fields, blocks });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.slug, clientSlug, `client slug "${clientSlug}" and server slug "${result.slug}" disagree for ${JSON.stringify(typed)}`);
+    assert.equal(serializePost(result.post), serializePost(downloadedPost));
+
+    // The cover image api/publish.js actually writes for this post --
+    // coverPath (web-relative, no src/ prefix) must name the same file.
+    const serverImagePath = `src/images/${POST_TYPES[type].prefix}${result.slug}.jpg`;
+    assert.equal('src/' + downloadedPost.coverPath, serverImagePath);
+  });
+}
