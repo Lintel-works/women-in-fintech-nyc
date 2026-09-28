@@ -505,12 +505,27 @@ var COVER_QUALITY = 0.82;
 /* Resolves to base64 with the data: prefix stripped -- api/publish.js does a
    strict base64 round-trip on the payload and rejects anything still
    carrying that prefix. Resolves null when no cover was chosen, so the
-   caller can publish a post with no image. */
+   caller can publish a post with no image.
+
+   Always re-encodes to JPEG, unlike downloadRenamedImage's PNG-transparency
+   bypass below -- that checkbox is for a file the author keeps locally, but
+   the publish payload has no such option: api/publish.js's own read-back
+   check assumes the JPEG this function always produces. */
 function coverAsBase64() {
   return new Promise(function (resolve, reject) {
     if (!cover.file) { resolve(null); return; }
     var img = new Image();
     img.onload = function () {
+      // A truncated file, or something other than an image chosen past the
+      // file input's advisory accept="image/*", can decode with no intrinsic
+      // size. That makes the canvas 0x0, and toDataURL() on a 0x0 canvas
+      // returns the literal string "data:," -- which has a comma, so it
+      // would otherwise slip past the comma === -1 guard below and resolve
+      // to an empty string instead of failing loudly.
+      if (!img.width || !img.height) {
+        reject(new Error('That image could not be read. Choose a JPG or PNG.'));
+        return;
+      }
       var scale = Math.min(1, MAX_COVER_EDGE / Math.max(img.width, img.height));
       var canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
@@ -527,7 +542,16 @@ function coverAsBase64() {
         reject(new Error('That cover image is too large to publish even after shrinking. Choose a smaller one.'));
         return;
       }
-      resolve(url.slice(comma + 1));
+      var payload = url.slice(comma + 1);
+      // Belt-and-braces alongside the width/height check above: a resolved
+      // value must never be an empty string, since api/publish.js treats a
+      // falsy base64 field as "no image" and would silently publish the post
+      // with none instead of surfacing this as an error.
+      if (!payload) {
+        reject(new Error('That image could not be read. Choose a JPG or PNG.'));
+        return;
+      }
+      resolve(payload);
     };
     img.onerror = function () {
       reject(new Error('That file could not be read as an image. Choose a JPG or PNG.'));
