@@ -3,18 +3,12 @@
    committed post already has its slug and its links are already checked. */
 import { safeUrl } from '/lib/render-blocks.mjs';
 
-/* Copied verbatim from the deleted templates.js. The NFD pass matters: it is
-   what turns an accented name into the slug an existing post already uses. */
-export function slugify(name) {
-  return String(name == null ? '' : name)
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/['’]/g, '')          // D'aundra -> daundra
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
+/* Re-exported, not redefined: the publish endpoint (lib/publish-validate.mjs)
+   recomputes and overwrites whatever slug the client sends, so this editor
+   and that server MUST run the same function or a published file diverges
+   from what downloadPost() would have written for the same title. See
+   lib/slug.mjs for the incident that made that not-theoretical. */
+export { slugify } from '/lib/slug.mjs';
 
 /* Blank is fine; anything the renderer would collapse to '#' is not. */
 export function isUrlSafe(s) {

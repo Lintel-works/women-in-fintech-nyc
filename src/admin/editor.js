@@ -767,6 +767,11 @@ async function publishPost() {
     });
     var data = await response.json().catch(function () { return {}; });
     if (response.ok) {
+      /* Without this, a post published as 'create' stays 'create' forever:
+         a second publish with no changes would send 'create' again and the
+         server's 409 guard would refuse it, with no way to recover short of
+         reopening a file the author never downloaded. */
+      openedSlug = payload.fields.slug;
       status.textContent = 'Published. Live in about a minute: ' + data.url;
       return;
     }
@@ -793,6 +798,11 @@ function importJson(file) {
   reader.onload = function () {
     try {
       var data = JSON.parse(String(reader.result));
+      /* An imported draft is not the post this editor was opened against --
+         it may carry the same slug an open post did by coincidence (a typo
+         fix, a re-export), and publishing that as 'update' would silently
+         overwrite whatever is live at that slug instead of creating new. */
+      openedSlug = null;
       applyDraft({ model: data.model || data, slugTouched: true, ext: data.ext });
       save();
       toast('Imported');
@@ -808,6 +818,11 @@ function clearAll() {
   if (cover.blobUrl) URL.revokeObjectURL(cover.blobUrl);
   cover = { file: null, blobUrl: null, ext: 'jpg' };
   model = emptyModel();
+  /* Otherwise a new post that happens to land on the slug the previous
+     "opened" post had -- a retyped title, a fixed typo -- would still
+     compare equal to openedSlug and publish as 'update', silently
+     overwriting a live post the author never opened to edit. */
+  openedSlug = null;
   slugTouched = false;
   $('img-file').value = '';
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
