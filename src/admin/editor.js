@@ -726,6 +726,11 @@ function downloadPost() {
    every published post as noise. */
 function publishPayload(image) {
   var post = buildPostObject();
+  /* The model can change during the await in publishPost() (coverAsBase64()
+     is async), so this second call can fail even though the guard at the top
+     of publishPost() passed. Propagate null rather than deleting a property
+     off it -- buildPostObject() has already toasted the specific reason. */
+  if (!post) return null;
   var blocks = post.blocks;
   delete post.blocks;
   delete post.type;
@@ -749,10 +754,16 @@ async function publishPost() {
   status.textContent = 'Publishing…';
   try {
     var image = await coverAsBase64();
+    var payload = publishPayload(image);
+    /* The author edited the form during the await above and it is no longer
+       publishable. The specific toast already fired inside buildPostObject();
+       leave the status line clear rather than layering a generic failure over
+       it, and let the finally block below re-enable the button. */
+    if (!payload) { status.textContent = ''; return; }
     var response = await fetch('/api/publish', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(publishPayload(image))
+      body: JSON.stringify(payload)
     });
     var data = await response.json().catch(function () { return {}; });
     if (response.ok) {
