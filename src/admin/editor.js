@@ -24,6 +24,11 @@ var slugTouched = false;
 var cover = { file: null, blobUrl: null, ext: 'jpg' };
 var previewTimer = null;
 
+/* Publishing state. The cookie itself is HttpOnly and unreadable here by
+   design -- this flag only drives what the UI offers. The server is the thing
+   that actually decides, on every request. */
+var signedIn = false;
+
 var $ = function (id) { return document.getElementById(id); };
 
 /* Field key -> the elements renderFields built for it, so a field can be
@@ -520,6 +525,45 @@ function downloadRenamedImage() {
   img.src = cover.blobUrl;
 }
 
+/* ------------------------------------------------------------------- auth */
+
+async function signIn() {
+  var email = $('signin-email').value.trim();
+  var password = $('signin-password').value;
+  var status = $('signin-status');
+  status.textContent = 'Signing in…';
+  try {
+    var response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    if (response.status === 204) {
+      signedIn = true;
+      status.textContent = 'Signed in as ' + email + '.';
+      $('signin-password').value = '';
+      updatePublishAvailability();
+      return;
+    }
+    if (response.status === 503) {
+      status.textContent = 'Publishing is not set up on this site yet.';
+      return;
+    }
+    status.textContent = 'That email and password do not match.';
+  } catch (error) {
+    status.textContent = 'Could not reach the site to sign in. Check your connection.';
+  }
+}
+
+/* btn-publish does not exist until Task 8 adds it -- a deliberate no-op
+   until then. */
+function updatePublishAvailability() {
+  var button = $('btn-publish');
+  if (!button) return;
+  button.disabled = !signedIn;
+  button.title = signedIn ? '' : 'Sign in to publish';
+}
+
 /* --------------------------------------------------------------- actions */
 
 async function openPostFile(file) {
@@ -665,6 +709,7 @@ function init() {
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);
 
+  $('btn-signin').addEventListener('click', signIn);
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
   $('post-file').addEventListener('change', function (e) {
