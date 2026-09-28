@@ -138,3 +138,51 @@ test('a second stale head gives up rather than looping', async () => {
     (error) => error.code === 'stale_head'
   );
 });
+
+test('pathExists encodes special characters correctly so ref param is not swallowed', async () => {
+  const fetchImpl = scriptedFetch([{ status: 200, body: { sha: 'abc' } }]);
+  await pathExists({
+    token: 't', owner: 'o', repo: 'r', branch: 'main',
+    path: 'src/posts/my post #1 100% done?.html',
+    fetchImpl
+  });
+  const url = new URL(fetchImpl.calls[0].url);
+  assert.equal(url.searchParams.get('ref'), 'main');
+  assert.ok(url.pathname.includes('my%20post%20%231%20100%25%20done%3F.html'));
+});
+
+test('a 200 response with missing object property throws with code github', async () => {
+  const fetchImpl = scriptedFetch([{ status: 200, body: { notobject: true } }]);
+  await assert.rejects(
+    () => commitFiles({
+      token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'x',
+      author: { name: 'J', email: 'j@example.com' }, files: [], fetchImpl
+    }),
+    (error) => error.code === 'github'
+  );
+});
+
+test('a mixed files array with both content and delete entries works correctly', async () => {
+  const fetchImpl = scriptedFetch([
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'BLOB1' } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  await commitFiles({
+    token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'Update post',
+    author: { name: 'Jane', email: 'jane@example.com' },
+    files: [
+      { path: 'src/posts/new.html', content: 'hello', encoding: 'utf-8' },
+      { path: 'src/posts/old.html', delete: true }
+    ],
+    fetchImpl
+  });
+  const blobCalls = fetchImpl.calls.filter((c) => c.url.endsWith('/git/blobs'));
+  assert.equal(blobCalls.length, 1, 'exactly one blob call for the content entry');
+  const treeCall = fetchImpl.calls.find((c) => c.url.endsWith('/git/trees'));
+  assert.equal(treeCall.body.tree[0].sha, 'BLOB1', 'first entry has blob sha');
+  assert.equal(treeCall.body.tree[1].sha, null, 'second entry has null sha for deletion');
+});
