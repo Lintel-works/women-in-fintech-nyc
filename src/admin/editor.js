@@ -820,6 +820,52 @@ async function publishPost() {
   }
 }
 
+/* Requires the author to type the post's canonical address rather than a
+   window.confirm() dialog: a browser modal blocks the page and cannot be
+   driven from a test, and this deletes a live page with no review step and
+   no developer to restore it. The slug typed and the slug sent are both
+   resolved().slug -- the same canonicalised value api/publish.js would have
+   published -- so a stale or hand-typed model.slug can never confirm against
+   or unpublish an address that was never actually live. */
+async function unpublishPost() {
+  var status = $('unpublish-status');
+  var slug = resolved().slug;
+  if (!slug) { status.textContent = 'Nothing to unpublish.'; return; }
+  if ($('unpublish-confirm').value.trim() !== slug) {
+    status.textContent = 'Type ' + slug + ' to confirm.';
+    return;
+  }
+  var button = $('btn-unpublish');
+  button.disabled = true;
+  status.textContent = 'Unpublishing…';
+  try {
+    var response = await fetch('/api/unpublish', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: typeKey, slug: slug })
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (response.ok) {
+      /* The file at this slug no longer exists. Leaving openedSlug set would
+         make a later publish of this same form send mode: 'update' for a
+         path that is gone, and api/publish.js's own exists-check would
+         refuse it with a 409 -- so clear it, the same way clearAll() and
+         applyDraft() already do when the model no longer matches a live
+         post. */
+      if (openedSlug === slug) openedSlug = null;
+      status.textContent = 'Unpublished. The page will disappear in about a minute.';
+      $('unpublish-confirm').value = '';
+      return;
+    }
+    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
+    status.textContent = data.message || 'Unpublishing failed. Nothing was changed.';
+  } catch (error) {
+    status.textContent = error.message || 'Unpublishing failed. Nothing was changed.';
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function exportJson() {
   var payload = JSON.stringify({ model: model, ext: cover.ext }, null, 2);
   var m = resolved();
@@ -908,6 +954,7 @@ function init() {
     if (e.target.files[0]) openPostFile(e.target.files[0]);
     e.target.value = '';
   });
+  $('btn-unpublish').addEventListener('click', unpublishPost);
   $('btn-export').addEventListener('click', exportJson);
   $('btn-clear').addEventListener('click', clearAll);
   $('btn-import').addEventListener('click', function () { $('import-file').click(); });
