@@ -249,6 +249,26 @@ section will show its fallback. To run the function locally use `vercel dev`
   cards if you want a different safety net. Check the browser console for a
   `[events]` warning explaining which case was hit.
 
+## Environment variables
+
+| Variable | Used by | Purpose |
+|---|---|---|
+| `LUMA_API_KEY` | `api/events.js` | Reads the Luma calendar for the events section. See [Luma events integration](#luma-events-integration). |
+| `AUTH_SECRET` | `api/login.js`, `api/publish.js`, `api/unpublish.js` | Signs the editor's session cookie. Rotating it signs every author out. |
+| `AUTH_USERS` | `api/login.js` | JSON map of author email → scrypt hash, produced by `node tools/hash-password.mjs`. |
+| `GITHUB_TOKEN` | `api/publish.js`, `api/unpublish.js` | A GitHub App installation token with Contents: Read and write, used to commit published posts. |
+| `GITHUB_OWNER` | `api/publish.js`, `api/unpublish.js` | The repository owner the editor commits to. |
+| `GITHUB_REPO` | `api/publish.js`, `api/unpublish.js` | The repository name the editor commits to. |
+| `GITHUB_BRANCH` | `api/publish.js`, `api/unpublish.js` | Optional; defaults to `main`. |
+
+`.env.example` documents `LUMA_API_KEY`, `AUTH_SECRET` and `AUTH_USERS` for
+local development. The `GITHUB_*` variables are Production-only in this
+project's Vercel settings — publishing to a real repository from a local
+`vercel dev` session isn't part of the intended workflow, so they aren't in
+`.env.example`. Full setup for the publishing variables, including why a
+GitHub App and not a personal access token, is in
+[`docs/publishing-setup.md`](docs/publishing-setup.md).
+
 ## Post editor
 
 `admin/index.html` is a client-side authoring tool for both post types —
@@ -273,14 +293,38 @@ To edit an existing post:
    half-loaded.
 3. Edit, watching the live preview. The preview is the article body only — the
    hero, nav and footer come from the build.
-4. **Download post file** → save `<slug>.html` back into `src/posts/`,
-   overwriting the original. Eleventy publishes it under the type's prefix:
-   `fff-<slug>.html` for Fintech Female Fridays, `post-<slug>.html` for
-   Jobs & Happenings.
+4. **Publish** → sign in (see below), then click **Publish**. The editor
+   commits the post file — and its cover image, if it has one — straight to
+   `main` in one commit, and the response gives back the live URL. No git
+   checkout is needed for this. Publishing again with the same post open
+   updates that same file instead of creating a new one.
 
-A new post is the same minus step 1, plus **Download renamed image** → save it
-into `src/images/` under the path the form shows. Then `npm run build` and check
+A new post is the same minus step 1. Publishing a new post commits both the
+post file and its cover image together the first time.
+
+**Download post file** and **Download renamed image** are still there as a
+fallback for anyone without a publish account, or when signing in isn't an
+option: download both, save the post into `src/posts/` and the image into
+`src/images/` under the path the form shows, then `npm run build` and check
 the post, the listing page and the homepage.
+
+### Signing in and publishing
+
+Publishing and unpublishing need an author account — there is no self-service
+sign-up. **Sign in to publish**, at the top of the editor, takes an email and
+password; a successful sign-in shows "Signed in as `<email>`." Without signing
+in, the editor still works fully for writing, previewing and downloading — only
+the Publish and Unpublish buttons are disabled.
+
+**Unpublish** removes a live post (and its cover image, if the post's own
+`coverPath` still matches the convention the editor writes) in one commit. It
+only unlocks for a post this session has actually opened or just published —
+never for whatever the form's fields currently say — and requires typing the
+post's slug to confirm, since it's destructive and there's no undo short of a
+manual `git revert`.
+
+Setting up the GitHub App and the first author account is a one-time,
+human-only setup step — see [`docs/publishing-setup.md`](docs/publishing-setup.md).
 
 **Nothing gets pasted.** The cards on `fintech-female-fridays.html` and the
 homepage are generated from the post data, so adding a post to `src/posts/` is
@@ -297,8 +341,17 @@ preview and `lib/post-file.mjs` for the file format, so a change to either is
 picked up by the editor and the build at once — and the site nav, drawer and
 footer live only in `src/_includes/`.
 
-`admin/` is deployed but unlinked and has no password. `robots.txt` keeps it out
-of search results; it does not make it private.
+`admin/` is deployed but unlinked. `robots.txt` keeps it out of search
+results; it does not make it private — anyone with the URL can open it, write,
+preview and download. Publishing and unpublishing are the only actions behind
+a password (see "Signing in and publishing" above); reaching the editor itself
+still needs no credential.
+
+**Known issue:** publishing a PNG cover image with "keep original" checked
+produces a broken cover — the post records a `.png` path but the server always
+writes the uploaded image as `.jpg`. See
+[`docs/publishing-setup.md`](docs/publishing-setup.md#known-issues) for
+detail and the workaround.
 
 ## Design
 
