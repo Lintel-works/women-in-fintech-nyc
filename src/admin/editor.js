@@ -495,6 +495,47 @@ function onFilePicked(file) {
   schedulePreview();
 }
 
+/* Vercel caps a function request body at 4.5 MB, and an unmodified phone
+   photo can exceed that on its own -- founders-roundtable.jpg is 383 KB only
+   because it has already been through something. So this is not an
+   optimisation, it is what makes publishing work at all. */
+var MAX_COVER_EDGE = 1600;
+var COVER_QUALITY = 0.82;
+
+/* Resolves to base64 with the data: prefix stripped -- api/publish.js does a
+   strict base64 round-trip on the payload and rejects anything still
+   carrying that prefix. Resolves null when no cover was chosen, so the
+   caller can publish a post with no image. */
+function coverAsBase64() {
+  return new Promise(function (resolve, reject) {
+    if (!cover.file) { resolve(null); return; }
+    var img = new Image();
+    img.onload = function () {
+      var scale = Math.min(1, MAX_COVER_EDGE / Math.max(img.width, img.height));
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      var url = canvas.toDataURL('image/jpeg', COVER_QUALITY);
+      var comma = url.indexOf(',');
+      if (comma === -1) { reject(new Error('The cover image could not be prepared.')); return; }
+      // Base64 inflates by about a third; check the encoded length, which is
+      // what actually travels, not the pixel dimensions. This is stricter
+      // than api/publish.js's own 4,000,001-character limit on purpose: the
+      // client should refuse before a request is sent, not after it fails.
+      if (url.length > 3_500_000) {
+        reject(new Error('That cover image is too large to publish even after shrinking. Choose a smaller one.'));
+        return;
+      }
+      resolve(url.slice(comma + 1));
+    };
+    img.onerror = function () {
+      reject(new Error('That file could not be read as an image. Choose a JPG or PNG.'));
+    };
+    img.src = cover.blobUrl || URL.createObjectURL(cover.file);
+  });
+}
+
 /* Downscale to 1600px wide and re-encode — the existing Wix-era assets are
    far larger than the layout needs. The checkbox bypasses it for PNGs with
    transparency, which JPEG would flatten. */
