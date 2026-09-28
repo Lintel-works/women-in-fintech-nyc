@@ -469,6 +469,7 @@ function applyDraft(draft) {
      happens to carry the same slug from silently publishing as an update to
      whatever is live at that address. */
   openedSlug = null;
+  updatePublishAvailability();
   slugTouched = !!draft.slugTouched;
   cover.ext = draft.ext || 'jpg';
   renderAll();
@@ -659,13 +660,27 @@ async function signIn() {
   }
 }
 
-/* btn-publish does not exist until Task 8 adds it -- a deliberate no-op
-   until then. */
+/* The one place both publish-availability and unpublish-availability are
+   decided, called on every signedIn or openedSlug transition. btn-unpublish
+   needs both conditions, not just signedIn: openedSlug is the only slug this
+   session actually knows to be live (set by opening a post or by a
+   successful publish, cleared by New post, import, restore or a successful
+   unpublish) -- disabling the button when it is null is what stops an
+   unpublish from ever targeting a slug nothing here has confirmed is
+   published. */
 function updatePublishAvailability() {
-  var button = $('btn-publish');
-  if (!button) return;
-  button.disabled = !signedIn;
-  button.title = signedIn ? '' : 'Sign in to publish';
+  var publishButton = $('btn-publish');
+  if (publishButton) {
+    publishButton.disabled = !signedIn;
+    publishButton.title = signedIn ? '' : 'Sign in to publish';
+  }
+  var unpublishButton = $('btn-unpublish');
+  if (unpublishButton) {
+    var canUnpublish = signedIn && !!openedSlug;
+    unpublishButton.disabled = !canUnpublish;
+    unpublishButton.title = canUnpublish ? '' :
+      (!signedIn ? 'Sign in to unpublish' : 'Open or publish a post first — nothing here is known to be published');
+  }
 }
 
 /* --------------------------------------------------------------- actions */
@@ -705,6 +720,7 @@ async function openPostFile(file) {
   model = Object.assign(emptyModel(), post, { date: post.displayDate });
   openedSlug = model.slug || null;
   slugTouched = true;   // an opened post owns its slug; the name must not rewrite it
+  updatePublishAvailability();
   renderAll();
   save();
   toast('Opened ' + (post.name || post.title || post.slug));
@@ -808,6 +824,7 @@ async function publishPost() {
          decides the real address (api/publish.js sanitises the requested
          slug too), so its answer is the one to trust. */
       openedSlug = data.slug;
+      updatePublishAvailability();
       status.textContent = 'Published. Live in about a minute: ' + data.url;
       return;
     }
@@ -824,13 +841,20 @@ async function publishPost() {
    window.confirm() dialog: a browser modal blocks the page and cannot be
    driven from a test, and this deletes a live page with no review step and
    no developer to restore it. The slug typed and the slug sent are both
-   resolved().slug -- the same canonicalised value api/publish.js would have
-   published -- so a stale or hand-typed model.slug can never confirm against
-   or unpublish an address that was never actually live. */
+   openedSlug -- the slug of the post this session actually opened or just
+   published -- not resolved().slug, the current form's slug. Using the form's
+   slug would target whatever the author has typed so far, including an
+   unsaved retitle: open a live post, retitle it without publishing, and
+   resolved().slug no longer names anything that was ever published, while
+   the real live page stays up untouched and the confirm field would ask for
+   (and accept) that same wrong address. openedSlug is the one slug this
+   session actually knows to be live. btn-unpublish is disabled whenever it is
+   null (see updatePublishAvailability), so this is a defensive second check,
+   not the only guard. */
 async function unpublishPost() {
   var status = $('unpublish-status');
-  var slug = resolved().slug;
-  if (!slug) { status.textContent = 'Nothing to unpublish.'; return; }
+  var slug = openedSlug;
+  if (!slug) { status.textContent = 'Open or publish a post first.'; return; }
   if ($('unpublish-confirm').value.trim() !== slug) {
     status.textContent = 'Type ' + slug + ' to confirm.';
     return;
@@ -851,8 +875,11 @@ async function unpublishPost() {
          path that is gone, and api/publish.js's own exists-check would
          refuse it with a 409 -- so clear it, the same way clearAll() and
          applyDraft() already do when the model no longer matches a live
-         post. */
-      if (openedSlug === slug) openedSlug = null;
+         post. This also disables btn-unpublish again via
+         updatePublishAvailability(), so a second click cannot re-target the
+         same now-deleted address. */
+      openedSlug = null;
+      updatePublishAvailability();
       status.textContent = 'Unpublished. The page will disappear in about a minute.';
       $('unpublish-confirm').value = '';
       return;
@@ -862,7 +889,10 @@ async function unpublishPost() {
   } catch (error) {
     status.textContent = error.message || 'Unpublishing failed. Nothing was changed.';
   } finally {
-    button.disabled = false;
+    // Not a bare `false`: updatePublishAvailability() re-applies the real
+    // signedIn/openedSlug gate, which the success path above may just have
+    // changed to null.
+    updatePublishAvailability();
   }
 }
 
@@ -903,6 +933,7 @@ function clearAll() {
      compare equal to openedSlug and publish as 'update', silently
      overwriting a live post the author never opened to edit. */
   openedSlug = null;
+  updatePublishAvailability();
   slugTouched = false;
   $('img-file').value = '';
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
@@ -942,6 +973,11 @@ function init() {
 
   renderAddRow();
   renderAll();
+  // Sets btn-unpublish's initial disabled state: openedSlug starts null, so
+  // this matches the button's static `disabled` attribute in the markup, but
+  // computing it here (rather than trusting the attribute alone) is what
+  // keeps the two buttons' gating in one place.
+  updatePublishAvailability();
 
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);

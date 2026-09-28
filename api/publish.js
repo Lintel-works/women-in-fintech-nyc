@@ -12,7 +12,7 @@
  *   GITHUB_REPO   — repository name
  *   GITHUB_BRANCH — defaults to main
  */
-import { verifySession } from '../lib/session.mjs';
+import { verifySession, authorNameFromSub } from '../lib/session.mjs';
 import { preparePublish } from '../lib/publish.mjs';
 import { commitWithRetry, pathExists } from '../lib/github.mjs';
 import { POST_TYPES } from '../lib/post-types.mjs';
@@ -122,9 +122,7 @@ export default async function handler(request, response) {
     return response.status(502).json({ message: 'Publishing failed. Nothing was changed.' });
   }
 
-  // git blame reads better with a name than with an email address; the
-  // session only carries an email, so fall back to its local part.
-  const authorName = session.sub.includes('@') ? session.sub.split('@')[0] : session.sub;
+  const authorName = authorNameFromSub(session.sub);
 
   const commit = {
     token, owner, repo, branch,
