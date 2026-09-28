@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, postPath, validatePublish } from '../lib/publish-validate.mjs';
+import { slugify, postPath, validatePublish, KNOWN_BLOCKS } from '../lib/publish-validate.mjs';
 import { serializePost } from '../lib/post-file.mjs';
 import { POST_TYPES } from '../lib/post-types.mjs';
+import { RENDERABLE_BLOCK_TYPES } from '../lib/render-blocks.mjs';
 
 test('a title becomes a slug', () => {
   assert.equal(slugify('October in Review: Three Sold-Out Nights'), 'october-in-review-three-sold-out-nights');
@@ -74,6 +75,41 @@ test('an unknown block type is refused', () => {
   });
   assert.equal(result.ok, false);
   assert.match(result.message, /video/);
+});
+
+// FIX 7 (final wave): KNOWN_BLOCKS is hand-maintained here and could drift
+// from what the renderer actually knows -- either direction is a bug (a
+// block validatePublish accepts but renderBlocks silently drops, or one
+// renderBlocks knows but validatePublish refuses).
+test('KNOWN_BLOCKS matches the renderer\'s actual block set exactly', () => {
+  assert.deepEqual([...KNOWN_BLOCKS].sort(), [...RENDERABLE_BLOCK_TYPES].sort());
+});
+
+// FIX 2 (final wave): Object.entries(block) used to reach the serializer
+// verbatim, so a block key containing ": " -- reachable from the shipped
+// Import JSON button, which applies a parsed model with no sanitising --
+// injected a raw line into the front matter and broke the build the same
+// way an unquoted top-level field did (FIX 1). Any key outside the per-type
+// allowlist must be dropped before the post is ever serialized.
+test('an unknown block key is dropped, not written to the file', () => {
+  const result = validatePublish({
+    type: 'post', mode: 'create', fields: { title: 'Hello' },
+    blocks: [{ type: 'paragraph', text: 'Fine', 'evil: injected': 'x' }]
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.post.blocks, [{ type: 'paragraph', text: 'Fine' }]);
+  assert.ok(!serializePost(result.post).includes('evil: injected'));
+});
+
+test('a hostile block key cannot inject a front-matter line via Import JSON', () => {
+  const result = validatePublish({
+    type: 'post', mode: 'create', fields: { title: 'Hello' },
+    blocks: [{ type: 'qa', q: 'Q', a: 'A', 'a:\n  injected': 'x' }]
+  });
+  assert.equal(result.ok, true);
+  const text = serializePost(result.post);
+  assert.ok(!text.includes('injected'));
+  assert.match(text, /^ {4}a: "A"$/m);
 });
 
 test('an fff post slugs from name, not title', () => {
