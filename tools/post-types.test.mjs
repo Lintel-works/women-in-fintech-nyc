@@ -1,13 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  POST_TYPES, DEFAULT_TYPE, typeKeyOf, typeOf, postTitle, sortedPostsOfType
+  POST_TYPES, DEFAULT_TYPE, typeKeyOf, typeOf, postTitle, sortedPostsOfType, coverPathFor
 } from '../lib/post-types.mjs';
 import { TYPES } from '../src/admin/types.js';
 
 test('the registry holds exactly the two types the site publishes', () => {
   assert.deepEqual(Object.keys(POST_TYPES).sort(), ['fff', 'post']);
   assert.equal(DEFAULT_TYPE, 'fff');
+});
+
+// FIX 4 (final wave): the one cover-path convention, shared now by the
+// editor, the renderer, and both publish endpoints -- there used to be four
+// separate implementations of this same shape.
+test('coverPathFor derives the convention path, honouring the given extension', () => {
+  assert.equal(coverPathFor('fff', 'shira-amrany', 'jpg'), 'images/fff-shira-amrany.jpg');
+  assert.equal(coverPathFor('post', 'october-recap', 'png'), 'images/post-october-recap.png');
+});
+
+test('coverPathFor falls back to a placeholder slug and jpg', () => {
+  assert.equal(coverPathFor('fff', '', undefined), 'images/fff-post.jpg');
+});
+
+test('coverPathFor throws the same author-readable error typeOf does for an unknown type', () => {
+  assert.throws(() => coverPathFor('bogus', 's', 'jpg'), /Unknown post type "bogus"/);
 });
 
 /* The seven posts migrated from Wix predate the type field. A file that loses
