@@ -1405,13 +1405,7 @@ async function publishPost() {
     var response = await fetch('/api/publish', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        type: model.type,
-        mode: openedPath ? 'update' : 'create',
-        fields: fieldsForPublish(),
-        blocks: model.blocks,
-        image: image ? { base64: image } : null
-      })
+      body: JSON.stringify(publishPayload(image))
     });
     var data = await response.json().catch(function () { return {}; });
     if (response.ok) {
@@ -1428,9 +1422,41 @@ async function publishPost() {
 }
 ```
 
-- [ ] **Step 3: Add `fieldsForPublish()` and `openedPath`**
+- [ ] **Step 3: Add `buildPostObject()`, `publishPayload()` and `openedSlug`**
 
-`fieldsForPublish()` returns the same field object `downloadPost()` already builds — read `downloadPost` in `src/admin/editor.js` and extract the field-gathering into a named function both call, rather than duplicating it. `openedPath` is set when a file is opened and cleared when the form is reset; grep for the existing "Opened" toast to find where.
+**Read `downloadPost()` in `src/admin/editor.js` first.** It does more than gather fields, and the published file must be byte-identical to the downloaded one — otherwise publishing and downloading produce different posts, which is the divergence this whole phase exists to remove.
+
+`downloadPost()` currently: calls `resolved()`; refuses a missing slug, a blank `postTitle`, and bad slug characters; builds `Object.assign({}, m, { type: typeKey, displayDate: m.date })`; deletes `date`; deletes every empty-string key; and **strips the `id` from every block**.
+
+That last step is not cosmetic. `serializePost` does NOT strip block ids — verified: a block carrying `id: "b1"` serializes it into the file. Sending `model.blocks` raw would write the editor's internal row handles into every published post.
+
+Extract the shared part into `buildPostObject()`, returning the same object `downloadPost` serializes, and have **both** call it. Then:
+
+```javascript
+/* The published file must match the downloaded one byte for byte, so this
+   reuses the same object downloadPost writes -- including stripping block
+   ids, which serializePost does not do and which would otherwise land in
+   every published post as noise. */
+function publishPayload(image) {
+  var post = buildPostObject();
+  var blocks = post.blocks;
+  delete post.blocks;
+  delete post.type;
+  return {
+    type: typeKey,
+    mode: (openedSlug && openedSlug === post.slug) ? 'update' : 'create',
+    fields: post,
+    blocks: blocks,
+    image: image ? { base64: image } : null
+  };
+}
+```
+
+Note the real names: the current type is the module-level `typeKey` (editor.js:12), **not** `model.type`, which does not exist. The merged type definition is `def` (editor.js:16).
+
+`openedSlug` does not exist and there is no "was this opened" state at all — `openPostFile` sets `model` and `slugTouched` and nothing else. Add `var openedSlug = null;` beside the other top-of-file state, set it to the opened post's slug inside `openPostFile` after the model is assigned, and leave it otherwise. Comparing it to the current slug means an opened post that is then retitled correctly publishes as a **create**, because it is going to a new address.
+
+`publishPost()` must also refuse the same three things `downloadPost()` refuses, before sending — an author should not learn about a blank title from the server.
 
 - [ ] **Step 4: Register the listener and verify the build**
 
