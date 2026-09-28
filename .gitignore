@@ -13,3 +13,6 @@ node_modules/
 # Build output
 _site/
 .cache/
+
+# Tool artifacts — traces and screenshots from browser automation
+.playwright-mcp/
