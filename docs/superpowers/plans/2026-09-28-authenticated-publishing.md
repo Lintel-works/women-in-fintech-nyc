@@ -1213,7 +1213,7 @@ git commit -m "Publish a post as one commit, after proving it renders"
 Place it as the first child of the editor's main container, before the existing form:
 
 ```html
-<section id="signin" class="panel">
+<section id="signin" class="sec">
   <h2>Sign in to publish</h2>
   <p class="hint">You can write and download a post without signing in. Publishing needs an account.</p>
   <label for="signin-email">Email</label>
@@ -1543,7 +1543,7 @@ and refusing it is cheaper than deleting the wrong file.
 The button must require typing the slug to confirm, because this deletes a live page and there is no review step and no developer to restore it:
 
 ```html
-<details id="unpublish-panel">
+<details id="unpublish-panel" class="sec">
   <summary>Unpublish this post</summary>
   <p class="hint">This removes the page from the site. Type the post's address to confirm.</p>
   <input id="unpublish-confirm" type="text" autocomplete="off">
