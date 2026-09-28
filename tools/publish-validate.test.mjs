@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { slugify, postPath, validatePublish } from '../lib/publish-validate.mjs';
+import { serializePost } from '../lib/post-file.mjs';
 
 test('a title becomes a slug', () => {
   assert.equal(slugify('October in Review: Three Sold-Out Nights'), 'october-in-review-three-sold-out-nights');
@@ -80,4 +81,72 @@ test('an fff post slugs from name, not title', () => {
   });
   assert.equal(result.ok, true);
   assert.equal(result.slug, 'jane-doe');
+});
+
+/* Round 2 fix: an earlier version of this endpoint always recomputed the
+   slug from the title and discarded whatever the editor sent, even when the
+   author had hand-edited the slug field. That silently rewrote the address
+   the author chose, and -- because publishPayload() sends the same slug
+   downloadPost() would have written to the file -- made the published file
+   differ from the downloaded one for any post with a touched slug. These
+   four tests are the regression guard for that fix. */
+
+test('a hand-edited slug is honoured, not recomputed from the title', () => {
+  const result = validatePublish({
+    type: 'post', mode: 'create',
+    fields: { title: 'October in Review', slug: 'oct-recap' },
+    blocks: []
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.slug, 'oct-recap');
+  assert.equal(result.path, 'src/posts/oct-recap.html');
+});
+
+test('a hostile hand-edited slug is sanitised, not trusted raw', () => {
+  const result = validatePublish({
+    type: 'post', mode: 'create',
+    fields: { title: 'October in Review', slug: '../../eleventy.config' },
+    blocks: []
+  });
+  assert.equal(result.ok, true);
+  assert.ok(!result.path.includes('..'), 'path escaped src/posts/');
+  assert.ok(result.path.startsWith('src/posts/'), 'path left src/posts/');
+});
+
+test('a slug that sanitises to nothing falls back to the title', () => {
+  const result = validatePublish({
+    type: 'post', mode: 'create',
+    fields: { title: 'October Recap', slug: '...' },
+    blocks: []
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.slug, 'october-recap');
+});
+
+test('a hand-edited slug publishes byte-identically to what the editor would have downloaded', () => {
+  // The object buildPostObject() (src/admin/editor.js) would have produced
+  // for this form state, and what downloadPost() would serialize to a file.
+  const downloadedPost = {
+    title: 'October in Review',
+    slug: 'oct-recap',
+    tag: 'Event recap',
+    author: 'Manvir Singh',
+    isoDate: '2026-10-14',
+    readTime: '4 min',
+    gradient: 'g2',
+    intro: 'It was a wonderful night.',
+    coverPath: 'images/post-oct-recap.jpg',
+    headshot: 'images/post-oct-recap.jpg',
+    displayDate: 'Oct 14',
+    type: 'post',
+    blocks: [{ type: 'paragraph', text: 'It was a wonderful night.' }]
+  };
+
+  // publishPayload()'s split: blocks and type move out of fields to their
+  // own top-level keys before the request is sent.
+  const { blocks, type, ...fields } = downloadedPost;
+  const result = validatePublish({ type, mode: 'create', fields, blocks });
+
+  assert.equal(result.ok, true);
+  assert.equal(serializePost(result.post), serializePost(downloadedPost));
 });

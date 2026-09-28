@@ -137,7 +137,14 @@ export default async function handler(request, response) {
     const result = await commitWithRetry(commit);
     return response.status(200).json({
       url: `/${POST_TYPES[prepared.type].prefix}${prepared.slug}.html`,
-      commit: result.sha
+      commit: result.sha,
+      // The editor uses this to track which slug is now live, so a second
+      // publish of the same post sends mode: 'update' instead of 'create'.
+      // Sent explicitly rather than left for the client to parse back out of
+      // `url` -- this is the slug the server actually decided on (it may
+      // differ from what the client asked for), and the client should never
+      // have to re-derive that by guessing at a URL's shape.
+      slug: prepared.slug
     });
   } catch (error) {
     if (error.code === 'stale_head') {

@@ -436,6 +436,14 @@ function loadDraft() {
 function applyDraft(draft) {
   model = draft.model;
   if (!model.blocks) model.blocks = [];
+  /* Every caller replaces the model wholesale with content this editor did
+     not just open from a file -- a restored autosave, an imported JSON
+     draft, window.WIF_EDITOR.setModel() -- so none of them is the post
+     openedSlug was set for. Clearing it here, in the one place all of those
+     paths funnel through, is what stops a restored or imported draft that
+     happens to carry the same slug from silently publishing as an update to
+     whatever is live at that address. */
+  openedSlug = null;
   slugTouched = !!draft.slugTouched;
   cover.ext = draft.ext || 'jpg';
   renderAll();
@@ -770,8 +778,11 @@ async function publishPost() {
       /* Without this, a post published as 'create' stays 'create' forever:
          a second publish with no changes would send 'create' again and the
          server's 409 guard would refuse it, with no way to recover short of
-         reopening a file the author never downloaded. */
-      openedSlug = payload.fields.slug;
+         reopening a file the author never downloaded. Read from the
+         response, not from the payload this client sent -- the server
+         decides the real address (api/publish.js sanitises the requested
+         slug too), so its answer is the one to trust. */
+      openedSlug = data.slug;
       status.textContent = 'Published. Live in about a minute: ' + data.url;
       return;
     }
@@ -798,11 +809,9 @@ function importJson(file) {
   reader.onload = function () {
     try {
       var data = JSON.parse(String(reader.result));
-      /* An imported draft is not the post this editor was opened against --
-         it may carry the same slug an open post did by coincidence (a typo
-         fix, a re-export), and publishing that as 'update' would silently
-         overwrite whatever is live at that slug instead of creating new. */
-      openedSlug = null;
+      // openedSlug is cleared inside applyDraft(), which this always goes
+      // through -- an imported draft is not the post this editor was opened
+      // against, even if it happens to carry the same slug.
       applyDraft({ model: data.model || data, slugTouched: true, ext: data.ext });
       save();
       toast('Imported');
