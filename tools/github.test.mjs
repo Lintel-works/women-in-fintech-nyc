@@ -186,3 +186,68 @@ test('a mixed files array with both content and delete entries works correctly',
   assert.equal(treeCall.body.tree[0].sha, 'BLOB1', 'first entry has blob sha');
   assert.equal(treeCall.body.tree[1].sha, null, 'second entry has null sha for deletion');
 });
+
+test('a 200 response with a null body throws with code github', async () => {
+  const fetchImpl = scriptedFetch([{ status: 200, body: null }]);
+  await assert.rejects(
+    () => commitFiles({
+      token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'x',
+      author: { name: 'J', email: 'j@example.com' }, files: [], fetchImpl
+    }),
+    (error) => error.code === 'github'
+  );
+});
+
+test('a 200 response with null body on blob creation throws with code github', async () => {
+  const fetchImpl = scriptedFetch([
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: null }
+  ]);
+  await assert.rejects(
+    () => commitFiles({
+      token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'x',
+      author: { name: 'J', email: 'j@example.com' },
+      files: [{ path: 'src/posts/x.html', content: 'hi', encoding: 'utf-8' }],
+      fetchImpl
+    }),
+    (error) => error.code === 'github'
+  );
+});
+
+test('a 200 response with null body on tree creation throws with code github', async () => {
+  const fetchImpl = scriptedFetch([
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'BLOB1' } },
+    { status: 201, body: null }
+  ]);
+  await assert.rejects(
+    () => commitFiles({
+      token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'x',
+      author: { name: 'J', email: 'j@example.com' },
+      files: [{ path: 'src/posts/x.html', content: 'hi', encoding: 'utf-8' }],
+      fetchImpl
+    }),
+    (error) => error.code === 'github'
+  );
+});
+
+test('a 200 response with null body on commit creation throws with code github', async () => {
+  const fetchImpl = scriptedFetch([
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'BLOB1' } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: null }
+  ]);
+  await assert.rejects(
+    () => commitFiles({
+      token: 't', owner: 'o', repo: 'r', branch: 'main', message: 'x',
+      author: { name: 'J', email: 'j@example.com' },
+      files: [{ path: 'src/posts/x.html', content: 'hi', encoding: 'utf-8' }],
+      fetchImpl
+    }),
+    (error) => error.code === 'github'
+  );
+});
