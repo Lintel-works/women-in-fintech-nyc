@@ -239,7 +239,13 @@ Expected: FAIL — cannot find module `../lib/publish-validate.mjs`.
 import { POST_TYPES } from './post-types.mjs';
 
 const MAX_SLUG = 80;
-const KNOWN_BLOCKS = new Set(['p', 'h2', 'quote', 'list']);
+
+/* The block types lib/render-blocks.mjs actually renders, verified by calling
+   it with each. This list is load-bearing, not belt-and-braces: renderBlocks
+   looks up BLOCK_RENDERERS[b.type] and returns '' on a miss, so an unknown
+   block is dropped SILENTLY rather than throwing. The render gate in
+   lib/publish.mjs cannot catch it. This is the only thing that can. */
+const KNOWN_BLOCKS = new Set(['paragraph', 'heading', 'image', 'list', 'qa', 'quote']);
 
 export function slugify(text) {
   return String(text == null ? '' : text)
@@ -298,8 +304,18 @@ Expected: PASS, 2 tests.
 
 - [ ] **Step 5: Confirm the block list matches the renderer**
 
-Run: `grep -n "case '" lib/render-blocks.mjs | head -20`
-Read the cases `renderBlocks` handles. `KNOWN_BLOCKS` must equal that set exactly — if the renderer knows a type this list omits, a legitimate post is refused; if this list allows one the renderer does not, Task 5's render gate catches it but the message is worse. Correct `KNOWN_BLOCKS` to match, and note the real set in a comment.
+`renderBlocks` dispatches through a private `BLOCK_RENDERERS` map, so grepping for `case` finds nothing. Confirm empirically instead:
+
+```bash
+node -e "import('./lib/render-blocks.mjs').then(m => {
+  for (const t of ['paragraph','heading','image','list','qa','quote','p','h2']) {
+    const out = m.renderBlocks([{ type: t, text: 'x', items: ['a'], src: 'i.jpg', q: 'q', a: 'a' }]);
+    console.log(t.padEnd(10), out ? 'RENDERS' : 'dropped silently');
+  }
+});"
+```
+
+Expected: the six in `KNOWN_BLOCKS` render; `p` and `h2` are dropped. If a type renders that `KNOWN_BLOCKS` omits, add it — a missing entry refuses a legitimate post. This set cannot be inferred from the render gate, because an unknown type is dropped silently rather than throwing.
 
 - [ ] **Step 6: Write the Review Focus tests (item 2 — hostile titles)**
 
@@ -427,6 +443,26 @@ test('a malformed stored value is rejected without throwing', () => {
     assert.equal(verifyPassword('x', bad), false, `accepted ${JSON.stringify(bad)}`);
   }
 });
+
+test('the dummy hash api/login.js uses actually reaches scrypt', () => {
+  // If this returns before hashing, the unknown-email path is fast and the
+  // known-email path is slow, which tells an attacker which emails exist.
+  // A valid-shaped dummy is the only thing that makes the timing equal.
+  const DUMMY_HASH = '00'.repeat(16) + ':' + '00'.repeat(64);
+  const start = process.hrtime.bigint();
+  assert.equal(verifyPassword('anything', DUMMY_HASH), false);
+  const dummyNs = process.hrtime.bigint() - start;
+
+  const real = hashPassword('some real password');
+  const start2 = process.hrtime.bigint();
+  verifyPassword('wrong', real);
+  const realNs = process.hrtime.bigint() - start2;
+
+  // Both paths do the same scrypt work, so they land within an order of
+  // magnitude. A dummy that short-circuits is ~1000x faster and fails here.
+  const ratio = Number(realNs) / Number(dummyNs);
+  assert.ok(ratio < 10 && ratio > 0.1, `timing differed by ${ratio.toFixed(1)}x — the dummy hash is short-circuiting`);
+});
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -542,7 +578,13 @@ export default async function handler(request, response) {
   const stored = Object.prototype.hasOwnProperty.call(users, email) ? users[email] : null;
   // Hash even when the email is unknown, so a missing account and a wrong
   // password cost the same time and cannot be told apart from outside.
-  const ok = verifyPassword(password, stored || 'x:'.padEnd(130, '0'));
+  //
+  // The dummy must be a VALID hash shape or this does nothing: verifyPassword
+  // rejects a malformed stored value before it reaches scryptSync, which would
+  // make the unknown-email path fast and the known-email path slow -- exactly
+  // the oracle this line exists to close.
+  const DUMMY_HASH = '00'.repeat(16) + ':' + '00'.repeat(64);
+  const ok = verifyPassword(password, stored || DUMMY_HASH);
 
   if (!stored || !ok) {
     return response.status(401).json({ error: 'bad_credentials' });
@@ -1535,7 +1577,7 @@ async function unpublishPost() {
 }
 ```
 
-`typeDef()` is the editor's existing accessor for the current type's definition — grep `src/admin/types.js` for how `editor.js` reads it and reuse that, do not add a second one.
+**`typeDef()` is illustrative, not verbatim — no such function exists today.** Read `src/admin/editor.js` and `src/admin/types.js` and use whatever accessor genuinely exists for the current type's definition (the editor already resolves `def` somewhere to render its field list). Add a named helper only if none exists, and say in your report which you used. Do not create a second accessor alongside an existing one.
 
 - [ ] **Step 4: Verify and commit**
 
