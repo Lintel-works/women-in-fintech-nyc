@@ -29,6 +29,12 @@ var previewTimer = null;
    that actually decides, on every request. */
 var signedIn = false;
 
+/* Set only inside openPostFile, to the slug of the post that was opened.
+   Comparing it to the current slug at publish time is how a retitled post
+   correctly publishes as a create instead of overwriting the post it was
+   opened from -- a new title means a new address. */
+var openedSlug = null;
+
 var $ = function (id) { return document.getElementById(id); };
 
 /* Field key -> the elements renderFields built for it, so a field can be
@@ -664,22 +670,28 @@ async function openPostFile(file) {
     return;
   }
   model = Object.assign(emptyModel(), post, { date: post.displayDate });
+  openedSlug = model.slug || null;
   slugTouched = true;   // an opened post owns its slug; the name must not rewrite it
   renderAll();
   save();
   toast('Opened ' + (post.name || post.title || post.slug));
 }
 
-function downloadPost() {
+/* The object both downloadPost and publishPayload serialize. Kept as one
+   function so the published file can never drift from the downloaded one --
+   see the comment on publishPayload below for why that guarantee matters.
+   Returns null (after a toast explaining what to fix) when the post is not
+   in a publishable state. */
+function buildPostObject() {
   var m = resolved();
   var firstField = def.slugSource === 'title' ? 'title' : 'name';
-  if (!m.slug) { toast('Add a ' + firstField + ' first'); return; }
+  if (!m.slug) { toast('Add a ' + firstField + ' first'); return null; }
   /* A Jobs & Happenings post has no title fallback to borrow, so a blank one
      would publish as an empty headline and an empty card. Refuse it here,
      where the author can see the field, rather than letting the file out. */
-  if (!postTitle(m)) { toast('Add a post title — this post type has no default title.'); return; }
+  if (!postTitle(m)) { toast('Add a post title — this post type has no default title.'); return null; }
   var bad = badSlugChars(m.slug);
-  if (bad.length) { toast(SLUG_MESSAGE + bad.join(' ')); return; }
+  if (bad.length) { toast(SLUG_MESSAGE + bad.join(' ')); return null; }
   var post = Object.assign({}, m, { type: typeKey, displayDate: m.date });
   delete post.date;
   /* An untouched optional field is empty, and the renderer treats an empty
@@ -696,10 +708,64 @@ function downloadPost() {
     delete copy.id;
     return copy;
   });
+  return post;
+}
+
+function downloadPost() {
+  var post = buildPostObject();
+  if (!post) return;
   downloadBlob(
     new Blob([serializePost(post)], { type: 'text/plain;charset=utf-8' }),
-    m.slug + '.html'
+    post.slug + '.html'
   );
+}
+
+/* The published file must match the downloaded one byte for byte, so this
+   reuses the same object downloadPost writes -- including stripping block
+   ids, which serializePost does not do and which would otherwise land in
+   every published post as noise. */
+function publishPayload(image) {
+  var post = buildPostObject();
+  var blocks = post.blocks;
+  delete post.blocks;
+  delete post.type;
+  return {
+    type: typeKey,
+    mode: (openedSlug && openedSlug === post.slug) ? 'update' : 'create',
+    fields: post,
+    blocks: blocks,
+    image: image ? { base64: image } : null
+  };
+}
+
+async function publishPost() {
+  var status = $('publish-status');
+  var button = $('btn-publish');
+  /* Refuse the same three things buildPostObject refuses before spending a
+     round trip on it -- an author should not learn about a blank title from
+     the server. buildPostObject() has already toasted the reason. */
+  if (!buildPostObject()) return;
+  button.disabled = true;
+  status.textContent = 'Publishing…';
+  try {
+    var image = await coverAsBase64();
+    var response = await fetch('/api/publish', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(publishPayload(image))
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (response.ok) {
+      status.textContent = 'Published. Live in about a minute: ' + data.url;
+      return;
+    }
+    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
+    status.textContent = data.message || 'Publishing failed. Nothing was changed.';
+  } catch (error) {
+    status.textContent = error.message || 'Publishing failed. Nothing was changed.';
+  } finally {
+    button.disabled = !signedIn;
+  }
 }
 
 function exportJson() {
@@ -776,6 +842,7 @@ function init() {
 
   $('btn-signin').addEventListener('click', signIn);
   $('btn-download').addEventListener('click', downloadPost);
+  $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
   $('post-file').addEventListener('change', function (e) {
     if (e.target.files[0]) openPostFile(e.target.files[0]);
