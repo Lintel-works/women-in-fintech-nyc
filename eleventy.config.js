@@ -17,9 +17,20 @@ export default function (eleventyConfig) {
   eleventyConfig.ignores.add('src/admin/**');
 
   eleventyConfig.addPassthroughCopy({ 'src/admin': 'admin' });
-  /* The renderer and the post-file format, served so the editor imports the
-     same modules the build uses instead of carrying a second copy. */
-  eleventyConfig.addPassthroughCopy({ lib: 'lib' });
+  /* Only the four lib/ modules the browser actually imports (see
+     src/admin/editor.js and src/admin/text.js) -- passing through the whole
+     lib/ directory used to also publish lib/session.mjs, lib/password.mjs
+     and lib/github.mjs, none of which the editor needs and none of which
+     were meant to be public: they contain the session-cookie signing logic,
+     the scrypt password check, and the GitHub commit machinery. Nothing in
+     them was a secret (no key or token lives in source), but there is no
+     reason to serve them to anyone who asks either. */
+  eleventyConfig.addPassthroughCopy({
+    'lib/render-blocks.mjs': 'lib/render-blocks.mjs',
+    'lib/post-file.mjs': 'lib/post-file.mjs',
+    'lib/post-types.mjs': 'lib/post-types.mjs',
+    'lib/slug.mjs': 'lib/slug.mjs'
+  });
   eleventyConfig.addPassthroughCopy({ 'src/images': 'images' });
   eleventyConfig.addPassthroughCopy({ 'src/site.css': 'site.css' });
   eleventyConfig.addPassthroughCopy({ 'src/nav-mobile.js': 'nav-mobile.js' });
