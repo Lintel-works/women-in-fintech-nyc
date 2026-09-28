@@ -44,11 +44,20 @@ npm run verify             # compare the build against the pre-eleventy baseline
 npm run verify:self-test   # confirm the check can still detect a change
 ```
 
-`npm run verify` canonicalizes HTML before comparing, so it confirms the build
-still produces every page. Its per-page comparison is against the
-`pre-eleventy` git tag, a baseline the site has long since diverged from, so a
-"changed" line is expected on every page and is not by itself evidence of a
-regression — it only proves the page still built.
+`npm run verify` canonicalizes HTML before comparing. It checks only the pages
+that existed at the `pre-eleventy` git tag — pages added since, including
+`happenings.html` and every `post-<slug>.html`, are not enumerated at all. Its
+per-page comparison is against that same tag, a baseline the site has long
+since diverged from, so a "changed" line is expected on every page and is not
+by itself evidence of a regression — it only proves the page still built.
+
+Because every page now differs from the baseline, **`npm run verify` always
+exits non-zero.** A red exit is the expected result, not a regression signal.
+To compare a change against something meaningful, build the tree before and
+after, then compare the two `_site/` trees file by file — passing each through
+the `canonicalize` export of `tools/htmlcanon.mjs` first, so template reflow is
+ignored and a real content change is not. That module has no CLI; it is
+imported.
 
 ## Project structure
 
@@ -70,8 +79,8 @@ regression — it only proves the page still built.
 │   ├── inspiring-fintech-females.html
 │   ├── co-founder-matching.html
 │   ├── meet-the-team.html
-│   ├── posts/           # Fintech Female Fridays posts, one file each:
-│   │                    # front matter only, rendered to /fff-<slug>.html
+│   ├── posts/           # every post, one file each, any type: front matter
+│   │                    # only, rendered to /<type prefix><slug>.html
 │   ├── site.css
 │   ├── nav-mobile.js
 │   ├── robots.txt
@@ -265,7 +274,9 @@ To edit an existing post:
 3. Edit, watching the live preview. The preview is the article body only — the
    hero, nav and footer come from the build.
 4. **Download post file** → save `<slug>.html` back into `src/posts/`,
-   overwriting the original. Eleventy publishes it as `fff-<slug>.html`.
+   overwriting the original. Eleventy publishes it under the type's prefix:
+   `fff-<slug>.html` for Fintech Female Fridays, `post-<slug>.html` for
+   Jobs & Happenings.
 
 A new post is the same minus step 1, plus **Download renamed image** → save it
 into `src/images/` under the path the form shows. Then `npm run build` and check

@@ -1,6 +1,8 @@
 {# The post cards. One definition per placement, fed by collections.fff and
-   collections.happenings, so a new post reaches both pages by existing
-   rather than by being pasted.
+   collections.happenings, so a new post reaches its listing page by existing
+   rather than by being pasted. Three pages import these: the homepage and
+   fintech-female-fridays.html read collections.fff, happenings.html reads
+   collections.happenings -- a post reaches only the pages that read its type.
    Values arrive escaped from buildCardView -- printing them any other way
    would double-escape "Data & Analytics" into "Data &amp;amp; Analytics". #}
 
