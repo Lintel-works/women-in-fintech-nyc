@@ -205,3 +205,26 @@ test('a news post byline joins only what is there', () => {
   assert.equal(view.authorText, 'Manvir Singh');
   assert.equal(view.dateMetaText, '4 min');
 });
+
+/* The Fintech Female Fridays archive is older than the intro field: 77 of the
+   261 migrated posts open straight on an interview question and carry no intro
+   at all. The meta description used to be sliced from the intro alone, so
+   every one of those pages shipped <meta name="description" content="">. */
+test('a post with no intro takes its meta description from the excerpt', () => {
+  const view = buildPostView({
+    type: 'fff',
+    name: 'Ashley Paston',
+    excerpt: 'My time at McKinsey was invaluable to my investor skill set today.'
+  });
+  assert.match(view.descAttr, /My time at McKinsey/);
+});
+
+test('an intro still wins over the excerpt for the meta description', () => {
+  const view = buildPostView({
+    type: 'fff',
+    name: 'Shira Amrany',
+    intro: 'The intro that should be used.',
+    excerpt: 'The excerpt that should not.'
+  });
+  assert.match(view.descAttr, /The intro that should be used/);
+});
