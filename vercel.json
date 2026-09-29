@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "_site",
+  "functions": {
+    "api/events.js": {
+      "includeFiles": "src/_data/manual-events.json"
+    }
+  },
   "redirects": [
     {
       "source": "/admin",
