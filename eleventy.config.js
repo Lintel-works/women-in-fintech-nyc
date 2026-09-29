@@ -66,6 +66,21 @@ export default function (eleventyConfig) {
     selfPage && href.startsWith(selfPage + '#') ? href.slice(selfPage.length) : href
   );
 
+  /* Initials for a team member with no headshot yet -- src/meet-the-team.html
+     prints them over the card's gradient instead of an <img> pointing at a
+     file that is not there. First and last initial, except for a one-word
+     name, where taking the first and last word gives the same letter twice
+     ("MM" for "Madonna"). Splitting on runs of whitespace rather than a
+     single space means a stray double space in team.json cannot produce an
+     empty segment and drop a letter. */
+  eleventyConfig.addFilter('initials', (name) => {
+    const parts = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    const first = parts[0][0];
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+    return (first + last).toUpperCase();
+  });
+
   eleventyConfig.setServerOptions({ domDiff: false });
 
   /* src/posts/posts.11tydata.js keeps a URL registry on globalThis to fail
