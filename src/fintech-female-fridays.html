@@ -40,7 +40,9 @@ active: "fintech-female-fridays.html"
 {% for post in posts.slice(1) %}{{ cards.grid(post.data.card) }}{% endfor %}
     </div>
 
-    <div class="sec-foot"><a href="https://www.nycfintechwomen.com/jobs-and-happenings/categories/fintech-female-fridays" target="_blank" rel="noopener" class="btn btn-ghost btn-lg">See all profiles →</a></div>
+    {# No "see all" link: every profile Wix ever published is on this page.
+       This used to point at the old Wix category, which was the only route to
+       the archive while just seven of the 261 interviews had been migrated. #}
   </div>
 </section>
 
