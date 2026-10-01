@@ -780,8 +780,41 @@ function isAdminUser() {
   return !!(clerk && clerk.user && clerk.user.publicMetadata && clerk.user.publicMetadata.role === 'admin');
 }
 
-// Placeholder: the admin tools panel arrives in a later task.
-function renderAdminTools() {}
+/* Runs only when the signed-in state flips (see render() above), so someone
+   promoted to admin mid-session sees nothing until they sign out and in. */
+function renderAdminTools(isAdmin) {
+  $('admin-tools').hidden = !isAdmin;
+}
+
+async function sendInvite() {
+  var input = $('invite-email');
+  var button = $('btn-invite');
+  var status = $('invite-status');
+  var email = input.value.trim();
+  if (!email) { status.textContent = 'Enter an email address first.'; return; }
+  status.textContent = 'Sending…';
+  // One click is one of Clerk's 100 invitations an hour; a double-click
+  // must not spend two.
+  button.disabled = true;
+  try {
+    var response = await fetch('/api/invite', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ email: email })
+    });
+    if (response.status === 204) {
+      status.textContent = 'Invitation sent to ' + email + '.';
+      input.value = '';
+      return;
+    }
+    var data = await response.json().catch(function () { return {}; });
+    status.textContent = data.message || 'Could not send that invitation.';
+  } catch (error) {
+    status.textContent = 'Could not reach the site to send that invitation.';
+  } finally {
+    button.disabled = false;
+  }
+}
 
 /* The one place both publish-availability and unpublish-availability are
    decided, called on every signedIn or openedSlug transition. btn-unpublish
@@ -1140,6 +1173,7 @@ function init() {
     e.target.value = '';
   });
   $('btn-unpublish').addEventListener('click', unpublishPost);
+  $('btn-invite').addEventListener('click', sendInvite);
   $('btn-export').addEventListener('click', exportJson);
   $('btn-clear').addEventListener('click', clearAll);
   $('btn-import').addEventListener('click', function () { $('import-file').click(); });
