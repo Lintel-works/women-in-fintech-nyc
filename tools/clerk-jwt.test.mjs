@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, createSign } from 'node:crypto';
-import { verifyClerkToken } from '../lib/clerk-jwt.mjs';
+import { verifyClerkToken, isAdmin } from '../lib/clerk-jwt.mjs';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const PEM = publicKey.export({ type: 'spki', format: 'pem' });
@@ -87,5 +87,47 @@ test('a token from another origin is rejected', () => {
 
 test('role and email are read from the customized claims', () => {
   const payload = verifyClerkToken(makeToken({ public_metadata: { role: 'admin' } }), opts());
+  assert.equal(payload.email, 'jane@example.com');
   assert.equal(payload.public_metadata.role, 'admin');
+});
+
+test('empty authorizedParties with a token that has azp is a configuration fault', () => {
+  assert.equal(codeOf(() => verifyClerkToken(makeToken(), opts({ authorizedParties: [] }))), 'config');
+});
+
+test('a token with no azp claim passes even when authorizedParties is configured', () => {
+  const payload = verifyClerkToken(makeToken({ azp: undefined }), opts());
+  assert.ok(payload);
+  assert.equal(payload.email, 'jane@example.com');
+});
+
+test('isAdmin returns true for public_metadata.role === admin', () => {
+  const payload = { public_metadata: { role: 'admin' } };
+  assert.equal(isAdmin(payload), true);
+});
+
+test('isAdmin returns false for a different role', () => {
+  const payload = { public_metadata: { role: 'user' } };
+  assert.equal(isAdmin(payload), false);
+});
+
+test('isAdmin returns false when public_metadata is missing', () => {
+  const payload = { sub: 'user_123' };
+  assert.equal(isAdmin(payload), false);
+});
+
+test('isAdmin returns false for null or undefined payload', () => {
+  assert.equal(isAdmin(null), false);
+  assert.equal(isAdmin(undefined), false);
+});
+
+test('isAdmin returns false when role is in user_metadata instead of public_metadata', () => {
+  const payload = { user_metadata: { role: 'admin' } };
+  assert.equal(isAdmin(payload), false);
+});
+
+test('a PEM with literal \\n sequences verifies a valid token', () => {
+  const pemWithLiteral = PEM.replace(/\n/g, '\\n');
+  const payload = verifyClerkToken(makeToken(), opts({ publicKey: pemWithLiteral }));
+  assert.equal(payload.email, 'jane@example.com');
 });
