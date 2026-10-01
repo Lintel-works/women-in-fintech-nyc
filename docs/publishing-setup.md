@@ -142,9 +142,10 @@ Clerk application currently sits under the maintaining agency's account,
 because the client has declined to hold one. Moving it later is possible but
 not free: it means creating the application elsewhere, which issues new keys,
 so every Clerk variable below has to be replaced and the site redeployed, and
-authors have to be invited again.
+authors likely have to be invited again.
 
-Then, in the Clerk Dashboard, in this order:
+Then, in the Clerk Dashboard, in this order. Menu names are current as of
+writing and may have moved; the setting names are what matter.
 
 1. **Restrictions → Sign-up mode: Restricted.** This is the single most
    important setting in this document. Clerk's default lets anyone create an
@@ -184,7 +185,7 @@ GitHub ones above.
 | `CLERK_PUBLISHABLE_KEY` | The publishable key (`pk_...`) | Build |
 | `CLERK_FRONTEND_API_URL` | The Frontend API URL, e.g. `https://<name>.clerk.accounts.dev` | Build |
 | `CLERK_SECRET_KEY` | The secret key (`sk_...`) | Request |
-| `CLERK_PEM_PUBLIC_KEY` | The PEM public key | Request |
+| `CLERK_PEM_PUBLIC_KEY` | The PEM public key (multi-line; see below) | Request |
 | `CLERK_AUTHORIZED_PARTIES` | Comma-separated origins the site is served from, e.g. `https://nycfintechwomen.com` | Request |
 | `CLERK_INVITE_REDIRECT_URL` | Where an invitation link lands, normally `https://<production-url>/admin/` | Request |
 
@@ -197,7 +198,8 @@ every preview, and any CI) must have both set before this branch merges, or
 the next deploy fails.
 
 **`CLERK_AUTHORIZED_PARTIES` is not optional.** An empty or missing value is
-treated as a configuration fault and throws, on purpose, so that an unset
+treated as a configuration fault and throws whenever a token carries an
+`azp` claim (Clerk's browser tokens do), on purpose, so that an unset
 variable can never silently switch off the check that a token was minted for
 this site's origin. The symptom is publishing refusing with "Publishing is not set up on this
 site yet", with the real reason only in the Vercel function log. List the real origin, including the
@@ -208,10 +210,27 @@ ever belongs in a file the build copies to `/admin`, and `.env.example` marks
 them accordingly. The secret key can invite, list, remove and promote users,
 and the PEM key is what lets the functions trust a token.
 
+**Pasting the PEM into Vercel:** like the GitHub App key above, a multi-line
+PEM pasted into one field can come back with its line breaks turned into
+literal `\n` sequences. `lib/clerk-jwt.mjs` accepts either form, so paste it
+however the field gives it back and do not try to repair the line breaks by
+hand.
+
+**Development keys are not production keys.** The `pk_test_` and `sk_test_`
+keys and a `*.clerk.accounts.dev` Frontend API URL belong to a Clerk
+development instance, which is for building and local work. The live site
+needs a production instance with its own keys, and, as far as we know, its own
+domain and DNS setup, which means its Frontend API URL will not be a
+`clerk.accounts.dev` address. We have not verified Clerk's production setup
+flow, so follow Clerk's current instructions for it. At cutover, re-read the
+publishable key, secret key, Frontend API URL and PEM public key from the
+production instance and replace all four; shipping the development values to
+production is the easy mistake.
+
 `CLERK_INVITE_REDIRECT_URL` must also be listed as an allowed redirect URL in
 the Clerk Dashboard, or Clerk refuses the invitation. It is optional in the
-code, but without it an invited author lands on Clerk's default page rather
-than the editor.
+code, but without it an invited author may not land on the editor after
+accepting the invitation.
 
 ### Bootstrap the first admin
 
@@ -244,8 +263,8 @@ variables that did not exist before this change.
 2. Set all six `CLERK_*` variables in **every** Vercel environment that
    builds the site: production, and each preview. Setting them in production
    only makes every preview build fail.
-3. Remove the old password-system variables from Vercel (the author-list and
-   cookie-signing ones from the previous setup). Nothing reads them any more;
+3. Remove `AUTH_USERS` and `AUTH_SECRET` from Vercel, the author list and
+   cookie-signing secret of the previous setup. Nothing reads them any more;
    leaving them is harmless but misleading.
 4. Merge the branch and let Vercel deploy.
 5. Bootstrap the first admin (above), sign in at `/admin`, and invite
