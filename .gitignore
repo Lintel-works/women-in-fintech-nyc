@@ -16,3 +16,9 @@ _site/
 
 # Tool artifacts — traces and screenshots from browser automation
 .playwright-mcp/
+
+# Isolated worktrees for subagent-driven work
+.worktrees/
+
+# Subagent-driven development scratch (ledger, briefs, review packages)
+.superpowers/
