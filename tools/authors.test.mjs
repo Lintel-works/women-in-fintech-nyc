@@ -357,3 +357,36 @@ test('removing a non-admin never triggers the post-write read', async () => {
     assert.equal(stub.calls.filter((call) => call.method === 'GET').length, 1);
   }));
 });
+
+test('a restore that itself fails is reported as stranded, never as a retryable 502', async () => {
+  const twoAdmins = { status: 200, body: [USERS[0], asAdmin(USERS[1])] };
+  const noAdmins = { status: 200, body: [{ ...USERS[0], public_metadata: {} }, USERS[1]] };
+  for (const failure of [{ status: 500 }, { networkError: true }]) {
+    await silently(async (logged) => {
+      await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }, noAdmins, failure], async () => {
+        const response = makeResponse();
+        await handler(postReq(bearer('admin'), { action: 'demote', id: 'user_jane' }), response);
+        assert.equal(response.statusCode, 500);
+        assert.match(response.body.message, /site owner/i);
+        assert.ok(logged.some((line) => /NO ADMIN REMAINS.*user_jane.*jane@example\.com/.test(line)));
+      }));
+    });
+  }
+});
+
+test('a failed post-write verification is reported as possibly stranded, never as a retryable 502', async () => {
+  const twoAdmins = { status: 200, body: [USERS[0], asAdmin(USERS[1])] };
+  for (const [action, id] of [['demote', 'user_jane'], ['remove', 'user_jane']]) {
+    for (const failure of [{ status: 500 }, { networkError: true }]) {
+      await silently(async (logged) => {
+        await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }, failure], async () => {
+          const response = makeResponse();
+          await handler(postReq(bearer('admin'), { action, id }), response);
+          assert.equal(response.statusCode, 500);
+          assert.match(response.body.message, /site owner/i);
+          assert.ok(logged.some((line) => /NO ADMIN REMAINS/.test(line)));
+        }));
+      });
+    }
+  }
+});

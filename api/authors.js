@@ -48,7 +48,7 @@ async function listAuthors(secretKey) {
    would otherwise pass on a technicality while the site is stranded. */
 const isActiveAdmin = (author) => author.role === 'admin' && author.state === 'active';
 
-const STRANDED = 'The last admin was changed at the same moment by someone else, and the site may now have no admin. '
+const STRANDED = 'That change went through, but the site may now have no admin and this could not be confirmed or fixed automatically. '
   + 'Contact the site owner: they can restore an admin from the Clerk dashboard.';
 
 function setRole(userUrl, secretKey, role) {
@@ -102,9 +102,10 @@ export default async function handler(request, response) {
       return response.status(200).json({ authors: await listAuthors(secretKey) });
     }
 
-    /* Read before every write, never cached. The invariant is about the state
-       at the moment of the change: two admins stepping down at the same time
-       must not both be told it is safe. */
+    /* Read before every write, never cached, so the check sees the state at
+       the moment of the change rather than a stale one. This narrows the race
+       between two admins stepping down together but cannot close it; see the
+       post-write verification below for what happens when it loses. */
     const authors = await listAuthors(secretKey);
     const target = authors.find((author) => author.id === id);
     if (!target) return response.status(404).json({ message: 'No such author.' });
@@ -135,17 +136,33 @@ export default async function handler(request, response) {
        "two admins" and both write. Verify after the fact. A demotion is
        restored; a removal cannot be, so it is logged for the operator. */
     if (losesAnAdmin) {
-      const after = await listAuthors(secretKey);
-      if (!after.some(isActiveAdmin)) {
-        if (action === 'demote') {
-          await setRole(userUrl, secretKey, 'admin');
-          console.error(`Two simultaneous admin changes left no admin; restored admin on ${id}`);
-          return response.status(409).json({
-            message: 'Another admin was changed at the same moment, so this change was undone to keep an admin in place. Nothing was changed; try again.'
-          });
-        }
-        console.error(`NO ADMIN REMAINS: removing ${id} (${target.email}) raced another change. A removal cannot be undone. Set public_metadata {"role":"admin"} on a user in the Clerk dashboard.`);
+      /* Its own try/catch, apart from the Clerk-failure mapping below: the
+         write has already landed, so a failure here is not "try again in a
+         minute". It is a possibly-stranded site, and retrying changes nothing
+         while the evidence sits in a log nobody reads. */
+      const stranded = () => {
+        console.error(`NO ADMIN REMAINS (or could not be confirmed): ${action} of ${id} (${target.email}) landed and the follow-up failed or raced another change. Set public_metadata {"role":"admin"} on a user in the Clerk dashboard.`);
         return response.status(500).json({ message: STRANDED });
+      };
+      let after;
+      try {
+        after = await listAuthors(secretKey);
+      } catch (error) {
+        console.error(`Could not verify an admin remains after ${action} of ${id}: ${error.message}`);
+        return stranded();
+      }
+      if (!after.some(isActiveAdmin)) {
+        if (action === 'remove') return stranded();
+        try {
+          await setRole(userUrl, secretKey, 'admin');
+        } catch (error) {
+          console.error(`Could not restore admin on ${id}: ${error.message}`);
+          return stranded();
+        }
+        console.error(`Two simultaneous admin changes left no admin; restored admin on ${id}`);
+        return response.status(409).json({
+          message: 'Another admin was changed at the same moment, so this change was undone to keep an admin in place. Nothing was changed; try again.'
+        });
       }
     }
     return response.status(204).end();
