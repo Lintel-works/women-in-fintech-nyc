@@ -390,3 +390,30 @@ test('a failed post-write verification is reported as possibly stranded, never a
     }
   }
 });
+
+test('a Clerk rate limit is a 429 that keeps Retry-After', async () => {
+  await withEnv(ENV, () => withFetch([{ status: 429, body: {}, retryAfter: '30' }], async () => {
+    const response = makeResponse();
+    await handler(getReq(bearer('admin')), response);
+    assert.equal(response.statusCode, 429);
+    assert.match(response.body.message, /try again/i);
+    assert.equal(response.headers['Retry-After'], '30');
+  }));
+});
+
+test('the primary address is listed, not whichever comes first', async () => {
+  const users = [{
+    id: 'user_two',
+    primary_email_address_id: 'idn_b',
+    email_addresses: [
+      { id: 'idn_a', email_address: 'old@example.com' },
+      { id: 'idn_b', email_address: 'current@example.com' }
+    ],
+    public_metadata: {}
+  }];
+  await withEnv(ENV, () => withFetch([{ status: 200, body: users }], async () => {
+    const response = makeResponse();
+    await handler(getReq(bearer('admin')), response);
+    assert.equal(response.body.authors[0].email, 'current@example.com');
+  }));
+});

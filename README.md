@@ -104,6 +104,9 @@ imported.
 │   ├── post-file.mjs        # Reads and writes the src/posts/ file format (served)
 │   ├── post-types.mjs       # The fff/post type registry (served)
 │   ├── slug.mjs             # slugify(), shared by the editor and the server (served)
+│   ├── clerk-jwt.mjs        # Verifies Clerk session tokens against CLERK_PEM_PUBLIC_KEY
+│   ├── clerk-request.mjs    # Shared Clerk auth and Backend API plumbing for the api/ handlers
+│   ├── session.mjs          # authorNameFromSub(), used by both publish endpoints
 │   ├── publish-validate.mjs # Validates a publish payload, computes its path
 │   ├── publish.mjs          # Serializes + render-gates + parse-gates a post
 │   ├── github.mjs           # Git Data API: read/commit/delete via the Contents/Git APIs

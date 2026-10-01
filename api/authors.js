@@ -21,14 +21,25 @@ const ACTIONS = new Set(['remove', 'promote', 'demote']);
 const NOT_SET_UP = 'Managing authors is not set up on this site yet.';
 const UNREACHABLE = 'Could not reach the sign-in service. Try again in a minute.';
 
-function clerkError(status) {
-  return Object.assign(new Error(`Clerk answered ${status}`), { code: 'clerk', status });
+function clerkError(status, retryAfter) {
+  return Object.assign(new Error(`Clerk answered ${status}`), { code: 'clerk', status, retryAfter });
 }
 
 async function callClerkOk(url, secretKey, options) {
   const reply = await callClerk(url, secretKey, options);
-  if (!reply.ok) throw clerkError(reply.status);
+  if (!reply.ok) {
+    throw clerkError(reply.status, reply.headers && reply.headers.get('retry-after'));
+  }
   return reply;
+}
+
+/* The address an admin reads when deciding whom to remove must be the one the
+   person signs in with, not whichever Clerk happens to list first. */
+function primaryEmail(user) {
+  const addresses = user.email_addresses || [];
+  const primary = addresses.find((address) => address.id === user.primary_email_address_id);
+  const chosen = primary || addresses[0];
+  return chosen ? chosen.email_address : '';
 }
 
 async function listAuthors(secretKey) {
@@ -36,9 +47,7 @@ async function listAuthors(secretKey) {
   const users = await reply.json();
   return users.map((user) => ({
     id: user.id,
-    email: user.email_addresses && user.email_addresses[0]
-      ? user.email_addresses[0].email_address
-      : '',
+    email: primaryEmail(user),
     role: user.public_metadata && user.public_metadata.role === 'admin' ? 'admin' : 'author',
     state: user.banned ? 'banned' : user.locked ? 'locked' : 'active'
   }));
@@ -168,6 +177,10 @@ export default async function handler(request, response) {
     return response.status(204).end();
   } catch (error) {
     if (error.code === 'clerk') {
+      if (error.status === 429) {
+        if (error.retryAfter) response.setHeader('Retry-After', error.retryAfter);
+        return response.status(429).json({ message: 'Too many requests to the sign-in service. Try again later.' });
+      }
       const failure = clerkFailure(error.status, { notSetUp: NOT_SET_UP, unreachable: UNREACHABLE });
       return response.status(failure.status).json({ message: failure.message });
     }

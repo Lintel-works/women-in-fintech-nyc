@@ -85,6 +85,23 @@ test('a token from another origin is rejected', () => {
   assert.equal(codeOf(() => verifyClerkToken(makeToken({ azp: 'https://evil.example' }), opts())), 'invalid');
 });
 
+test('a token from an unlisted origin logs which origin and which list', () => {
+  const original = console.error;
+  const logged = [];
+  console.error = (message) => logged.push(String(message));
+  try {
+    verifyClerkToken(makeToken({ azp: 'https://preview-abc.vercel.app' }), opts());
+  } catch (error) {
+    assert.equal(error.code, 'invalid');
+    assert.equal(error.message, 'Not signed in.');
+  } finally {
+    console.error = original;
+  }
+  assert.equal(logged.length, 1);
+  assert.match(logged[0], /https:\/\/preview-abc\.vercel\.app/);
+  assert.ok(logged[0].includes(PARTIES[0]), 'the log must name the configured list');
+});
+
 test('role and email are read from the customized claims', () => {
   const payload = verifyClerkToken(makeToken({ public_metadata: { role: 'admin' } }), opts());
   assert.equal(payload.email, 'jane@example.com');

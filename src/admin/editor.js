@@ -24,9 +24,8 @@ var slugTouched = false;
 var cover = { file: null, blobUrl: null, ext: 'jpg' };
 var previewTimer = null;
 
-/* Publishing state. The cookie itself is HttpOnly and unreadable here by
-   design -- this flag only drives what the UI offers. The server is the thing
-   that actually decides, on every request. */
+/* Publishing state. This flag only drives what the UI offers; the server
+   verifies the Clerk session token on every request and is what decides. */
 var signedIn = false;
 
 /* Set only inside openPostFile, to the slug of the post that was opened.
@@ -804,6 +803,7 @@ async function loadAuthors() {
     var response = await fetch('/api/authors', { headers: await authHeaders() });
     var data = await response.json().catch(function () { return {}; });
     if (thisLoad !== authorLoadCount) return;
+    if (response.status === 401) handleUnauthorized();
     if (!response.ok) {
       holder.textContent = data.message || 'Could not load the author list.';
       return;
@@ -845,6 +845,7 @@ async function actOnAuthor(action, id, email) {
       loadAuthors();
       return;
     }
+    if (response.status === 401) handleUnauthorized();
     var data = await response.json().catch(function () { return {}; });
     status.textContent = data.message || 'That did not work.';
     setAuthorButtons(false);
@@ -875,6 +876,7 @@ async function sendInvite() {
       input.value = '';
       return;
     }
+    if (response.status === 401) handleUnauthorized();
     var data = await response.json().catch(function () { return {}; });
     status.textContent = data.message || 'Could not send that invitation.';
   } catch (error) {

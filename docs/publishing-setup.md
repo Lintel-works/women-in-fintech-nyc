@@ -202,8 +202,14 @@ treated as a configuration fault and throws whenever a token carries an
 `azp` claim (Clerk's browser tokens do), on purpose, so that an unset
 variable can never silently switch off the check that a token was minted for
 this site's origin. The symptom is publishing refusing with "Publishing is not set up on this
-site yet", with the real reason only in the Vercel function log. List the real origin, including the
-scheme and any `www.` form the site is served from.
+site yet", with the real reason only in the Vercel function log. List **every origin the
+editor is opened from**: the production domain(s) with their scheme and any
+`www.` form, any preview URL used for testing, and `http://localhost:8080` for
+local work. The claim is the browser's `Origin` when it minted the token, not
+the site's canonical name, and every preview deployment has its own. An origin
+missing from the list makes a correctly signed-in admin get a plain "Not
+signed in." on every action; the only evidence is a function log line naming
+the origin and the list.
 
 `CLERK_SECRET_KEY` and `CLERK_PEM_PUBLIC_KEY` are server-side only. Neither
 ever belongs in a file the build copies to `/admin`, and `.env.example` marks
@@ -351,6 +357,11 @@ through it.
     ```
     Expected: `400` with an author-readable message naming the valid post
     types (not a raw error or stack trace), and no new commit on `main`.
+12. **Publish after the session token has aged out.** Sign in, wait more than
+    60 seconds without touching the page, then publish a post. Expected: it
+    still succeeds, because tokens last 60 seconds and the editor fetches a
+    fresh one per request. (Then unpublish it.) This needs a real
+    `/api/publish`, which is why it lives here and not in section 5.
 
 ## 5. Verification not yet performed
 
@@ -359,7 +370,10 @@ instance.** No instance existed while this was built, and the project has no
 DOM test harness, so the sign-in code in `src/admin/editor.js` is verified by
 reading and by the server-side tests only. The site owner has to do the
 following at cutover. Run `CLERK_PUBLISHABLE_KEY=<dev key>
-CLERK_FRONTEND_API_URL=<dev frontend API url> npm run dev`, then, in order:
+CLERK_FRONTEND_API_URL=<dev frontend API url> npm run dev`, then, in order.
+`npm run dev` serves the static site only, with no `/api/*` functions, so
+nothing below publishes anything; the check that a publish survives the
+60-second token expiry is step 12 of section 4:
 
 - [ ] `/admin` shows Clerk's sign-in form, not email and password fields of
       the site's own.
@@ -370,9 +384,6 @@ CLERK_FRONTEND_API_URL=<dev frontend API url> npm run dev`, then, in order:
       password change.
 - [ ] "Forgot password?" on the sign-in form sends an email.
 - [ ] Signing out disables Publish again.
-- [ ] Wait more than 60 seconds after signing in, then publish. It must still
-      succeed, because tokens last 60 seconds and the editor fetches a fresh
-      one per request.
 - [ ] Block the Clerk host in the browser. The editor must show "Could not
       load the sign-in form" rather than a blank panel.
 
@@ -404,6 +415,21 @@ instance.
   `CLERK_AUTHORIZED_PARTIES`, or an unusable key. It is also what a revoked or rotated `CLERK_SECRET_KEY` reports, on purpose: it is a
   fault only the site owner can fix, not a transient failure worth retrying.
   Check that the key in Vercel is the current one, then redeploy.
+- **Signed in, but every publish, invite or author action says "Not signed
+  in."** The function log line "Clerk token azp ... is not in
+  CLERK_AUTHORIZED_PARTIES" names the origin the page was opened from. Add
+  that exact origin (scheme included, no trailing slash) to
+  `CLERK_AUTHORIZED_PARTIES` in Vercel and redeploy. It is typical of a
+  preview URL or `http://localhost:8080` that was never listed.
+- **An invitation went to a mistyped address.** A pending invitation is not a
+  user until it is accepted, so it appears nowhere in the Authors list and
+  cannot be removed from `/admin`. Under Restricted sign-up mode the
+  invitation is itself the permission to sign in and publish, so revoke a
+  typo immediately rather than waiting for it to lapse. Do it in the Clerk
+  Dashboard (Users, then Invitations; the menu path may differ as Clerk
+  changes its dashboard), or with
+  `POST https://api.clerk.com/v1/invitations/{id}/revoke` using the secret
+  key as a bearer token.
 - **An admin sees a message that the site may have no admin and to contact
   the site owner.** The last admin cannot be removed or demoted, but Clerk
   has no compare-and-set, so two admins acting at the same moment can still

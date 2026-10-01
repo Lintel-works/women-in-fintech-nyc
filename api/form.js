@@ -6,7 +6,7 @@
  * endpoint matters more than never doing that again -- which is why a failure
  * here returns a non-2xx and the page shows it, rather than thanking them.
  *
- * It follows the discipline api/events.js and api/login.js established: one
+ * It follows the discipline api/events.js established: one
  * method, request input never forwarded upstream unvalidated, no credential in
  * any response or log line.
  *
