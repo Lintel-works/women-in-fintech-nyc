@@ -706,14 +706,16 @@ function handleUnauthorized() {
   }
 }
 
-/* clerk-config.js appends Clerk's bundles with `defer`, so window.Clerk is
-   not there yet when this module runs. Polling briefly is cheaper than a
-   load event on a tag this file did not create. */
+/* clerk-config.js inserts Clerk's two bundles dynamically, so they run async
+   and in no guaranteed order, and neither exists yet when this module runs.
+   Waiting for window.Clerk alone could reach load() before the UI bundle has
+   set its constructor. Polling briefly is cheaper than a load event on tags
+   this file did not create. */
 function waitForClerk(timeoutMs) {
   var deadline = Date.now() + timeoutMs;
   return new Promise(function (resolve) {
     (function poll() {
-      if (window.Clerk) return resolve(window.Clerk);
+      if (window.Clerk && window.__internal_ClerkUICtor) return resolve(window.Clerk);
       if (Date.now() > deadline) return resolve(null);
       setTimeout(poll, 50);
     }());
@@ -723,6 +725,8 @@ function waitForClerk(timeoutMs) {
 async function initClerk() {
   var status = $('signin-status');
   var mount = $('clerk-auth');
+  var rendered = null;
+  status.textContent = 'Loading sign-in…';
   clerk = await waitForClerk(10000);
   if (!clerk) {
     status.textContent = 'Could not load the sign-in form. Check your connection and reload.';
@@ -736,9 +740,16 @@ async function initClerk() {
   }
   render();
 
+  /* Clerk notifies listeners as a sign-in attempt progresses, not only when
+     the signed-in state flips. Remounting on each event would reset a
+     half-finished password or emailed-code step, so act only on a change. */
   function render() {
-    mount.innerHTML = '';
-    if (clerk.isSignedIn) {
+    var nowSignedIn = !!clerk.isSignedIn;
+    if (rendered === nowSignedIn) return;
+    if (rendered === true) clerk.unmountUserButton(mount);
+    if (rendered === false) clerk.unmountSignIn(mount);
+    rendered = nowSignedIn;
+    if (nowSignedIn) {
       signedIn = true;
       var email = clerk.user && clerk.user.primaryEmailAddress
         ? clerk.user.primaryEmailAddress.emailAddress : '';
@@ -755,6 +766,14 @@ async function initClerk() {
   }
 
   clerk.addListener(function () { render(); });
+}
+
+/* A throw inside initClerk would otherwise be an unhandled rejection and
+   leave the author a blank panel with no explanation. */
+function startClerk() {
+  initClerk().catch(function () {
+    $('signin-status').textContent = 'Could not load the sign-in form. Check your connection and reload.';
+  });
 }
 
 function isAdminUser() {
@@ -1112,7 +1131,7 @@ function init() {
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);
 
-  initClerk();
+  startClerk();
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
