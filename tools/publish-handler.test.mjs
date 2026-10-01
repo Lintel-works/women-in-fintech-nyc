@@ -116,6 +116,9 @@ test('no bearer token is refused with 401 and makes no GitHub call', () => withE
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 401);
+    // Distinct from an expired token: nothing was presented, so nothing expired.
+    assert.match(response.body.message, /not signed in/i);
+    assert.doesNotMatch(response.body.message, /expired/i);
   } finally {
     restore();
   }
@@ -156,6 +159,28 @@ test('a valid publish with no image commits one file and returns the URL', () =>
     await handler(request, response);
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.url, '/post-october-recap.html');
+  } finally {
+    fetchStub.restore();
+  }
+}));
+
+/* The point of this whole change: the commit is authored by the verified
+   email claim, lower-cased, never by the opaque Clerk user id. */
+test('the commit is authored by the lower-cased email claim, not the user id', () => withEnv(ENV, async () => {
+  const fetchStub = stubFetch(createSequence());
+  try {
+    const request = makeRequest({
+      authorization: bearer({ email: 'Jane@Example.COM' }),
+      body: { type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [] }
+    });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200);
+    const commitCall = fetchStub.calls.find((c) => c.method === 'POST' && c.url.endsWith('/git/commits'));
+    assert.equal(commitCall.body.author.email, 'jane@example.com');
+    assert.equal(commitCall.body.author.name, 'jane');
+    assert.match(commitCall.body.message, /by jane@example\.com\./);
+    assert.doesNotMatch(JSON.stringify(commitCall.body), /user_123/);
   } finally {
     fetchStub.restore();
   }

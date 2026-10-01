@@ -26,7 +26,7 @@
  *   GITHUB_REPO             — repository name
  *   GITHUB_BRANCH           — defaults to main
  */
-import { verifyClerkToken } from '../lib/clerk-jwt.mjs';
+import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
 import { authorNameFromSub } from '../lib/session.mjs';
 import { preparePublish } from '../lib/publish.mjs';
 import { commitWithRetry, pathExists } from '../lib/github.mjs';
@@ -66,48 +66,19 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
-  const clerkPublicKey = process.env.CLERK_PEM_PUBLIC_KEY;
-  const authorizedParties = String(process.env.CLERK_AUTHORIZED_PARTIES || '')
-    .split(',').map((value) => value.trim()).filter(Boolean);
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
   const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
     !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
-  if (!clerkPublicKey || !owner || !repo || !hasGithubCredential) {
-    console.error('Publishing is not configured: missing CLERK_PEM_PUBLIC_KEY/GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
+  if (!owner || !repo || !hasGithubCredential) {
+    console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
-  /* The token arrives in a header, not a cookie: the browser holds the
-     session through Clerk and mints a fresh 60-second token per request, so
-     there is nothing for this endpoint to read a cookie for. */
-  const bearer = String(request.headers.authorization || '');
-  let session;
-  try {
-    session = verifyClerkToken(bearer.replace(/^Bearer\s+/i, ''), {
-      publicKey: clerkPublicKey,
-      authorizedParties
-    });
-  } catch (error) {
-    // 'config' also covers an empty CLERK_AUTHORIZED_PARTIES: that is a
-    // deployment fault, not something the author did wrong.
-    if (error.code === 'config') {
-      console.error(`Publishing is not configured: ${error.message}`);
-      return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
-    }
-    return response.status(401).json({ message: error.message });
-  }
-
-  /* Clerk's DEFAULT session token has no email claim -- only a user_… id.
-     Committing that id as the author would be silently wrong: nothing fails,
-     and the damage only shows up in git log long afterwards. The dashboard
-     must be configured to add the claim, and until it is, refusing is the
-     only honest answer. */
-  const authorEmail = String(session.email || '').trim().toLowerCase();
-  if (!authorEmail) {
-    console.error('Publishing is not configured: the Clerk session token carries no email claim. Add {{user.primary_email_address}} to the session token in the Clerk Dashboard.');
-    return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
+  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const payload = typeof request.body === 'object' && request.body ? request.body : {};

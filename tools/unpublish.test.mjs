@@ -68,7 +68,7 @@ function stubFetch(responses) {
   const calls = [];
   const original = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), method: options.method || 'GET' });
+    calls.push({ url: String(url), method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : null });
     const next = responses.shift();
     if (!next) throw new Error(`unexpected fetch to ${url}`);
     return { ok: next.status < 400, status: next.status, json: async () => next.body };
@@ -98,7 +98,9 @@ test('no bearer token is refused with 401 and makes no GitHub call', () => withE
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 401);
-    assert.ok(response.body.message);
+    // Distinct from an expired token: nothing was presented, so nothing expired.
+    assert.match(response.body.message, /not signed in/i);
+    assert.doesNotMatch(response.body.message, /expired/i);
   } finally {
     restore();
   }
@@ -250,6 +252,36 @@ function stubFetchWithBodies(responses) {
   };
   return { calls, restore() { globalThis.fetch = original; } };
 }
+
+/* The point of this whole change: the commit is authored by the verified
+   email claim, lower-cased, never by the opaque Clerk user id. */
+test('the commit is authored by the lower-cased email claim, not the user id', () => withEnv(async () => {
+  const post = serializePost({ type: 'post', slug: 'october-recap', title: 'October Recap', blocks: [] });
+  const fetchStub = stubFetch([
+    contentsResponse(post),
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  try {
+    const request = makeRequest({
+      authorization: bearer({ email: 'Jane@Example.COM' }),
+      body: { type: 'post', slug: 'october-recap' }
+    });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200);
+    const commitCall = fetchStub.calls.find((c) => c.method === 'POST' && c.url.endsWith('/git/commits'));
+    assert.equal(commitCall.body.author.email, 'jane@example.com');
+    assert.equal(commitCall.body.author.name, 'jane');
+    assert.match(commitCall.body.message, /by jane@example\.com\./);
+    assert.doesNotMatch(JSON.stringify(commitCall.body), /user_123/);
+  } finally {
+    fetchStub.restore();
+  }
+}));
 
 test('the cover image path is included in the tree delete when coverPath matches the convention', () => withEnv(async () => {
   const post = serializePost({
