@@ -147,12 +147,18 @@ authors likely have to be invited again.
 Then, in the Clerk Dashboard, in this order. Menu names are current as of
 writing and may have moved; the setting names are what matter.
 
-1. **Restrictions → Sign-up mode: Restricted.** This is the single most
+1. **Access mode → Invite-only.** (Clerk called this "Restrictions →
+   Sign-up mode: Restricted" until at least late 2026; both names changed,
+   so look for the setting rather than the label.) This is the single most
    important setting in this document. Clerk's default lets anyone create an
    account. If it is left that way, anyone who finds `/admin` can sign up and
    publish to the live site, and nothing in this project's code will stop
    them, because a valid Clerk token is exactly what the code checks for.
-   Restricted mode makes an invitation the only way in.
+   Invite-only makes an invitation the only way in. The default is "Open",
+   which is the dangerous state described above — check this even on an
+   instance you believe is already configured. "Waitlist" is not a
+   substitute: it disables sign-ups but still lets strangers queue
+   themselves up.
 2. **User & authentication:** enable email address and password. Disable every
    social provider. Authors are invited by email; a "Sign in with Google"
    button would offer a way in the invitation model does not account for.
@@ -423,7 +429,7 @@ instance.
   preview URL or `http://localhost:8080` that was never listed.
 - **An invitation went to a mistyped address.** A pending invitation is not a
   user until it is accepted, so it appears nowhere in the Authors list and
-  cannot be removed from `/admin`. Under Restricted sign-up mode the
+  cannot be removed from `/admin`. Under Invite-only access mode the
   invitation is itself the permission to sign in and publish, so revoke a
   typo immediately rather than waiting for it to lapse. Do it in the Clerk
   Dashboard (Users, then Invitations; the menu path may differ as Clerk
