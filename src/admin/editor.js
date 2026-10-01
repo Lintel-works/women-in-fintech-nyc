@@ -679,33 +679,90 @@ function downloadRenamedImage() {
 
 /* ------------------------------------------------------------------- auth */
 
-async function signIn() {
-  var email = $('signin-email').value.trim();
-  var password = $('signin-password').value;
-  var status = $('signin-status');
-  status.textContent = 'Signing in…';
-  try {
-    var response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password })
-    });
-    if (response.status === 204) {
-      signedIn = true;
-      status.textContent = 'Signed in as ' + email + '.';
-      $('signin-password').value = '';
-      updatePublishAvailability();
-      return;
-    }
-    if (response.status === 503) {
-      status.textContent = 'Publishing is not set up on this site yet.';
-      return;
-    }
-    status.textContent = 'That email and password do not match.';
-  } catch (error) {
-    status.textContent = 'Could not reach the site to sign in. Check your connection.';
+var clerk = null;
+
+/* A Clerk session token lives 60 SECONDS. Fetching one at sign-in and
+   reusing it would produce an editor that publishes successfully for about a
+   minute and then returns 401 forever -- indistinguishable, to an author,
+   from a revoked account. getToken() is therefore called per request, and
+   never stored. */
+async function authHeaders() {
+  var headers = { 'content-type': 'application/json' };
+  if (clerk && clerk.session) {
+    var token = await clerk.session.getToken();
+    if (token) headers.authorization = 'Bearer ' + token;
+  }
+  return headers;
+}
+
+/* With 60-second tokens, a 401 usually means the token aged out mid-request,
+   not that the author signed out. Only drop the signed-in state when Clerk
+   itself says there is no session; otherwise leave Publish enabled so the
+   author can simply retry with a fresh token. */
+function handleUnauthorized() {
+  if (!clerk || !clerk.isSignedIn) {
+    signedIn = false;
+    updatePublishAvailability();
   }
 }
+
+/* clerk-config.js appends Clerk's bundles with `defer`, so window.Clerk is
+   not there yet when this module runs. Polling briefly is cheaper than a
+   load event on a tag this file did not create. */
+function waitForClerk(timeoutMs) {
+  var deadline = Date.now() + timeoutMs;
+  return new Promise(function (resolve) {
+    (function poll() {
+      if (window.Clerk) return resolve(window.Clerk);
+      if (Date.now() > deadline) return resolve(null);
+      setTimeout(poll, 50);
+    }());
+  });
+}
+
+async function initClerk() {
+  var status = $('signin-status');
+  var mount = $('clerk-auth');
+  clerk = await waitForClerk(10000);
+  if (!clerk) {
+    status.textContent = 'Could not load the sign-in form. Check your connection and reload.';
+    return;
+  }
+  try {
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+  } catch (error) {
+    status.textContent = 'Could not load the sign-in form. Check your connection and reload.';
+    return;
+  }
+  render();
+
+  function render() {
+    mount.innerHTML = '';
+    if (clerk.isSignedIn) {
+      signedIn = true;
+      var email = clerk.user && clerk.user.primaryEmailAddress
+        ? clerk.user.primaryEmailAddress.emailAddress : '';
+      status.textContent = 'Signed in as ' + email + '.';
+      clerk.mountUserButton(mount);
+      renderAdminTools(isAdminUser());
+    } else {
+      signedIn = false;
+      status.textContent = '';
+      clerk.mountSignIn(mount);
+      renderAdminTools(false);
+    }
+    updatePublishAvailability();
+  }
+
+  clerk.addListener(function () { render(); });
+}
+
+function isAdminUser() {
+  return !!(clerk && clerk.user && clerk.user.publicMetadata && clerk.user.publicMetadata.role === 'admin');
+}
+
+// Placeholder: the admin tools panel arrives in a later task.
+function renderAdminTools() {}
 
 /* The one place both publish-availability and unpublish-availability are
    decided, called on every signedIn or openedSlug transition. btn-unpublish
@@ -875,7 +932,7 @@ async function publishPost() {
     if (!payload) { status.textContent = ''; return; }
     var response = await fetch('/api/publish', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify(payload)
     });
     var data = await response.json().catch(function () { return {}; });
@@ -892,7 +949,7 @@ async function publishPost() {
       status.textContent = 'Published. Live in about a minute: ' + data.url;
       return;
     }
-    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
+    if (response.status === 401) handleUnauthorized();
     status.textContent = data.message || 'Publishing failed. Nothing was changed.';
   } catch (error) {
     status.textContent = error.message || 'Publishing failed. Nothing was changed.';
@@ -929,7 +986,7 @@ async function unpublishPost() {
   try {
     var response = await fetch('/api/unpublish', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({ type: typeKey, slug: slug })
     });
     var data = await response.json().catch(function () { return {}; });
@@ -948,7 +1005,7 @@ async function unpublishPost() {
       $('unpublish-confirm').value = '';
       return;
     }
-    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
+    if (response.status === 401) handleUnauthorized();
     status.textContent = data.message || 'Unpublishing failed. Nothing was changed.';
   } catch (error) {
     status.textContent = error.message || 'Unpublishing failed. Nothing was changed.';
@@ -1055,7 +1112,7 @@ function init() {
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);
 
-  $('btn-signin').addEventListener('click', signIn);
+  initClerk();
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });

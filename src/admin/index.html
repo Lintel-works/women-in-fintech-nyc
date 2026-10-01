@@ -203,11 +203,7 @@
     <section id="signin" class="sec">
       <h2>Sign in to publish</h2>
       <p class="hint">You can write and download a post without signing in. Publishing needs an account.</p>
-      <label for="signin-email">Email</label>
-      <input id="signin-email" type="email" autocomplete="username">
-      <label for="signin-password">Password</label>
-      <input id="signin-password" type="password" autocomplete="current-password">
-      <button id="btn-signin" type="button">Sign in</button>
+      <div id="clerk-auth"></div>
       <p id="signin-status" role="status"></p>
     </section>
     <div id="restore-banner"></div>
@@ -292,6 +288,7 @@
 <input type="file" id="post-file" accept=".html" hidden />
 <div class="toast" id="toast"></div>
 
+<script src="clerk-config.js"></script>
 <script type="module" src="editor.js"></script>
 <script>
   /* The editor is an ES module importing /lib/*.mjs, so it needs an HTTP
