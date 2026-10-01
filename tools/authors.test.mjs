@@ -122,8 +122,8 @@ test('an admin sees every author with their role', async () => {
     await handler(getReq(bearer('admin')), response);
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.body.authors, [
-      { id: 'user_admin', email: 'admin@example.com', role: 'admin' },
-      { id: 'user_jane', email: 'jane@example.com', role: 'author' }
+      { id: 'user_admin', email: 'admin@example.com', role: 'admin', state: 'active' },
+      { id: 'user_jane', email: 'jane@example.com', role: 'author', state: 'active' }
     ]);
   }));
 });
@@ -145,7 +145,7 @@ test('promoting an author calls the dedicated metadata endpoint', async () => {
 
 test('demoting an admin clears the role when another admin exists', async () => {
   const twoAdmins = { status: 200, body: [USERS[0], { ...USERS[1], public_metadata: { role: 'admin' } }] };
-  await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }], async (stub) => {
+  await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }, twoAdmins], async (stub) => {
     const response = makeResponse();
     await handler(postReq(bearer('admin'), { action: 'demote', id: 'user_jane' }), response);
     assert.equal(response.statusCode, 204);
@@ -184,7 +184,7 @@ test('the last admin cannot be removed or demoted', async () => {
 test('an admin may remove or demote themselves once another admin exists', async () => {
   const twoAdmins = { status: 200, body: [USERS[0], { ...USERS[1], public_metadata: { role: 'admin' } }] };
   for (const [action, method] of [['remove', 'DELETE'], ['demote', 'PATCH']]) {
-    await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }], async (stub) => {
+    await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }, twoAdmins], async (stub) => {
       const response = makeResponse();
       await handler(postReq(bearer('admin'), { action, id: 'user_admin' }), response);
       assert.equal(response.statusCode, 204);
@@ -199,7 +199,7 @@ test('the invariant reads the list fresh on every write', async () => {
   const twoAdmins = [USERS[0], { ...USERS[1], public_metadata: { role: 'admin' } }];
   const oneAdmin = [USERS[0], USERS[1]];
   await withEnv(ENV, () => withFetch([
-    { status: 200, body: twoAdmins }, { status: 200, body: {} },
+    { status: 200, body: twoAdmins }, { status: 200, body: {} }, { status: 200, body: [USERS[0], { ...USERS[1], public_metadata: {} }] },
     { status: 200, body: oneAdmin }
   ], async (stub) => {
     const first = makeResponse();
@@ -208,7 +208,7 @@ test('the invariant reads the list fresh on every write', async () => {
     const second = makeResponse();
     await handler(postReq(bearer('admin'), { action: 'remove', id: 'user_admin' }), second);
     assert.equal(second.statusCode, 409);
-    assert.equal(stub.calls.filter((call) => call.method === 'GET').length, 2);
+    assert.equal(stub.calls.filter((call) => call.method === 'GET').length, 3, 'read, verify, then a fresh read');
   }));
 });
 
@@ -257,5 +257,103 @@ test('other methods are refused with Allow', async () => {
     await handler({ method: 'PUT', headers: {} }, response);
     assert.equal(response.statusCode, 405);
     assert.equal(response.headers.Allow, 'GET, POST');
+  }));
+});
+
+const silently = async (fn) => {
+  const original = console.error;
+  const logged = [];
+  console.error = (...args) => logged.push(args.join(' '));
+  try { await fn(logged); } finally { console.error = original; }
+};
+const asAdmin = (user) => ({ ...user, public_metadata: { role: 'admin' } });
+
+test('a cased or unknown action aimed at the last admin never reaches a write', async () => {
+  for (const action of ['REMOVE', 'Demote', 'remove ', 'delete']) {
+    await withEnv(ENV, () => withFetch([listReply], async (stub) => {
+      const response = makeResponse();
+      await handler(postReq(bearer('admin'), { action, id: 'user_admin' }), response);
+      assert.equal(response.statusCode, 400, `${JSON.stringify(action)} must be refused`);
+      assert.equal(stub.calls.length, 0);
+    }));
+  }
+});
+
+test('a banned admin does not count toward "an admin remains"', async () => {
+  const bannedOther = { status: 200, body: [USERS[0], { ...asAdmin(USERS[1]), banned: true }] };
+  await withEnv(ENV, () => withFetch([bannedOther], async (stub) => {
+    const response = makeResponse();
+    await handler(postReq(bearer('admin'), { action: 'remove', id: 'user_admin' }), response);
+    assert.equal(response.statusCode, 409);
+    assert.ok(!wrote(stub));
+  }));
+});
+
+test('a locked admin does not count either, and the list shows their state', async () => {
+  const lockedOther = { status: 200, body: [USERS[0], { ...asAdmin(USERS[1]), locked: true }] };
+  await withEnv(ENV, () => withFetch([lockedOther, lockedOther], async () => {
+    const listing = makeResponse();
+    await handler(getReq(bearer('admin')), listing);
+    assert.equal(listing.body.authors[1].state, 'locked');
+    const response = makeResponse();
+    await handler(postReq(bearer('admin'), { action: 'demote', id: 'user_admin' }), response);
+    assert.equal(response.statusCode, 409);
+  }));
+});
+
+test('a banned admin can still be removed while an active admin remains', async () => {
+  const bannedOther = { status: 200, body: [USERS[0], { ...asAdmin(USERS[1]), banned: true }] };
+  await withEnv(ENV, () => withFetch([bannedOther, { status: 200, body: {} }, listReply], async (stub) => {
+    const response = makeResponse();
+    await handler(postReq(bearer('admin'), { action: 'remove', id: 'user_jane' }), response);
+    assert.equal(response.statusCode, 204);
+    assert.ok(stub.calls.some((call) => call.method === 'DELETE'));
+  }));
+});
+
+/* The race: both requests read "two admins", both pass the guard, both write.
+   The stub plays the second request's view -- the post-write read shows no
+   admin left -- which is exactly what the first request would see. */
+test('a demotion that races to zero admins is restored', async () => {
+  const twoAdmins = { status: 200, body: [USERS[0], asAdmin(USERS[1])] };
+  const noAdmins = { status: 200, body: [{ ...USERS[0], public_metadata: {} }, USERS[1]] };
+  await silently(async (logged) => {
+    await withEnv(ENV, () => withFetch([
+      twoAdmins, { status: 200, body: {} }, noAdmins, { status: 200, body: {} }
+    ], async (stub) => {
+      const response = makeResponse();
+      await handler(postReq(bearer('admin'), { action: 'demote', id: 'user_jane' }), response);
+      assert.equal(response.statusCode, 409);
+      const patches = stub.calls.filter((call) => call.method === 'PATCH');
+      assert.equal(patches.length, 2);
+      assert.deepEqual(patches[0].body, { public_metadata: { role: null } });
+      assert.equal(patches[1].url, 'https://api.clerk.com/v1/users/user_jane/metadata');
+      assert.deepEqual(patches[1].body, { public_metadata: { role: 'admin' } });
+      assert.ok(logged.some((line) => /restored admin on user_jane/.test(line)));
+    }));
+  });
+});
+
+test('a removal that races to zero admins is logged loudly and the owner is named', async () => {
+  const twoAdmins = { status: 200, body: [USERS[0], asAdmin(USERS[1])] };
+  const noAdmins = { status: 200, body: [USERS[1]] };
+  await silently(async (logged) => {
+    await withEnv(ENV, () => withFetch([twoAdmins, { status: 200, body: {} }, noAdmins], async (stub) => {
+      const response = makeResponse();
+      await handler(postReq(bearer('admin'), { action: 'remove', id: 'user_admin' }), response);
+      assert.equal(response.statusCode, 500);
+      assert.match(response.body.message, /site owner/i);
+      assert.ok(logged.some((line) => /NO ADMIN REMAINS.*user_admin.*admin@example\.com/.test(line)));
+      assert.ok(!stub.calls.some((call) => call.method === 'PATCH'), 'a removal cannot be restored');
+    }));
+  });
+});
+
+test('removing a non-admin never triggers the post-write read', async () => {
+  await withEnv(ENV, () => withFetch([listReply, { status: 200, body: {} }], async (stub) => {
+    const response = makeResponse();
+    await handler(postReq(bearer('admin'), { action: 'remove', id: 'user_jane' }), response);
+    assert.equal(response.statusCode, 204);
+    assert.equal(stub.calls.filter((call) => call.method === 'GET').length, 1);
   }));
 });

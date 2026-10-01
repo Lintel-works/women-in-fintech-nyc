@@ -787,12 +787,23 @@ function renderAdminTools(isAdmin) {
   if (isAdmin) loadAuthors();
 }
 
+/* Each load takes a number; only the latest may draw, so a slow earlier
+   response cannot overwrite a newer list with stale rows. */
+var authorLoadCount = 0;
+
+function setAuthorButtons(disabled) {
+  var buttons = $('author-list').querySelectorAll('button');
+  for (var i = 0; i < buttons.length; i++) buttons[i].disabled = disabled;
+}
+
 async function loadAuthors() {
   var holder = $('author-list');
+  var thisLoad = ++authorLoadCount;
   holder.textContent = 'Loading…';
   try {
     var response = await fetch('/api/authors', { headers: await authHeaders() });
     var data = await response.json().catch(function () { return {}; });
+    if (thisLoad !== authorLoadCount) return;
     if (!response.ok) {
       holder.textContent = data.message || 'Could not load the author list.';
       return;
@@ -800,7 +811,8 @@ async function loadAuthors() {
     holder.textContent = '';
     data.authors.forEach(function (author) {
       var row = document.createElement('p');
-      row.textContent = author.email + ' (' + author.role + ') ';
+      row.textContent = author.email + ' (' + author.role
+        + (author.state && author.state !== 'active' ? ', ' + author.state : '') + ') ';
       ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
         var button = document.createElement('button');
         button.type = 'button';
@@ -811,7 +823,7 @@ async function loadAuthors() {
       holder.appendChild(row);
     });
   } catch (error) {
-    holder.textContent = 'Could not reach the site to load the author list.';
+    if (thisLoad === authorLoadCount) holder.textContent = 'Could not reach the site to load the author list.';
   }
 }
 
@@ -820,6 +832,8 @@ async function actOnAuthor(action, id, email) {
   // Removal deletes the account and cannot be undone from here.
   if (action === 'remove' && !window.confirm('Remove ' + email + '? They will lose access immediately.')) return;
   status.textContent = 'Working…';
+  // A double-click on a destructive action must not send it twice.
+  setAuthorButtons(true);
   try {
     var response = await fetch('/api/authors', {
       method: 'POST',
@@ -833,8 +847,10 @@ async function actOnAuthor(action, id, email) {
     }
     var data = await response.json().catch(function () { return {}; });
     status.textContent = data.message || 'That did not work.';
+    setAuthorButtons(false);
   } catch (error) {
     status.textContent = 'Could not reach the site.';
+    setAuthorButtons(false);
   }
 }
 

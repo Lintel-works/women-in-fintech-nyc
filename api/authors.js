@@ -8,11 +8,10 @@
  *
  * Env: the same as api/invite.js, minus CLERK_INVITE_REDIRECT_URL.
  */
-import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
+import { authenticateClerkRequest, callClerk, clerkFailure } from '../lib/clerk-request.mjs';
 import { isAdmin } from '../lib/clerk-jwt.mjs';
 
 const USERS_URL = 'https://api.clerk.com/v1/users';
-const TIMEOUT_MS = 8000;
 // Clerk's maximum page size. Fewer than every user would let the admin count
 // come up short; that errs toward refusing, but an author past the page would
 // also be invisible here.
@@ -26,32 +25,37 @@ function clerkError(status) {
   return Object.assign(new Error(`Clerk answered ${status}`), { code: 'clerk', status });
 }
 
-async function callClerk(url, secretKey, options = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const reply = await fetch(url, {
-      ...options,
-      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
-      signal: controller.signal
-    });
-    if (!reply.ok) throw clerkError(reply.status);
-    return reply;
-  } finally {
-    clearTimeout(timer);
-  }
+async function callClerkOk(url, secretKey, options) {
+  const reply = await callClerk(url, secretKey, options);
+  if (!reply.ok) throw clerkError(reply.status);
+  return reply;
 }
 
 async function listAuthors(secretKey) {
-  const reply = await callClerk(`${USERS_URL}?limit=${PAGE_LIMIT}`, secretKey);
+  const reply = await callClerkOk(`${USERS_URL}?limit=${PAGE_LIMIT}`, secretKey);
   const users = await reply.json();
   return users.map((user) => ({
     id: user.id,
     email: user.email_addresses && user.email_addresses[0]
       ? user.email_addresses[0].email_address
       : '',
-    role: user.public_metadata && user.public_metadata.role === 'admin' ? 'admin' : 'author'
+    role: user.public_metadata && user.public_metadata.role === 'admin' ? 'admin' : 'author',
+    state: user.banned ? 'banned' : user.locked ? 'locked' : 'active'
   }));
+}
+
+/* An admin who cannot sign in does not count: "at least one admin remains"
+   would otherwise pass on a technicality while the site is stranded. */
+const isActiveAdmin = (author) => author.role === 'admin' && author.state === 'active';
+
+const STRANDED = 'The last admin was changed at the same moment by someone else, and the site may now have no admin. '
+  + 'Contact the site owner: they can restore an admin from the Clerk dashboard.';
+
+function setRole(userUrl, secretKey, role) {
+  return callClerkOk(`${userUrl}/metadata`, secretKey, {
+    method: 'PATCH',
+    body: JSON.stringify({ public_metadata: { role } })
+  });
 }
 
 export default async function handler(request, response) {
@@ -108,9 +112,8 @@ export default async function handler(request, response) {
     /* "At least one admin remains", not "an admin may not act on themselves":
        the handoff is to promote a client admin and then step out, which a
        self-removal ban would block. */
-    const losesAnAdmin = target.role === 'admin' && (action === 'remove' || action === 'demote');
-    const adminCount = authors.filter((author) => author.role === 'admin').length;
-    if (losesAnAdmin && adminCount <= 1) {
+    const losesAnAdmin = isActiveAdmin(target) && (action === 'remove' || action === 'demote');
+    if (losesAnAdmin && authors.filter(isActiveAdmin).length <= 1) {
       return response.status(409).json({
         message: 'That is the last admin. Promote someone else first, or nobody could invite an author again.'
       });
@@ -118,24 +121,38 @@ export default async function handler(request, response) {
 
     const userUrl = `${USERS_URL}/${encodeURIComponent(id)}`;
     if (action === 'remove') {
-      await callClerk(userUrl, secretKey, { method: 'DELETE' });
+      await callClerkOk(userUrl, secretKey, { method: 'DELETE' });
     } else {
       /* The dedicated metadata endpoint: as of Clerk API version 2026-05-12
          PATCH /v1/users/{id} ignores public_metadata yet returns 200, so the
          role would silently never change. A null value deletes the key, so a
          demotion leaves no role behind for a later check to misread. */
-      await callClerk(`${userUrl}/metadata`, secretKey, {
-        method: 'PATCH',
-        body: JSON.stringify({ public_metadata: { role: action === 'promote' ? 'admin' : null } })
-      });
+      await setRole(userUrl, secretKey, action === 'promote' ? 'admin' : null);
+    }
+
+    /* The check above NARROWS the race, it does not close it: Clerk has no
+       compare-and-set, so two admins acting in the same instant can both read
+       "two admins" and both write. Verify after the fact. A demotion is
+       restored; a removal cannot be, so it is logged for the operator. */
+    if (losesAnAdmin) {
+      const after = await listAuthors(secretKey);
+      if (!after.some(isActiveAdmin)) {
+        if (action === 'demote') {
+          await setRole(userUrl, secretKey, 'admin');
+          console.error(`Two simultaneous admin changes left no admin; restored admin on ${id}`);
+          return response.status(409).json({
+            message: 'Another admin was changed at the same moment, so this change was undone to keep an admin in place. Nothing was changed; try again.'
+          });
+        }
+        console.error(`NO ADMIN REMAINS: removing ${id} (${target.email}) raced another change. A removal cannot be undone. Set public_metadata {"role":"admin"} on a user in the Clerk dashboard.`);
+        return response.status(500).json({ message: STRANDED });
+      }
     }
     return response.status(204).end();
   } catch (error) {
-    if (error.code === 'clerk' && (error.status === 401 || error.status === 403)) {
-      // The secret key is wrong, revoked or rotated: permanent, and only an
-      // operator can fix it, so it must not read as "try again in a minute".
-      console.error(`Clerk refused the secret key (${error.status}): CLERK_SECRET_KEY is wrong, revoked or rotated`);
-      return response.status(503).json({ message: NOT_SET_UP });
+    if (error.code === 'clerk') {
+      const failure = clerkFailure(error.status, { notSetUp: NOT_SET_UP, unreachable: UNREACHABLE });
+      return response.status(failure.status).json({ message: failure.message });
     }
     // Not a misconfiguration: the variables are fine, and saying otherwise
     // would send the next person to the wrong place.

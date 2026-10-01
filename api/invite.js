@@ -11,11 +11,10 @@
  *   CLERK_AUTHORIZED_PARTIES   — comma-separated allowed azp origins
  *   CLERK_INVITE_REDIRECT_URL  — where the invite link lands (optional)
  */
-import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
+import { authenticateClerkRequest, callClerk, clerkFailure } from '../lib/clerk-request.mjs';
 import { isAdmin } from '../lib/clerk-jwt.mjs';
 
 const INVITATIONS_URL = 'https://api.clerk.com/v1/invitations';
-const TIMEOUT_MS = 8000;
 
 const NOT_SET_UP = 'Inviting is not set up on this site yet.';
 const UNREACHABLE = 'Could not reach the sign-in service. Try again in a minute.';
@@ -61,22 +60,16 @@ export default async function handler(request, response) {
   const redirectUrl = process.env.CLERK_INVITE_REDIRECT_URL;
   if (redirectUrl) payload.redirect_url = redirectUrl;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let clerkResponse;
   try {
-    clerkResponse = await fetch(INVITATIONS_URL, {
+    clerkResponse = await callClerk(INVITATIONS_URL, secretKey, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
+      body: JSON.stringify(payload)
     });
   } catch {
     // Not a misconfiguration: saying so would send whoever maintains this to
     // the environment variables, which are fine.
     return response.status(502).json({ message: UNREACHABLE });
-  } finally {
-    clearTimeout(timer);
   }
 
   if (clerkResponse.ok) return response.status(204).end();
@@ -89,12 +82,6 @@ export default async function handler(request, response) {
     if (retryAfter) response.setHeader('Retry-After', retryAfter);
     return response.status(429).json({ message: 'Too many invitations in the last hour. Try again later.' });
   }
-  if (clerkResponse.status === 401 || clerkResponse.status === 403) {
-    // The secret key is wrong, revoked or rotated. Permanent, and only an
-    // operator can fix it, so it must not read as "try again in a minute".
-    console.error(`Clerk refused the secret key (${clerkResponse.status}): CLERK_SECRET_KEY is wrong, revoked or rotated`);
-    return response.status(503).json({ message: NOT_SET_UP });
-  }
-  console.error(`Clerk rejected an invitation with ${clerkResponse.status}`);
-  return response.status(502).json({ message: UNREACHABLE });
+  const failure = clerkFailure(clerkResponse.status, { notSetUp: NOT_SET_UP, unreachable: UNREACHABLE });
+  return response.status(failure.status).json({ message: failure.message });
 }
