@@ -31,12 +31,6 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
-  const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!secretKey) {
-    console.error('Inviting is not configured: CLERK_SECRET_KEY is required');
-    return response.status(503).json({ message: NOT_SET_UP });
-  }
-
   const { session, refusal } = authenticateClerkRequest(request);
   if (refusal) {
     // The shared module's 503 text is publish-flavoured; 401s are the token
@@ -47,6 +41,14 @@ export default async function handler(request, response) {
 
   if (!isAdmin(session)) {
     return response.status(403).json({ message: 'Only an admin can invite an author.' });
+  }
+
+  /* Checked only after the admin gate: an unauthenticated caller must not be
+     able to probe whether the site's Clerk secret is configured. */
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) {
+    console.error('Inviting is not configured: CLERK_SECRET_KEY is required');
+    return response.status(503).json({ message: NOT_SET_UP });
   }
 
   const body = typeof request.body === 'object' && request.body ? request.body : {};
@@ -86,6 +88,12 @@ export default async function handler(request, response) {
     const retryAfter = clerkResponse.headers && clerkResponse.headers.get('retry-after');
     if (retryAfter) response.setHeader('Retry-After', retryAfter);
     return response.status(429).json({ message: 'Too many invitations in the last hour. Try again later.' });
+  }
+  if (clerkResponse.status === 401 || clerkResponse.status === 403) {
+    // The secret key is wrong, revoked or rotated. Permanent, and only an
+    // operator can fix it, so it must not read as "try again in a minute".
+    console.error(`Clerk refused the secret key (${clerkResponse.status}): CLERK_SECRET_KEY is wrong, revoked or rotated`);
+    return response.status(503).json({ message: NOT_SET_UP });
   }
   console.error(`Clerk rejected an invitation with ${clerkResponse.status}`);
   return response.status(502).json({ message: UNREACHABLE });

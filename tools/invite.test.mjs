@@ -159,6 +159,26 @@ test('Clerk being unreachable is a temporary failure, not a misconfiguration', a
   }
 });
 
+test('a Clerk 401 or 403 is a configuration fault, not a retryable glitch', async () => {
+  for (const status of [401, 403]) {
+    await withEnv(ENV, () => withFetch([{ status, body: {} }], async () => {
+      const response = makeResponse();
+      await handler(req(bearer('admin'), { email: 'x@example.com' }), response);
+      assert.equal(response.statusCode, 503);
+      assert.match(response.body.message, /not set up/i);
+      assert.doesNotMatch(response.body.message, /try again/i);
+    }));
+  }
+});
+
+test('an unauthenticated caller cannot learn whether the secret key is set', async () => {
+  await withEnv({ ...ENV, CLERK_SECRET_KEY: '' }, () => withFetch([], async () => {
+    const response = makeResponse();
+    await handler(req('', { email: 'x@example.com' }), response);
+    assert.equal(response.statusCode, 401);
+  }));
+});
+
 test('a missing CLERK_SECRET_KEY is a configuration fault, worded for inviting', async () => {
   await withEnv({ ...ENV, CLERK_SECRET_KEY: '' }, () => withFetch([], async (stub) => {
     const response = makeResponse();
