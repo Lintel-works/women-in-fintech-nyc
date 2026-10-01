@@ -784,6 +784,58 @@ function isAdminUser() {
    promoted to admin mid-session sees nothing until they sign out and in. */
 function renderAdminTools(isAdmin) {
   $('admin-tools').hidden = !isAdmin;
+  if (isAdmin) loadAuthors();
+}
+
+async function loadAuthors() {
+  var holder = $('author-list');
+  holder.textContent = 'Loading…';
+  try {
+    var response = await fetch('/api/authors', { headers: await authHeaders() });
+    var data = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      holder.textContent = data.message || 'Could not load the author list.';
+      return;
+    }
+    holder.textContent = '';
+    data.authors.forEach(function (author) {
+      var row = document.createElement('p');
+      row.textContent = author.email + ' (' + author.role + ') ';
+      ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = action;
+        button.addEventListener('click', function () { actOnAuthor(action, author.id, author.email); });
+        row.appendChild(button);
+      });
+      holder.appendChild(row);
+    });
+  } catch (error) {
+    holder.textContent = 'Could not reach the site to load the author list.';
+  }
+}
+
+async function actOnAuthor(action, id, email) {
+  var status = $('invite-status');
+  // Removal deletes the account and cannot be undone from here.
+  if (action === 'remove' && !window.confirm('Remove ' + email + '? They will lose access immediately.')) return;
+  status.textContent = 'Working…';
+  try {
+    var response = await fetch('/api/authors', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ action: action, id: id })
+    });
+    if (response.status === 204) {
+      status.textContent = action === 'remove' ? ('Removed ' + email + '.') : ('Updated ' + email + '.');
+      loadAuthors();
+      return;
+    }
+    var data = await response.json().catch(function () { return {}; });
+    status.textContent = data.message || 'That did not work.';
+  } catch (error) {
+    status.textContent = 'Could not reach the site.';
+  }
 }
 
 async function sendInvite() {
