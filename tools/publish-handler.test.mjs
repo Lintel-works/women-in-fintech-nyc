@@ -1,11 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
 import handler from '../api/publish.js';
-import { signSession } from '../lib/session.mjs';
+import { generateKeyPairSync, createSign } from 'node:crypto';
+
+const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const CLERK_PEM = publicKey.export({ type: 'spki', format: 'pem' });
 
 const ENV = {
-  AUTH_SECRET: 'a-test-secret-that-is-long-enough',
+  CLERK_PEM_PUBLIC_KEY: CLERK_PEM,
+  CLERK_AUTHORIZED_PARTIES: 'https://nycfintechwomen.com',
   GITHUB_TOKEN: 'ghtoken',
   GITHUB_OWNER: 'owner',
   GITHUB_REPO: 'repo',
@@ -47,13 +50,29 @@ function makeResponse() {
   };
 }
 
-function makeRequest({ method = 'POST', cookie, body } = {}) {
-  return { method, headers: cookie ? { cookie } : {}, body };
+function makeRequest({ method = 'POST', authorization, body } = {}) {
+  return { method, headers: authorization ? { authorization } : {}, body };
 }
 
-function validCookie(secret = ENV.AUTH_SECRET) {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  return `wif_session=${signSession({ sub: 'jane@example.com', exp }, secret)}`;
+/* Mints a token the way Clerk does -- RS256, short-lived, azp matching the
+   configured origin -- so the handler's real verification path is exercised
+   rather than stubbed. `email: null` omits the claim, as Clerk's default
+   session token does. */
+function bearer({ email = 'jane@example.com', role, exp } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    sub: 'user_123',
+    azp: 'https://nycfintechwomen.com',
+    exp: exp === undefined ? now + 60 : exp,
+    nbf: now - 5
+  };
+  if (email !== null) payload.email = email;
+  if (role) payload.public_metadata = { role };
+  const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const input = `${b64(header)}.${b64(payload)}`;
+  const sig = createSign('RSA-SHA256').update(input).sign(privateKey).toString('base64url');
+  return `Bearer ${input}.${sig}`;
 }
 
 function stubFetch(responses) {
@@ -90,7 +109,7 @@ function createSequence({ withImageBlob } = {}) {
   return seq;
 }
 
-test('no cookie is refused with 401 and makes no GitHub call', () => withEnv(ENV, async () => {
+test('no bearer token is refused with 401 and makes no GitHub call', () => withEnv(ENV, async () => {
   const restore = noNetwork();
   try {
     const request = makeRequest({ body: { type: 'post', mode: 'create', fields: { title: 'X' }, blocks: [] } });
@@ -105,7 +124,7 @@ test('no cookie is refused with 401 and makes no GitHub call', () => withEnv(ENV
 test('GET is refused with 405', () => withEnv(ENV, async () => {
   const restore = noNetwork();
   try {
-    const request = makeRequest({ method: 'GET', cookie: validCookie() });
+    const request = makeRequest({ method: 'GET', authorization: bearer() });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 405);
@@ -117,7 +136,7 @@ test('GET is refused with 405', () => withEnv(ENV, async () => {
 test('an invalid payload is refused with 400 before any GitHub call', () => withEnv(ENV, async () => {
   const restore = noNetwork();
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', mode: 'create', fields: {}, blocks: [] } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', mode: 'create', fields: {}, blocks: [] } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 400);
@@ -130,7 +149,7 @@ test('a valid publish with no image commits one file and returns the URL', () =>
   const fetchStub = stubFetch(createSequence());
   try {
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: { type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [] }
     });
     const response = makeResponse();
@@ -149,7 +168,7 @@ test('a PNG image publishes to the coverPathFor(...).png path', () => withEnv(EN
   try {
     const base64 = Buffer.from('fake png bytes').toString('base64');
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: {
         type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [],
         image: { base64, ext: 'png' }
@@ -172,7 +191,7 @@ test('an image extension outside jpg/png is refused with 400, no GitHub call', (
   try {
     const base64 = Buffer.from('fake webp bytes').toString('base64');
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: {
         type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [],
         image: { base64, ext: 'webp' }
@@ -191,7 +210,7 @@ test('a create onto an existing path names changing the title or the slug, not "
   const fetchStub = stubFetch([{ status: 200, body: {} }]); // pathExists: true
   try {
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: { type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [] }
     });
     const response = makeResponse();
@@ -207,7 +226,8 @@ test('a create onto an existing path names changing the title or the slug, not "
 // FIX 3 (final wave): with no GITHUB_TOKEN override, the handler must mint an
 // installation token before its first GitHub Data API call, and only once.
 test('with no GITHUB_TOKEN override, exactly one installation token is minted before any other call', () => withEnv({
-  AUTH_SECRET: ENV.AUTH_SECRET,
+  CLERK_PEM_PUBLIC_KEY: ENV.CLERK_PEM_PUBLIC_KEY,
+  CLERK_AUTHORIZED_PARTIES: ENV.CLERK_AUTHORIZED_PARTIES,
   GITHUB_OWNER: ENV.GITHUB_OWNER,
   GITHUB_REPO: ENV.GITHUB_REPO,
   GITHUB_BRANCH: ENV.GITHUB_BRANCH,
@@ -230,7 +250,7 @@ test('with no GITHUB_TOKEN override, exactly one installation token is minted be
   };
   try {
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: { type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [] }
     });
     const response = makeResponse();
@@ -249,7 +269,8 @@ test('with no GITHUB_TOKEN override, exactly one installation token is minted be
 }));
 
 test('a malformed App private key is reported distinctly from a GitHub-rejected credential', () => withEnv({
-  AUTH_SECRET: ENV.AUTH_SECRET,
+  CLERK_PEM_PUBLIC_KEY: ENV.CLERK_PEM_PUBLIC_KEY,
+  CLERK_AUTHORIZED_PARTIES: ENV.CLERK_AUTHORIZED_PARTIES,
   GITHUB_OWNER: ENV.GITHUB_OWNER,
   GITHUB_REPO: ENV.GITHUB_REPO,
   GITHUB_BRANCH: ENV.GITHUB_BRANCH,
@@ -260,13 +281,54 @@ test('a malformed App private key is reported distinctly from a GitHub-rejected 
   const restore = noNetwork();
   try {
     const request = makeRequest({
-      cookie: validCookie(),
+      authorization: bearer(),
       body: { type: 'post', mode: 'create', fields: { title: 'October Recap' }, blocks: [] }
     });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 503);
     assert.match(response.body.message, /key could not be read/);
+  } finally {
+    restore();
+  }
+}));
+
+test('an expired token says so, distinctly from a bad one', () => withEnv(ENV, async () => {
+  const restore = noNetwork();
+  try {
+    const response = makeResponse();
+    const now = Math.floor(Date.now() / 1000);
+    await handler(makeRequest({ authorization: bearer({ exp: now - 600 }), body: {} }), response);
+    assert.equal(response.statusCode, 401);
+    assert.match(response.body.message, /expired/i);
+  } finally {
+    restore();
+  }
+}));
+
+/* Clerk's default session token carries no email claim -- only a user_… id.
+   If the dashboard customization was never applied, the commit author would
+   silently become a meaningless id, which is invisible until somebody reads
+   git log months later. Refuse instead. */
+test('a token with no email claim is a configuration fault, not an author', () => withEnv(ENV, async () => {
+  const restore = noNetwork();
+  try {
+    const response = makeResponse();
+    await handler(makeRequest({ authorization: bearer({ email: null }), body: {} }), response);
+    assert.equal(response.statusCode, 503);
+    assert.match(response.body.message, /not set up/i);
+  } finally {
+    restore();
+  }
+}));
+
+test('an unset CLERK_AUTHORIZED_PARTIES is a configuration fault, not a skipped check', () => withEnv({ ...ENV, CLERK_AUTHORIZED_PARTIES: '' }, async () => {
+  const restore = noNetwork();
+  try {
+    const response = makeResponse();
+    await handler(makeRequest({ authorization: bearer(), body: {} }), response);
+    assert.equal(response.statusCode, 503);
+    assert.match(response.body.message, /not set up/i);
   } finally {
     restore();
   }
