@@ -110,9 +110,7 @@ imported.
 │   ├── publish-validate.mjs # Validates a publish payload, computes its path
 │   ├── publish.mjs          # Serializes + render-gates + parse-gates a post
 │   ├── github.mjs           # Git Data API: read/commit/delete via the Contents/Git APIs
-│   ├── github-auth.mjs      # Mints a GitHub App installation token per request
-│   ├── clerk-jwt.mjs        # Verifies Clerk's RS256 session tokens (server only)
-│   └── clerk-request.mjs    # Authenticates a request and calls Clerk's Backend API
+│   └── github-auth.mjs      # Mints a GitHub App installation token per request
 ├── tools/               # Dev-only (not deployed) -- the *.test.mjs files
 │   │                    # here are what `npm test` runs; see below
 │   ├── htmlcanon.mjs
