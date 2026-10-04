@@ -22,3 +22,4 @@ _site/
 
 # Subagent-driven development scratch (ledger, briefs, review packages)
 .superpowers/
+.env*

@@ -90,7 +90,7 @@
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 12px; font-weight: 600; color: var(--plum); margin-bottom: 5px; }
   .field label .req { color: var(--pink); }
-  .field input[type="text"], .field input[type="url"], .field input[type="date"], .field select, .field textarea, .blk input[type="text"], .blk textarea {
+  .field input[type="text"], .field input[type="email"], .field input[type="url"], .field input[type="date"], .field select, .field textarea, .blk input[type="text"], .blk textarea {
     width: 100%; font: inherit; font-size: 13.5px; color: var(--fg);
     border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px;
     background: #fff; resize: vertical;
@@ -246,8 +246,10 @@
     </section>
     <section id="admin-tools" class="sec" hidden>
     <h2>Authors</h2>
-    <label for="invite-email">Invite an author</label>
-    <input id="invite-email" type="email" autocomplete="off" />
+    <div class="field">
+      <label for="invite-email">Invite an author</label>
+      <input type="email" id="invite-email" autocomplete="off" placeholder="name@example.com" />
+    </div>
     <button id="btn-invite" type="button" class="btn btn-pink">Send invitation</button>
     <p id="invite-status" role="status"></p>
     <div id="author-list"></div>
