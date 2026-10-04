@@ -58,6 +58,17 @@ function toast(msg) {
   el._t = setTimeout(function () { el.classList.remove('show'); }, 1800);
 }
 
+/* Status text alone cannot tell you whether something worked: 'Published.'
+   and 'Publishing failed.' render identically as grey copy. Every status goes
+   through here so the tone — busy, ok, error — carries a colour and a glyph
+   from .status-line as well as the wording. */
+function setStatus(el, text, tone) {
+  var node = typeof el === 'string' ? $(el) : el;
+  if (!node) return;
+  node.textContent = text;
+  node.className = 'status-line' + (tone ? ' is-' + tone : '');
+}
+
 function autoGrow(el) {
   el.style.height = 'auto';
   el.style.height = Math.max(el.scrollHeight, 38) + 'px';
@@ -725,16 +736,16 @@ async function initClerk() {
   var status = $('signin-status');
   var mount = $('clerk-auth');
   var rendered = null;
-  status.textContent = 'Loading sign-in…';
+  setStatus(status, 'Loading sign-in…', 'busy');
   clerk = await waitForClerk(10000);
   if (!clerk) {
-    status.textContent = 'Could not load the sign-in form. Check your connection and reload.';
+    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
     return;
   }
   try {
     await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
   } catch (error) {
-    status.textContent = 'Could not load the sign-in form. Check your connection and reload.';
+    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
     return;
   }
   render();
@@ -752,13 +763,13 @@ async function initClerk() {
       signedIn = true;
       var email = clerk.user && clerk.user.primaryEmailAddress
         ? clerk.user.primaryEmailAddress.emailAddress : '';
-      status.textContent = 'Signed in as ' + email + '.';
+      setStatus(status, 'Signed in as ' + email + '.', 'ok');
       updateAccountButton(email);
       clerk.mountUserButton(mount);
       renderAdminTools(isAdminUser());
     } else {
       signedIn = false;
-      status.textContent = '';
+      setStatus(status, '');
       updateAccountButton('');
       clerk.mountSignIn(mount);
       renderAdminTools(false);
@@ -812,7 +823,7 @@ function updateAccountButton(email) {
 
 function startClerk() {
   initClerk().catch(function () {
-    $('signin-status').textContent = 'Could not load the sign-in form. Check your connection and reload.';
+    setStatus('signin-status', 'Could not load the sign-in form. Check your connection and reload.', 'error');
   });
 }
 
@@ -839,45 +850,74 @@ function setAuthorButtons(disabled) {
 async function loadAuthors() {
   var holder = $('author-list');
   var thisLoad = ++authorLoadCount;
-  holder.textContent = 'Loading…';
+  holder.innerHTML = '';
+  holder.appendChild(emptyNote('Loading authors…'));
   try {
     var response = await fetch('/api/authors', { headers: await authHeaders() });
     var data = await response.json().catch(function () { return {}; });
     if (thisLoad !== authorLoadCount) return;
     if (response.status === 401) handleUnauthorized();
     if (!response.ok) {
-      holder.textContent = data.message || 'Could not load the author list.';
+      holder.innerHTML = '';
+      holder.appendChild(emptyNote(data.message || 'Could not load the author list.'));
       return;
     }
-    holder.textContent = '';
-    data.authors.forEach(function (author) {
-      var row = document.createElement('p');
+    holder.innerHTML = '';
+    if (!(data.authors || []).length) {
+      holder.appendChild(emptyNote('No authors yet. Invite one above.'));
+      return;
+    }
+    (data.authors || []).forEach(function (author) {
+      var row = document.createElement('div');
       row.className = 'author-row';
       var who = document.createElement('span');
       who.className = 'who';
-      who.textContent = author.email + ' (' + author.role
-        + (author.state && author.state !== 'active' ? ', ' + author.state : '') + ')';
+      // The address is the identity; role and invitation state are metadata,
+      // so they go in pills rather than a parenthesised run-on.
+      var email = document.createElement('strong');
+      email.textContent = author.email;
+      who.appendChild(email);
+      who.appendChild(pill(author.role, false));
+      if (author.state && author.state !== 'active') who.appendChild(pill(author.state, true));
       row.appendChild(who);
       ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
         var button = document.createElement('button');
         button.type = 'button';
         button.className = action === 'remove' ? 'btn btn-sm btn-danger' : 'btn btn-sm';
-        button.textContent = action;
+        button.textContent = action.charAt(0).toUpperCase() + action.slice(1);
+        button.setAttribute('aria-label', action + ' ' + author.email);
         button.addEventListener('click', function () { actOnAuthor(action, author.id, author.email); });
         row.appendChild(button);
       });
       holder.appendChild(row);
     });
   } catch (error) {
-    if (thisLoad === authorLoadCount) holder.textContent = 'Could not reach the site to load the author list.';
+    if (thisLoad === authorLoadCount) {
+      holder.innerHTML = '';
+      holder.appendChild(emptyNote('Could not reach the site to load the author list.'));
+    }
   }
+}
+
+function emptyNote(text) {
+  var note = document.createElement('p');
+  note.className = 'empty-note';
+  note.textContent = text;
+  return note;
+}
+
+function pill(text, muted) {
+  var span = document.createElement('span');
+  span.className = muted ? 'pill pill-muted' : 'pill';
+  span.textContent = text;
+  return span;
 }
 
 async function actOnAuthor(action, id, email) {
   var status = $('invite-status');
   // Removal deletes the account and cannot be undone from here.
   if (action === 'remove' && !window.confirm('Remove ' + email + '? They will lose access immediately.')) return;
-  status.textContent = 'Working…';
+  setStatus(status, 'Working…', 'busy');
   // A double-click on a destructive action must not send it twice.
   setAuthorButtons(true);
   try {
@@ -887,16 +927,16 @@ async function actOnAuthor(action, id, email) {
       body: JSON.stringify({ action: action, id: id })
     });
     if (response.status === 204) {
-      status.textContent = action === 'remove' ? ('Removed ' + email + '.') : ('Updated ' + email + '.');
+      setStatus(status, action === 'remove' ? ('Removed ' + email + '.') : ('Updated ' + email + '.'), 'ok');
       loadAuthors();
       return;
     }
     if (response.status === 401) handleUnauthorized();
     var data = await response.json().catch(function () { return {}; });
-    status.textContent = data.message || 'That did not work.';
+    setStatus(status, data.message || 'That did not work.', 'error');
     setAuthorButtons(false);
   } catch (error) {
-    status.textContent = 'Could not reach the site.';
+    setStatus(status, 'Could not reach the site.', 'error');
     setAuthorButtons(false);
   }
 }
@@ -906,8 +946,8 @@ async function sendInvite() {
   var button = $('btn-invite');
   var status = $('invite-status');
   var email = input.value.trim();
-  if (!email) { status.textContent = 'Enter an email address first.'; return; }
-  status.textContent = 'Sending…';
+  if (!email) { setStatus(status, 'Enter an email address first.', 'error'); return; }
+  setStatus(status, 'Sending…', 'busy');
   // One click is one of Clerk's 100 invitations an hour; a double-click
   // must not spend two.
   button.disabled = true;
@@ -918,15 +958,15 @@ async function sendInvite() {
       body: JSON.stringify({ email: email })
     });
     if (response.status === 204) {
-      status.textContent = 'Invitation sent to ' + email + '.';
+      setStatus(status, 'Invitation sent to ' + email + '.', 'ok');
       input.value = '';
       return;
     }
     if (response.status === 401) handleUnauthorized();
     var data = await response.json().catch(function () { return {}; });
-    status.textContent = data.message || 'Could not send that invitation.';
+    setStatus(status, data.message || 'Could not send that invitation.', 'error');
   } catch (error) {
-    status.textContent = 'Could not reach the site to send that invitation.';
+    setStatus(status, 'Could not reach the site to send that invitation.', 'error');
   } finally {
     button.disabled = false;
   }
@@ -1077,9 +1117,9 @@ async function publishPost() {
      the server. buildPostObject() has already toasted the reason. */
   if (!buildPostObject()) return;
   if (!coverExtIsPublishable()) {
-    status.textContent = 'That cover image is a .' + cover.ext + ' file with "keep original" checked — ' +
+    setStatus(status, 'That cover image is a .' + cover.ext + ' file with "keep original" checked — ' +
       'only JPG and PNG can be published that way. Uncheck "keep original" (it will be resized to a JPG), ' +
-      'or choose a JPG or PNG cover instead.';
+      'or choose a JPG or PNG cover instead.', 'error');
     return;
   }
   button.disabled = true;
@@ -1089,7 +1129,7 @@ async function publishPost() {
   // the one thing an author can control if it seems stuck is told to them
   // up front instead of left to worry that a reload might duplicate or
   // half-finish something.
-  status.textContent = 'Publishing… if this doesn’t finish in about a minute, reload and try again — nothing has been published yet.';
+  setStatus(status, 'Publishing… if this doesn’t finish in about a minute, reload and try again — nothing has been published yet.', 'busy');
   try {
     var image = await coverAsBase64();
     var payload = publishPayload(image);
@@ -1097,7 +1137,7 @@ async function publishPost() {
        publishable. The specific toast already fired inside buildPostObject();
        leave the status line clear rather than layering a generic failure over
        it, and let the finally block below re-enable the button. */
-    if (!payload) { status.textContent = ''; return; }
+    if (!payload) { setStatus(status, ''); return; }
     var response = await fetch('/api/publish', {
       method: 'POST',
       headers: await authHeaders(),
@@ -1114,13 +1154,13 @@ async function publishPost() {
          slug too), so its answer is the one to trust. */
       openedSlug = data.slug;
       updatePublishAvailability();
-      status.textContent = 'Published. Live in about a minute: ' + data.url;
+      setStatus(status, 'Published. Live in about a minute: ' + data.url, 'ok');
       return;
     }
     if (response.status === 401) handleUnauthorized();
-    status.textContent = data.message || 'Publishing failed. Nothing was changed.';
+    setStatus(status, data.message || 'Publishing failed. Nothing was changed.', 'error');
   } catch (error) {
-    status.textContent = error.message || 'Publishing failed. Nothing was changed.';
+    setStatus(status, error.message || 'Publishing failed. Nothing was changed.', 'error');
   } finally {
     button.disabled = !signedIn;
   }
@@ -1143,14 +1183,14 @@ async function publishPost() {
 async function unpublishPost() {
   var status = $('unpublish-status');
   var slug = openedSlug;
-  if (!slug) { status.textContent = 'Open or publish a post first.'; return; }
+  if (!slug) { setStatus(status, 'Open or publish a post first.', 'error'); return; }
   if ($('unpublish-confirm').value.trim() !== slug) {
-    status.textContent = 'Type ' + slug + ' to confirm.';
+    setStatus(status, 'Type ' + slug + ' to confirm.', 'error');
     return;
   }
   var button = $('btn-unpublish');
   button.disabled = true;
-  status.textContent = 'Unpublishing…';
+  setStatus(status, 'Unpublishing…', 'busy');
   try {
     var response = await fetch('/api/unpublish', {
       method: 'POST',
@@ -1169,14 +1209,14 @@ async function unpublishPost() {
          same now-deleted address. */
       openedSlug = null;
       updatePublishAvailability();
-      status.textContent = 'Unpublished. The page will disappear in about a minute.';
+      setStatus(status, 'Unpublished. The page will disappear in about a minute.', 'ok');
       $('unpublish-confirm').value = '';
       return;
     }
     if (response.status === 401) handleUnauthorized();
-    status.textContent = data.message || 'Unpublishing failed. Nothing was changed.';
+    setStatus(status, data.message || 'Unpublishing failed. Nothing was changed.', 'error');
   } catch (error) {
-    status.textContent = error.message || 'Unpublishing failed. Nothing was changed.';
+    setStatus(status, error.message || 'Unpublishing failed. Nothing was changed.', 'error');
   } finally {
     // Not a bare `false`: updatePublishAvailability() re-applies the real
     // signedIn/openedSlug gate, which the success path above may just have
@@ -1313,15 +1353,19 @@ function init() {
     model.coverPath = e.target.value;
     onChange();
   });
-  $('btn-desktop').addEventListener('click', function () {
-    $('preview').classList.remove('mobile');
-    fitPreview();
-  });
-  $('btn-mobile').addEventListener('click', function () {
-    $('preview').classList.add('mobile');
-    fitPreview();
-  });
+  $('btn-desktop').addEventListener('click', function () { setPreviewWidth(false); });
+  $('btn-mobile').addEventListener('click', function () { setPreviewWidth(true); });
   window.addEventListener('resize', fitPreview);
+  fitPreview();
+}
+
+/* The two width buttons are a segmented control, so the pressed one has to
+   be marked: aria-pressed both announces the state and drives the styling,
+   which previously left an author guessing which width they were looking at. */
+function setPreviewWidth(mobile) {
+  $('preview').classList.toggle('mobile', mobile);
+  $('btn-desktop').setAttribute('aria-pressed', mobile ? 'false' : 'true');
+  $('btn-mobile').setAttribute('aria-pressed', mobile ? 'true' : 'false');
   fitPreview();
 }
 
