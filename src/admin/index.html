@@ -178,6 +178,26 @@
     margin-bottom: 16px; display: flex; gap: 10px; align-items: center;
   }
   .banner .btn { margin-left: auto; flex-shrink: 0; }
+
+  /* Account drawer. z-index sits above the sticky topbar (20) and below the
+     toast (50), so a status toast still reads over an open drawer. */
+  #drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 40; }
+  #account-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw);
+    background: var(--bg); border-left: 1px solid var(--line);
+    box-shadow: -8px 0 28px rgba(0,0,0,.12); z-index: 41;
+    display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform .2s;
+  }
+  #account-drawer.open { transform: translateX(0); }
+  .drawer-head {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+  }
+  .drawer-head h2 { margin: 0; font-size: 15px; }
+  .drawer-head .btn-icon { margin-left: auto; font-size: 18px; line-height: 1; }
+  .drawer-body { overflow-y: auto; padding: 4px 16px 24px; }
+  .drawer-body .sec { border: 0; padding-left: 0; padding-right: 0; }
 </style>
 </head>
 <body>
@@ -193,27 +213,41 @@
   <button type="button" class="btn btn-sm" id="btn-open-post">Open post</button>
   <button type="button" class="btn btn-pink" id="btn-download">Download post file</button>
   <button id="btn-publish" type="button" class="btn btn-pink" disabled title="Sign in to publish">Publish</button>
+  <button type="button" class="btn btn-sm" id="btn-account">Sign in</button>
   <p id="publish-status" class="status" role="status"></p>
 </header>
+
+<!-- Account and author management live in a drawer rather than at the top
+     of the writing column: an author otherwise scrolls past them on every
+     post, and an admin sees invite controls while drafting. The section
+     ids are unchanged so editor.js's Clerk mount/unmount logic is untouched. -->
+<div id="drawer-backdrop" hidden></div>
+<aside id="account-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="drawer-title">Account</h2>
+    <button type="button" class="btn-icon" id="btn-drawer-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <section id="signin" class="sec">
+    <p class="hint">You can write and download a post without signing in. Publishing needs an account.</p>
+    <div id="clerk-auth"></div>
+    <p id="signin-status" role="status"></p>
+    </section>
+    <section id="admin-tools" class="sec" hidden>
+    <h2>Authors</h2>
+    <label for="invite-email">Invite an author</label>
+    <input id="invite-email" type="email" autocomplete="off" />
+    <button id="btn-invite" type="button">Send invitation</button>
+    <p id="invite-status" role="status"></p>
+    <div id="author-list"></div>
+    </section>
+  </div>
+</aside>
 
 <div class="panes">
 
   <!-- ─────────────── form ─────────────── -->
   <div class="pane pane-form">
-    <section id="signin" class="sec">
-      <h2>Account</h2>
-      <p class="hint">You can write and download a post without signing in. Publishing needs an account.</p>
-      <div id="clerk-auth"></div>
-      <p id="signin-status" role="status"></p>
-    </section>
-    <section id="admin-tools" class="sec" hidden>
-      <h2>Authors</h2>
-      <label for="invite-email">Invite an author</label>
-      <input id="invite-email" type="email" autocomplete="off" />
-      <button id="btn-invite" type="button">Send invitation</button>
-      <p id="invite-status" role="status"></p>
-      <div id="author-list"></div>
-    </section>
     <div id="restore-banner"></div>
 
     <section class="sec">

@@ -753,11 +753,13 @@ async function initClerk() {
       var email = clerk.user && clerk.user.primaryEmailAddress
         ? clerk.user.primaryEmailAddress.emailAddress : '';
       status.textContent = 'Signed in as ' + email + '.';
+      updateAccountButton(email);
       clerk.mountUserButton(mount);
       renderAdminTools(isAdminUser());
     } else {
       signedIn = false;
       status.textContent = '';
+      updateAccountButton('');
       clerk.mountSignIn(mount);
       renderAdminTools(false);
     }
@@ -769,6 +771,45 @@ async function initClerk() {
 
 /* A throw inside initClerk would otherwise be an unhandled rejection and
    leave the author a blank panel with no explanation. */
+/* The account drawer. Sign-in and author management live here rather than at
+   the top of the writing column, where an author scrolled past them on every
+   post and an admin saw invite controls while drafting. */
+function drawerIsOpen() {
+  return $('account-drawer').classList.contains('open');
+}
+
+function openDrawer() {
+  var drawer = $('account-drawer');
+  $('drawer-backdrop').hidden = false;
+  drawer.hidden = false;
+  /* Unhiding and transforming in the same frame skips the transition, so the
+     panel would snap rather than slide. */
+  requestAnimationFrame(function () { drawer.classList.add('open'); });
+  $('btn-drawer-close').focus();
+}
+
+function closeDrawer() {
+  var drawer = $('account-drawer');
+  drawer.classList.remove('open');
+  $('drawer-backdrop').hidden = true;
+  /* Hide only once the slide-out has run; hiding immediately would make the
+     panel disappear instead of leaving. */
+  setTimeout(function () {
+    if (!drawer.classList.contains('open')) drawer.hidden = true;
+  }, 200);
+  $('btn-account').focus();
+}
+
+/* Signing in is the one thing a new author must find, and the drawer hides it
+   behind a button -- so the trigger says so, and wears the primary style until
+   they are signed in. */
+function updateAccountButton(email) {
+  var button = $('btn-account');
+  button.textContent = signedIn ? (email || 'Account') : 'Sign in';
+  if (signedIn) button.classList.remove('btn-pink');
+  else button.classList.add('btn-pink');
+}
+
 function startClerk() {
   initClerk().catch(function () {
     $('signin-status').textContent = 'Could not load the sign-in form. Check your connection and reload.';
@@ -1238,6 +1279,12 @@ function init() {
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
+  $('btn-account').addEventListener('click', openDrawer);
+  $('btn-drawer-close').addEventListener('click', closeDrawer);
+  $('drawer-backdrop').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && drawerIsOpen()) closeDrawer();
+  });
   $('post-file').addEventListener('change', function (e) {
     if (e.target.files[0]) openPostFile(e.target.files[0]);
     e.target.value = '';
