@@ -861,7 +861,7 @@ async function loadAuthors() {
       ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
         var button = document.createElement('button');
         button.type = 'button';
-        button.className = 'btn btn-sm';
+        button.className = action === 'remove' ? 'btn btn-sm btn-danger' : 'btn btn-sm';
         button.textContent = action;
         button.addEventListener('click', function () { actOnAuthor(action, author.id, author.email); });
         row.appendChild(button);

@@ -49,6 +49,12 @@
   .btn-pink { background: var(--pink); color: #fff; border-color: var(--pink); }
   .btn-pink:hover { background: var(--pink-deep); border-color: var(--pink-deep); color: #fff; }
   .btn-sm { font-size: 12px; padding: 5px 10px; border-radius: 7px; }
+  /* Destructive actions. Outlined rather than filled: removal sits beside
+     reversible actions, so it should read as different without shouting.
+     Uses --warn because the palette carries no red, and inventing one here
+     would clash with the plum and pink everything else is built from. */
+  .btn-danger { border-color: var(--warn); color: var(--warn); }
+  .btn-danger:hover { background: var(--warn); border-color: var(--warn); color: #fff; }
   .btn-icon {
     font-size: 12px; line-height: 1; padding: 6px 8px; border-radius: 6px;
     background: transparent; border-color: transparent; color: var(--muted);
