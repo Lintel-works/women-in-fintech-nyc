@@ -198,6 +198,11 @@
   .drawer-head .btn-icon { margin-left: auto; font-size: 18px; line-height: 1; }
   .drawer-body { overflow-y: auto; padding: 4px 16px 24px; }
   .drawer-body .sec { border: 0; padding-left: 0; padding-right: 0; }
+  .author-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 8px; font-size: 13px;
+  }
+  .author-row .who { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -237,7 +242,7 @@
     <h2>Authors</h2>
     <label for="invite-email">Invite an author</label>
     <input id="invite-email" type="email" autocomplete="off" />
-    <button id="btn-invite" type="button">Send invitation</button>
+    <button id="btn-invite" type="button" class="btn btn-pink">Send invitation</button>
     <p id="invite-status" role="status"></p>
     <div id="author-list"></div>
     </section>

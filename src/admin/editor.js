@@ -852,11 +852,16 @@ async function loadAuthors() {
     holder.textContent = '';
     data.authors.forEach(function (author) {
       var row = document.createElement('p');
-      row.textContent = author.email + ' (' + author.role
-        + (author.state && author.state !== 'active' ? ', ' + author.state : '') + ') ';
+      row.className = 'author-row';
+      var who = document.createElement('span');
+      who.className = 'who';
+      who.textContent = author.email + ' (' + author.role
+        + (author.state && author.state !== 'active' ? ', ' + author.state : '') + ')';
+      row.appendChild(who);
       ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
         var button = document.createElement('button');
         button.type = 'button';
+        button.className = 'btn btn-sm';
         button.textContent = action;
         button.addEventListener('click', function () { actOnAuthor(action, author.id, author.email); });
         row.appendChild(button);
