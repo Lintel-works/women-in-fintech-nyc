@@ -18,18 +18,20 @@ export default function (eleventyConfig) {
   eleventyConfig.ignores.add('src/admin/**');
 
   eleventyConfig.addPassthroughCopy({ 'src/admin': 'admin' });
-  /* Only the four lib/ modules the browser actually imports (see
-     src/admin/editor.js and src/admin/text.js) -- passing through the whole
-     lib/ directory would also publish lib/clerk-jwt.mjs and lib/github.mjs,
-     neither of which the editor needs and neither of which was meant to be
-     public: they hold the session-token verification and the GitHub commit
-     machinery. Nothing in them is a secret (no key or token lives in
-     source), but there is no reason to serve them to anyone who asks. */
+  /* Only the five lib/ modules the browser actually imports (see
+     src/admin/editor.js, src/admin/text.js and src/admin/events/events.js) --
+     passing through the whole lib/ directory would also publish
+     lib/clerk-jwt.mjs and lib/github.mjs, neither of which the editor needs
+     and neither of which was meant to be public: they hold the session-token
+     verification and the GitHub commit machinery. Nothing in them is a secret
+     (no key or token lives in source), but there is no reason to serve them
+     to anyone who asks. */
   eleventyConfig.addPassthroughCopy({
     'lib/render-blocks.mjs': 'lib/render-blocks.mjs',
     'lib/post-file.mjs': 'lib/post-file.mjs',
     'lib/post-types.mjs': 'lib/post-types.mjs',
-    'lib/slug.mjs': 'lib/slug.mjs'
+    'lib/slug.mjs': 'lib/slug.mjs',
+    'lib/event-entry.mjs': 'lib/event-entry.mjs'
   });
   /* The editor needs two public Clerk values in the browser. /admin is
      rendered statically and copied verbatim, so there is no request-time
