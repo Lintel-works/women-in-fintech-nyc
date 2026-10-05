@@ -29,6 +29,20 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
+  /* Authenticated like publish and unpublish, and for the same reason rather
+     than a different one: this reads a file that is already public on the
+     site, but it reads it *through this site's GitHub credential*. Leaving it
+     open would make the endpoint a free proxy for any path the credential can
+     reach, and the slug check below is the only thing standing between a
+     caller and that.
+
+     Ahead of the configuration check, also like its siblings: a refusal there
+     would tell an unauthenticated caller whether the site is misconfigured. */
+  const { refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
+  }
+
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
@@ -37,17 +51,6 @@ export default async function handler(request, response) {
   if (!owner || !repo || !hasGithubCredential) {
     console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
-  }
-
-  /* Authenticated like publish and unpublish, and for the same reason rather
-     than a different one: this reads a file that is already public on the
-     site, but it reads it *through this site's GitHub credential*. Leaving it
-     open would make the endpoint a free proxy for any path the credential can
-     reach, and the slug check below is the only thing standing between a
-     caller and that. */
-  const { refusal } = authenticateClerkRequest(request);
-  if (refusal) {
-    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const query = request.query || {};
