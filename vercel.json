@@ -12,6 +12,11 @@
       "source": "/admin",
       "destination": "/admin/",
       "permanent": false
+    },
+    {
+      "source": "/admin/events",
+      "destination": "/admin/events/",
+      "permanent": false
     }
   ],
   "headers": [
