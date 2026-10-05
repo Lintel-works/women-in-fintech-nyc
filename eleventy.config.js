@@ -10,6 +10,7 @@
  *   tools/      — dev-only regression harness
  */
 import { POST_TYPES, sortedPostsOfType } from './lib/post-types.mjs';
+import { buildPostsIndex } from './lib/posts-index.mjs';
 
 export default function (eleventyConfig) {
   // The editor is a standalone app. Keep Eleventy out of it entirely, or its
@@ -151,6 +152,13 @@ export default function (eleventyConfig) {
     eleventyConfig.addCollection(type.collection, (api) =>
       sortedPostsOfType(api.getFilteredByGlob('src/posts/*.html'), key));
   }
+
+  /* Every post of every type, in the shape the editor's post-list drawer
+     reads (src/posts-index.html emits it as posts-index.json). Built here, off
+     the same glob as the per-type collections, so the list cannot drift from
+     what the site actually published. */
+  eleventyConfig.addCollection('postsIndex', (api) =>
+    buildPostsIndex(api.getFilteredByGlob('src/posts/*.html')));
 
   return {
     dir: {

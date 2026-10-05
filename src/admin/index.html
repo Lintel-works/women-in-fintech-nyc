@@ -143,13 +143,23 @@
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 12px; font-weight: 600; color: var(--plum); margin-bottom: 5px; }
   .field label .req { color: var(--pink); }
-  .field input[type="text"], .field input[type="email"], .field input[type="url"], .field input[type="date"], .field select, .field textarea, .blk input[type="text"], .blk textarea {
+  .field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .field select, .field textarea,
+  .blk input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .blk textarea {
     width: 100%; font: inherit; font-size: 13.5px; color: var(--fg);
     border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px;
     background: #fff; resize: vertical;
+    /* Safari gives search inputs a pill shape and its own inner control; the
+       field has to look like every other field on the page, not like a search
+       box the browser drew. */
+    -webkit-appearance: none; appearance: none;
   }
+  .field input[type="search"]::-webkit-search-decoration,
+  .field input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   .field textarea, .blk textarea { line-height: 1.55; }
-  .field input:focus, .field select:focus, .field textarea:focus, .blk input:focus, .blk textarea:focus {
+  .field input:not([type="checkbox"]):not([type="radio"]):focus,
+  .field select:focus, .field textarea:focus,
+  .blk input:not([type="checkbox"]):not([type="radio"]):focus, .blk textarea:focus {
     outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px rgba(224,37,123,0.1);
   }
   .field input.mono, .field .affix { font-family: var(--font-mono); font-size: 12.5px; }
@@ -189,6 +199,8 @@
      used to sit on these, so the rhythm is adjustable in one place. */
   .field-spaced { margin-top: 14px; }
   .check-spaced, .btn-spaced { margin-top: 8px; }
+  .field-flush { margin-bottom: 0; }
+  .hint-spaced { margin-top: 14px; }
   .sec > h2.stacked { margin-top: 22px; }
 
   /* ---- image ---- */
@@ -312,14 +324,17 @@
   /* Account drawer. z-index sits above the sticky topbar (20) and below the
      toast (50), so a status toast still reads over an open drawer. */
   #drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 40; }
-  #account-drawer {
+  .drawer {
     position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw);
     background: var(--bg); border-left: 1px solid var(--line);
     box-shadow: -8px 0 28px rgba(0,0,0,.12); z-index: 41;
     display: flex; flex-direction: column;
     transform: translateX(100%); transition: transform .2s;
   }
-  #account-drawer.open { transform: translateX(0); }
+  .drawer.open { transform: translateX(0); }
+  /* The posts drawer carries a name, a date and two controls per row, which
+     does not fit the account panel's width. */
+  #posts-drawer { width: min(480px, 94vw); }
   .drawer-head {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
     padding: 14px 16px; border-bottom: 1px solid var(--line);
@@ -327,7 +342,50 @@
   .drawer-head h2 { margin: 0; font-size: 15px; }
   .drawer-head .btn-icon { margin-left: auto; font-size: 18px; line-height: 1; }
   .drawer-body { overflow-y: auto; padding: 4px 16px 24px; }
+  /* The search field has to stay reachable while 261 rows scroll under it. */
+  .drawer-sticky {
+    position: sticky; top: 0; z-index: 1; background: var(--bg);
+    padding: 12px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px;
+  }
+  .drawer-foot-note {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-top: 8px;
+  }
+  .drawer-foot-note .hint { font-size: 11.5px; }
+  /* A text button, not a .btn: it is the quieter of two ways in, and a second
+     bordered control beside the search would read as equal to it. */
+  .btn-link {
+    font: inherit; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    color: var(--pink-deep); text-decoration: underline;
+  }
+  .btn-link:hover { color: var(--pink); }
+  .btn-link:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; border-radius: 3px; }
   .drawer-body .sec { border: 0; padding-left: 0; padding-right: 0; }
+  /* A published post: the row itself opens it, so the target is the whole
+     row rather than a small control, and Unpublish sits apart from it. */
+  .post-row {
+    display: flex; align-items: center; gap: 8px;
+    border-top: 1px solid var(--line);
+  }
+  .post-row:first-child { border-top: 0; }
+  .post-open {
+    flex: 1; min-width: 0; display: block; text-align: left;
+    font: inherit; background: none; border: 0; cursor: pointer;
+    padding: 10px 8px; margin: 0 -8px; border-radius: 8px;
+    transition: background .15s;
+  }
+  .post-open:hover { background: var(--soft); }
+  .post-open:focus-visible { outline: 2px solid var(--pink); outline-offset: -2px; }
+  .post-open strong {
+    display: block; font-size: 13.5px; font-weight: 600; color: var(--plum);
+    overflow-wrap: anywhere;
+  }
+  .post-meta {
+    display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted);
+    font-family: var(--font-mono); overflow-wrap: anywhere;
+  }
+
   .author-row {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     margin: 0; padding: 10px 0; font-size: 13px; border-top: 1px solid var(--line);
@@ -377,7 +435,7 @@
      post, and an admin sees invite controls while drafting. The section
      ids are unchanged so editor.js's Clerk mount/unmount logic is untouched. -->
 <div id="drawer-backdrop" hidden></div>
-<aside id="account-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+<aside id="account-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
   <div class="drawer-head">
     <h2 id="drawer-title">Account</h2>
     <button type="button" class="btn-icon" id="btn-drawer-close" aria-label="Close">&times;</button>
@@ -399,6 +457,31 @@
     <h2 class="stacked">Current authors</h2>
     <div id="author-list"><p class="empty-note">Loading authors…</p></div>
     </section>
+  </div>
+</aside>
+
+<!-- The published-posts list. "Open post" opens this rather than the file
+     picker: an author signed in here has no clone of the repository, so a
+     local file is exactly what they do not have. The picker stays available
+     below, for working from a downloaded file. -->
+<aside id="posts-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="posts-drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="posts-drawer-title">Published posts</h2>
+    <button type="button" class="btn-icon" id="btn-posts-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sticky">
+      <div class="field field-flush">
+        <label for="post-search">Search</label>
+        <input type="search" id="post-search" autocomplete="off" placeholder="Name, title or slug" />
+      </div>
+      <p id="posts-status" class="status-line" role="status"></p>
+      <div class="drawer-foot-note">
+        <span class="hint">Shows what is live. A post published in the last minute may not be here yet.</span>
+        <button type="button" class="btn-link" id="btn-open-file">Open from a file instead</button>
+      </div>
+    </div>
+    <div id="posts-list"></div>
   </div>
 </aside>
 

@@ -1,0 +1,11 @@
+---
+permalink: "posts-index.json"
+eleventyExcludeFromCollections: true
+---
+{#- The editor's post-list drawer fetches this. It is a template rather than
+    an endpoint because the build already holds every post; see
+    lib/posts-index.mjs for why 261 posts rule out asking GitHub per row.
+
+    `dump` is Nunjucks' JSON serialiser and `safe` stops Eleventy escaping the
+    quotes into entities, which would make the file unparseable. -#}
+{{ collections.postsIndex | dump | safe }}

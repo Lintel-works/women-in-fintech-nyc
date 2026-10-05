@@ -808,21 +808,32 @@ async function initClerk() {
    the top of the writing column, where an author scrolled past them on every
    post and an admin saw invite controls while drafting. */
 function drawerIsOpen() {
-  return $('account-drawer').classList.contains('open');
+  return !!openDrawerId;
 }
 
-function openDrawer() {
-  var drawer = $('account-drawer');
+/* Which drawer is open, and what opened it -- closing returns focus to the
+   control the author came from rather than always to the account button. */
+var openDrawerId = null;
+var drawerTriggerId = null;
+
+function openDrawer(id, triggerId) {
+  if (openDrawerId && openDrawerId !== id) closeDrawer();
+  var drawer = $(id);
   $('drawer-backdrop').hidden = false;
   drawer.hidden = false;
   /* Unhiding and transforming in the same frame skips the transition, so the
      panel would snap rather than slide. */
   requestAnimationFrame(function () { drawer.classList.add('open'); });
-  $('btn-drawer-close').focus();
+  openDrawerId = id;
+  drawerTriggerId = triggerId;
+  var close = drawer.querySelector('.drawer-head .btn-icon');
+  if (close) close.focus();
 }
 
 function closeDrawer() {
-  var drawer = $('account-drawer');
+  if (!openDrawerId) return;
+  var drawer = $(openDrawerId);
+  var trigger = drawerTriggerId;
   drawer.classList.remove('open');
   $('drawer-backdrop').hidden = true;
   /* Hide only once the slide-out has run; hiding immediately would make the
@@ -830,7 +841,9 @@ function closeDrawer() {
   setTimeout(function () {
     if (!drawer.classList.contains('open')) drawer.hidden = true;
   }, 200);
-  $('btn-account').focus();
+  openDrawerId = null;
+  drawerTriggerId = null;
+  if (trigger && $(trigger)) $(trigger).focus();
 }
 
 /* Signing in is the one thing a new author must find, and the drawer hides it
@@ -1017,12 +1030,176 @@ function updatePublishAvailability() {
   }
 }
 
+/* ------------------------------------------------ published posts drawer */
+
+/* An author signed in to /admin has no clone of this repository, so the file
+   picker below can only ever open a post they already have on disk -- which
+   an author on their own laptop does not. This list is how a published post
+   is reached at all: posts-index.json is emitted by the build (see
+   lib/posts-index.mjs), so drawing it costs one static file rather than one
+   GitHub call per post, of which there are 261. */
+var postsIndex = null;
+var postsLoadToken = 0;
+
+function openPostsDrawer() {
+  openDrawer('posts-drawer', 'btn-open-post');
+  /* Re-fetched on every open rather than cached for the session: an author
+     who has just published expects to see it, and the file is small. */
+  loadPostsIndex();
+}
+
+async function loadPostsIndex() {
+  var holder = $('posts-list');
+  var token = ++postsLoadToken;
+  holder.innerHTML = '';
+  holder.appendChild(emptyNote('Loading posts…'));
+  try {
+    /* no-store because the whole point is to show what was published a minute
+       ago; a cached index would show the author the state before their post. */
+    var response = await fetch('/posts-index.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('status ' + response.status);
+    var data = await response.json();
+    if (token !== postsLoadToken) return;
+    postsIndex = Array.isArray(data) ? data : [];
+    renderPostsList();
+  } catch (error) {
+    if (token !== postsLoadToken) return;
+    holder.innerHTML = '';
+    holder.appendChild(emptyNote('Could not load the list of published posts.'));
+  }
+}
+
+function renderPostsList() {
+  var holder = $('posts-list');
+  var query = ($('post-search').value || '').trim().toLowerCase();
+  holder.innerHTML = '';
+  /* Only the current type: openPostSource refuses a post of another type
+     anyway, so offering them here would be offering a dead end. */
+  var rows = (postsIndex || []).filter(function (post) {
+    if (post.type !== typeKey) return false;
+    if (!query) return true;
+    return (post.name + ' ' + post.title + ' ' + post.slug).toLowerCase().indexOf(query) !== -1;
+  });
+  if (!rows.length) {
+    holder.appendChild(emptyNote(
+      query ? 'No posts match that search.' : 'Nothing published yet.'
+    ));
+    return;
+  }
+  rows.forEach(function (post) { holder.appendChild(postRow(post)); });
+}
+
+function postRow(post) {
+  var row = document.createElement('div');
+  row.className = 'post-row';
+
+  /* The row itself opens the post: the whole row is the target, so reaching a
+     post does not depend on hitting a small control. */
+  var open = document.createElement('button');
+  open.type = 'button';
+  open.className = 'post-open';
+  var name = document.createElement('strong');
+  name.textContent = post.name || post.title || post.slug;
+  open.appendChild(name);
+  var meta = document.createElement('span');
+  meta.className = 'post-meta';
+  /* An undated post is called out rather than left blank: it is the one that
+     never reached the homepage, and this is where someone would notice. */
+  meta.textContent = (post.displayDate || 'No date') + ' \u00b7 ' + post.url;
+  open.appendChild(meta);
+  open.addEventListener('click', function () { openPublishedPost(post); });
+  row.appendChild(open);
+
+  var remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'btn btn-sm btn-danger';
+  remove.textContent = 'Unpublish';
+  remove.disabled = !signedIn;
+  if (!signedIn) remove.title = 'Sign in to unpublish';
+  remove.setAttribute('aria-label', 'Unpublish ' + (post.name || post.slug));
+  remove.addEventListener('click', function () { unpublishFromList(post, row, remove); });
+  row.appendChild(remove);
+
+  return row;
+}
+
+async function openPublishedPost(post) {
+  if (!signedIn) { setStatus('posts-status', 'Sign in to open a published post.', 'error'); return; }
+  setStatus('posts-status', 'Opening ' + (post.name || post.slug) + '\u2026', 'busy');
+  try {
+    var url = '/api/post?type=' + encodeURIComponent(post.type) +
+      '&slug=' + encodeURIComponent(post.slug);
+    var response = await fetch(url, { headers: await authHeaders() });
+    var data = await response.json().catch(function () { return {}; });
+    if (response.status === 401) { handleUnauthorized(); return; }
+    if (!response.ok) {
+      setStatus('posts-status', data.message || 'Could not open that post.', 'error');
+      return;
+    }
+    setStatus('posts-status', '');
+    /* openPostSource toasts its own refusal and leaves the form alone, so the
+       drawer only closes once the post is actually loaded. */
+    var before = openedSlug;
+    openPostSource(data.source);
+    if (openedSlug !== before || openedSlug === post.slug) closeDrawer();
+  } catch (error) {
+    setStatus('posts-status', 'Could not reach the site.', 'error');
+  }
+}
+
+async function unpublishFromList(post, row, button) {
+  var label = post.name || post.title || post.slug;
+  // Removal cannot be undone from here, and the row is one click from Open.
+  if (!window.confirm('Unpublish \u201c' + label + '\u201d? The page will disappear from the site.')) return;
+  button.disabled = true;
+  setStatus('posts-status', 'Unpublishing ' + label + '\u2026', 'busy');
+  try {
+    var response = await fetch('/api/unpublish', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ type: post.type, slug: post.slug })
+    });
+    var data = await response.json().catch(function () { return {}; });
+    if (response.ok) {
+      /* The index still lists it until the next build finishes, so the row is
+         removed here rather than by re-fetching -- a reload would put it back
+         and read as a failure. */
+      postsIndex = (postsIndex || []).filter(function (p) {
+        return !(p.slug === post.slug && p.type === post.type);
+      });
+      row.parentNode.removeChild(row);
+      if (!$('posts-list').children.length) renderPostsList();
+      /* The form may be holding the post that just stopped existing; a later
+         publish must not send mode: 'update' for a path that is gone. */
+      if (openedSlug === post.slug) {
+        openedSlug = null;
+        updatePublishAvailability();
+      }
+      setStatus('posts-status', 'Unpublished ' + label + '. The page disappears in about a minute.', 'ok');
+      return;
+    }
+    if (response.status === 401) handleUnauthorized();
+    setStatus('posts-status', data.message || 'Unpublishing failed. Nothing was changed.', 'error');
+    button.disabled = false;
+  } catch (error) {
+    setStatus('posts-status', 'Could not reach the site.', 'error');
+    button.disabled = false;
+  }
+}
+
 /* --------------------------------------------------------------- actions */
 
 async function openPostFile(file) {
+  openPostSource(await file.text());
+}
+
+/* Shared by the local file picker and the published-posts drawer: the bytes
+   are the same either way, so everything that decides whether a post can be
+   loaded belongs here rather than in each caller. */
+function openPostSource(source) {
   var post;
   try {
-    post = parsePost(await file.text());
+    post = parsePost(source);
   } catch (err) {
     /* The reader is an author, not a developer: say what to fix, and do not
        load half a post that a later save would write back with the rest
@@ -1349,8 +1526,11 @@ function init() {
   startClerk();
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
-  $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
-  $('btn-account').addEventListener('click', openDrawer);
+  $('btn-open-post').addEventListener('click', openPostsDrawer);
+  $('btn-open-file').addEventListener('click', function () { $('post-file').click(); });
+  $('btn-posts-close').addEventListener('click', closeDrawer);
+  $('post-search').addEventListener('input', renderPostsList);
+  $('btn-account').addEventListener('click', function () { openDrawer('account-drawer', 'btn-account'); });
   $('btn-drawer-close').addEventListener('click', closeDrawer);
   $('drawer-backdrop').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (event) {
