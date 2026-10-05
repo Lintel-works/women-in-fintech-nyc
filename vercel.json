@@ -4,7 +4,7 @@
   "outputDirectory": "_site",
   "functions": {
     "api/events.js": {
-      "includeFiles": "src/_data/manual-events.json"
+      "includeFiles": "src/_data/manual-events/**"
     }
   },
   "redirects": [

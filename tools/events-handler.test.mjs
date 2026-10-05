@@ -3,29 +3,34 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { normalizeManualEvents } from '../lib/manual-events.mjs';
 
-/* api/events.js merges the Luma calendar with src/_data/manual-events.json.
+/* api/events.js merges the Luma calendar with the files in src/_data/manual-events/.
    The two halves are unit-tested in tools/manual-events.test.mjs; what this
    covers is the wiring -- that manual events reach the response at all, that
    they survive a Luma outage (the reason they are merged on the server rather
    than in the page), and that the "Luma changed shape" alarm is still
    measured on Luma's own events rather than being silenced by them.
  *
- * This is the only test file that touches src/_data/manual-events.json, and
+ * This is the only test file that touches src/_data/manual-events/, and
  * node:test runs the tests within a file one at a time, so the fixture below
- * is never visible to anything else. lib/manual-events.mjs reads that file on
+ * is never visible to anything else. lib/manual-events.mjs reads that directory on
  * each call rather than importing it, which is what makes this possible: an
  * imported JSON module is cached for the life of the process, so the first
  * read would win for ever and the handler could not be tested at all. */
 
-const DATA = new URL('../src/_data/manual-events.json', import.meta.url);
-const ORIGINAL = fs.readFileSync(DATA, 'utf8');
+const DIR = new URL('../src/_data/manual-events/', import.meta.url);
+const ORIGINAL = fs.readdirSync(DIR).sort();
+
+/* Removes only what the fixture wrote, so a real event file is never touched. */
+function removeFixtures() {
+  for (const name of fs.readdirSync(DIR)) {
+    if (name.startsWith('fixture-')) fs.rmSync(new URL(name, DIR));
+  }
+}
 
 /* Last resort. The finally in withManual() is what runs in practice; this
-   covers the file being left modified by a crash inside that window. */
+   covers fixtures being left behind by a crash inside that window. */
 process.on('exit', () => {
-  try {
-    if (fs.readFileSync(DATA, 'utf8') !== ORIGINAL) fs.writeFileSync(DATA, ORIGINAL);
-  } catch { /* nothing useful to do while exiting */ }
+  try { removeFixtures(); } catch { /* nothing useful to do while exiting */ }
 });
 
 /* Far enough out that they never expire, and listed out of order so the
@@ -36,11 +41,13 @@ const FIXTURE = [
 ];
 
 async function withManual(entries, fn) {
-  fs.writeFileSync(DATA, JSON.stringify(entries, null, 2) + '\n');
+  entries.forEach((entry, index) => {
+    fs.writeFileSync(new URL(`fixture-${index}.json`, DIR), JSON.stringify(entry, null, 2) + '\n');
+  });
   try {
     return await fn();
   } finally {
-    fs.writeFileSync(DATA, ORIGINAL);
+    removeFixtures();
   }
 }
 
@@ -84,10 +91,13 @@ const down = async () => ({ ok: false, status: 500, statusText: 'Server Error', 
 const timeout = async () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
 const brokenShape = ok([{ id: 'x', name: 'No date', url: 'x' }]);
 
-test('every entry in the committed file is usable', () => {
-  /* The file ships empty, but once events are added a typo in one of them
-     should fail here rather than quietly vanish from the calendar. */
-  for (const event of normalizeManualEvents(JSON.parse(ORIGINAL))) {
+test('every committed event file is usable', () => {
+  /* The directory ships empty, but once events are added a typo in one of
+     them should fail here rather than quietly vanish from the calendar. */
+  const committed = ORIGINAL
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => JSON.parse(fs.readFileSync(new URL(name, DIR), 'utf8')));
+  for (const event of normalizeManualEvents(committed)) {
     assert.ok(event.name, 'an event in the committed file has no name');
     assert.match(event.url, /^https:\/\//);
     assert.match(event.id, /^manual-/);
@@ -179,6 +189,6 @@ test('only GET is allowed', async () => {
   assert.equal(r.code, 405);
 });
 
-test('the committed manual events file was left exactly as it was found', () => {
-  assert.equal(fs.readFileSync(DATA, 'utf8'), ORIGINAL);
+test('the committed manual events directory was left exactly as it was found', () => {
+  assert.deepEqual(fs.readdirSync(DIR).sort(), ORIGINAL);
 });
