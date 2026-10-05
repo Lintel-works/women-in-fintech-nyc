@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { normalizeManualEvents } from '../lib/manual-events.mjs';
 
 /* api/events.js merges the Luma calendar with the files in src/_data/manual-events/.
@@ -10,28 +12,16 @@ import { normalizeManualEvents } from '../lib/manual-events.mjs';
    than in the page), and that the "Luma changed shape" alarm is still
    measured on Luma's own events rather than being silenced by them.
  *
- * This is the only test file that touches src/_data/manual-events/, and
- * node:test runs the tests within a file one at a time, so the fixture below
- * is never visible to anything else. lib/manual-events.mjs reads that directory on
- * each call rather than importing it, which is what makes this possible: an
- * imported JSON module is cached for the life of the process, so the first
- * read would win for ever and the handler could not be tested at all. */
+ * Fixtures go in a temp directory that MANUAL_EVENTS_DIR points the loader
+ * at, never into src/_data/manual-events/, where a real event could be
+ * clobbered and where a committed event would break the exact counts below.
+ * lib/manual-events.mjs reads the directory on each call rather than
+ * importing it, which is what makes this possible: an imported JSON module is
+ * cached for the life of the process, so the first read would win for ever
+ * and the handler could not be tested at all. */
 
-const DIR = new URL('../src/_data/manual-events/', import.meta.url);
-const ORIGINAL = fs.readdirSync(DIR).sort();
-
-/* Removes only what the fixture wrote, so a real event file is never touched. */
-function removeFixtures() {
-  for (const name of fs.readdirSync(DIR)) {
-    if (name.startsWith('fixture-')) fs.rmSync(new URL(name, DIR));
-  }
-}
-
-/* Last resort. The finally in withManual() is what runs in practice; this
-   covers fixtures being left behind by a crash inside that window. */
-process.on('exit', () => {
-  try { removeFixtures(); } catch { /* nothing useful to do while exiting */ }
-});
+const REAL_DIR = new URL('../src/_data/manual-events/', import.meta.url);
+const REAL_BEFORE = fs.readdirSync(REAL_DIR).sort();
 
 /* Far enough out that they never expire, and listed out of order so the
    merge has something real to sort. */
@@ -41,13 +31,18 @@ const FIXTURE = [
 ];
 
 async function withManual(entries, fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'events-handler-'));
   entries.forEach((entry, index) => {
-    fs.writeFileSync(new URL(`fixture-${index}.json`, DIR), JSON.stringify(entry, null, 2) + '\n');
+    fs.writeFileSync(path.join(dir, `event-${index}.json`), JSON.stringify(entry, null, 2) + '\n');
   });
+  const previous = process.env.MANUAL_EVENTS_DIR;
+  process.env.MANUAL_EVENTS_DIR = dir;
   try {
     return await fn();
   } finally {
-    removeFixtures();
+    if (previous === undefined) delete process.env.MANUAL_EVENTS_DIR;
+    else process.env.MANUAL_EVENTS_DIR = previous;
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -94,9 +89,9 @@ const brokenShape = ok([{ id: 'x', name: 'No date', url: 'x' }]);
 test('every committed event file is usable', () => {
   /* The directory ships empty, but once events are added a typo in one of
      them should fail here rather than quietly vanish from the calendar. */
-  const committed = ORIGINAL
+  const committed = REAL_BEFORE
     .filter((name) => name.endsWith('.json'))
-    .map((name) => JSON.parse(fs.readFileSync(new URL(name, DIR), 'utf8')));
+    .map((name) => JSON.parse(fs.readFileSync(new URL(name, REAL_DIR), 'utf8')));
   for (const event of normalizeManualEvents(committed)) {
     assert.ok(event.name, 'an event in the committed file has no name');
     assert.match(event.url, /^https:\/\//);
@@ -190,5 +185,5 @@ test('only GET is allowed', async () => {
 });
 
 test('the committed manual events directory was left exactly as it was found', () => {
-  assert.deepEqual(fs.readdirSync(DIR).sort(), ORIGINAL);
+  assert.deepEqual(fs.readdirSync(REAL_DIR).sort(), REAL_BEFORE);
 });
