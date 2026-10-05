@@ -45,24 +45,43 @@ npm test                   # every tools/*.test.mjs suite: post-file round
                            # suites covering /api/publish, /api/unpublish,
                            # Clerk token verification, the author-management endpoints and the
                            # editor's own publish/unpublish code
-npm run verify             # compare the build against the pre-eleventy baseline
+npm run verify             # compare the build against the snapshot baseline tag
 npm run verify:self-test   # confirm the check can still detect a change
 ```
 
-`npm run verify` canonicalizes HTML before comparing. It checks only the pages
-that existed at the `pre-eleventy` git tag — pages added since, including
-`happenings.html` and every `post-<slug>.html`, are not enumerated at all. Its
-per-page comparison is against that same tag, a baseline the site has long
-since diverged from, so a "changed" line is expected on every page and is not
-by itself evidence of a regression — it only proves the page still built.
+`npm run verify` canonicalizes HTML before comparing, so template reflow is
+ignored and a real content change is not. It covers all 271 built pages,
+generated post pages included, and **a non-zero exit is a real signal**: it
+means a page changed or stopped building. `npm run verify:self-test` proves the
+harness still has teeth by injecting one character and requiring it to be
+caught.
 
-Because every page now differs from the baseline, **`npm run verify` always
-exits non-zero.** A red exit is the expected result, not a regression signal.
-To compare a change against something meaningful, build the tree before and
-after, then compare the two `_site/` trees file by file — passing each through
-the `canonicalize` export of `tools/htmlcanon.mjs` first, so template reflow is
-ignored and a real content change is not. That module has no CLI; it is
-imported.
+The baseline is a git tag, read with `git show <tag>:<file>`, so no copy of the
+built pages sits in the working tree. The current tag is `baseline-2026-10-05`,
+a parentless commit holding only those 271 pages — the pages are generated into
+the gitignored `_site/` now, so there is no ordinary commit to compare against.
+The earlier `pre-eleventy` tag is kept for history; it pointed at a real commit
+from when the pages were hand-written at the repo root, and it existed to prove
+the Eleventy migration changed nothing. That job is done.
+
+Re-baseline after an intentional page change — otherwise the next run reports
+it forever:
+
+```bash
+npm run build
+D=$(mktemp -d)
+ls _site/*.html | sort > $D/paths
+git hash-object -w --stdin-paths < $D/paths > $D/shas
+paste $D/shas <(xargs -n1 basename < $D/paths) \
+  | awk -F'\t' '{printf "100644 %s\t%s\n", $1, $2}' > $D/info
+GIT_INDEX_FILE=$D/idx git read-tree --empty
+GIT_INDEX_FILE=$D/idx git update-index --index-info < $D/info
+git tag baseline-$(date +%F) \
+  $(git commit-tree $(GIT_INDEX_FILE=$D/idx git write-tree) -m "Snapshot baseline")
+```
+
+Then point `TAG` in `tools/snapshot.mjs` at the new tag. A temporary index keeps
+the working tree and your real index untouched. Tags are local until pushed.
 
 ## Project structure
 
