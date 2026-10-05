@@ -59,6 +59,10 @@ export default async function handler(request, response) {
       console.error("The site's GitHub private key could not be used", error);
       return response.status(503).json({ message: error.message });
     }
+    if (error.code === 'auth') {
+      console.error('GitHub rejected the credential');
+      return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
+    }
     console.error('Could not obtain a GitHub credential', error);
     return response.status(502).json({ message: 'Removing the event failed. Nothing was changed.' });
   }

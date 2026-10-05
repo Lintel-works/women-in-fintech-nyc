@@ -46,6 +46,8 @@ function fakeGithub({ existingPaths = [], liveFiles = {}, failOn = {}, onFetch =
     const { pathname } = new URL(String(url));
     const failure = (key) => failOn[key] ? reply(failOn[key], {}) : null;
 
+    if (pathname.endsWith('/access_tokens')) return failure('mint') || reply(201, { token: 'minted' });
+
     const contents = pathname.match(/\/contents\/(.+)$/);
     if (contents) {
       if (failure('contents')) return failure('contents');
@@ -79,6 +81,20 @@ function fakeGithub({ existingPaths = [], liveFiles = {}, failOn = {}, onFetch =
     throw new Error(`unexpected fetch to ${url}`);
   };
   return { fetchImpl, calls, commits };
+}
+
+async function removeWithApp(payload, options = {}) {
+  const appKey = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs1', format: 'pem' });
+  const keys = ['GITHUB_APP_ID', 'GITHUB_INSTALLATION_ID', 'GITHUB_APP_PRIVATE_KEY'];
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  Object.assign(process.env, { GITHUB_APP_ID: '1', GITHUB_INSTALLATION_ID: '2', GITHUB_APP_PRIVATE_KEY: appKey });
+  try {
+    return await remove(payload, { ...options, appCredentials: true });
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
 }
 
 async function remove(payload, { token = true, method = 'POST', existingPaths, liveFiles, failOn, onFetch, appCredentials = false } = {}) {
@@ -121,9 +137,10 @@ test('a request without a session token is refused', async () => {
 });
 
 test('a slug with no file is refused rather than reported as removed', async () => {
-  const { response, commits } = await remove({ slug: 'never-existed' });
+  const { response, commits, calls } = await remove({ slug: 'never-existed' });
   assert.equal(response.status, 404);
   assert.equal(commits.length, 0);
+  assert.deepEqual(calls.filter((call) => call.method !== 'GET'), []);
 });
 
 test('the event file is deleted', async () => {
@@ -178,16 +195,51 @@ test('a hand-set coverPath pointing somewhere else is left alone', async () => {
   assert.deepEqual(commits[0].files.map((f) => f.path), [path]);
 });
 
-test('a traversing slug cannot delete anything outside the events directory', async () => {
-  for (const slug of ['../../../etc/passwd', '../../lib/github.mjs']) {
-    const { response, commits } = await remove({ slug });
-    for (const file of (commits[0] ? commits[0].files : [])) {
-      assert.ok(file.path.startsWith('src/_data/manual-events/') ||
-                file.path.startsWith('src/images/'), file.path);
-      assert.ok(!file.path.includes('..'), file.path);
-    }
-    assert.ok(response.status === 400 || response.status === 404);
+test('a traversing slug is slugified before it builds any path', async () => {
+  const { response, calls } = await remove({ slug: '../../../etc/passwd' });
+  assert.equal(response.status, 404);
+  const reads = calls.filter((call) => call.url.includes('/contents/'));
+  assert.equal(reads.length, 1);
+  assert.equal(
+    decodeURIComponent(new URL(reads[0].url).pathname.split('/contents/')[1]),
+    'src/_data/manual-events/etc-passwd.json'
+  );
+  for (const call of calls) {
+    assert.ok(!call.url.includes('..') && !call.url.includes('etc/passwd'), call.url);
   }
+});
+
+test('a traversing slug whose slugified file exists deletes only that file', async () => {
+  const path = 'src/_data/manual-events/lib-github-mjs.json';
+  const { response, commits } = await remove({ slug: '../../lib/github.mjs' }, {
+    liveFiles: { [path]: JSON.stringify({ slug: 'lib-github-mjs' }) }
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(commits[0].files.map((f) => f.path), [path]);
+});
+
+test('an empty or unusable slug is refused before GitHub is asked anything', async () => {
+  for (const slug of [undefined, '', '   ', '../..', '!!!']) {
+    const { response, calls } = await remove({ slug });
+    assert.equal(response.status, 400, String(slug));
+    assert.equal(calls.length, 0, String(slug));
+  }
+});
+
+test('a token-stage credential rejection tells the author to contact the site owner', async () => {
+  const { response, commits } = await removeWithApp({ slug: 'a-mixer' }, { failOn: { mint: 401 } });
+  assert.equal(response.status, 503);
+  assert.equal(response.json.message, "The site's GitHub access is not working — contact the site owner.");
+  assert.equal(commits.length, 0);
+});
+
+test('a branch that moved twice is a 409 the author can read', async () => {
+  const path = 'src/_data/manual-events/a-mixer.json';
+  const { response } = await remove({ slug: 'a-mixer' }, {
+    liveFiles: { [path]: '{}' }, failOn: { refs: 422 }
+  });
+  assert.equal(response.status, 409);
+  assert.equal(response.json.message, 'Someone else just published. Try again.');
 });
 
 test('a GET is refused', async () => {
@@ -216,7 +268,7 @@ test('a rejected GitHub credential reads as a site problem, with no GitHub detai
   const { response, commits } = await remove({ slug: 'a-mixer' }, { failOn: { contents: 401 } });
   assert.equal(response.status, 503);
   assert.equal(commits.length, 0);
-  assert.ok(!JSON.stringify(response.json).includes('GitHub returned'));
+  assert.equal(response.json.message, "The site's GitHub access is not working — contact the site owner.");
 });
 
 test('a failed commit says nothing was changed', async () => {
