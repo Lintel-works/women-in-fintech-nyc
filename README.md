@@ -50,15 +50,15 @@ npm run verify:self-test   # confirm the check can still detect a change
 ```
 
 `npm run verify` canonicalizes HTML before comparing, so template reflow is
-ignored and a real content change is not. It covers all 271 built pages,
+ignored and a real content change is not. It covers all 272 built pages,
 generated post pages included, and **a non-zero exit is a real signal**: it
 means a page changed or stopped building. `npm run verify:self-test` proves the
 harness still has teeth by injecting one character and requiring it to be
 caught.
 
 The baseline is a git tag, read with `git show <tag>:<file>`, so no copy of the
-built pages sits in the working tree. The current tag is `baseline-2026-10-05`,
-a parentless commit holding only those 271 pages — the pages are generated into
+built pages sits in the working tree. The current tag is `baseline-2026-10-05b`,
+a parentless commit holding only those 272 pages — the pages are generated into
 the gitignored `_site/` now, so there is no ordinary commit to compare against.
 The earlier `pre-eleventy` tag is kept for history; it pointed at a real commit
 from when the pages were hand-written at the repo root, and it existed to prove
