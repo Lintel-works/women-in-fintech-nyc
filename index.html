@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NYC Fintech Women — Build the table</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --soft: #fdf2f7;
+    --soft-2: #faf5ff;
+    --fg: #1a1024;
+    --muted: #5b4a66;
+    --line: #ece4f0;
+    --pink: #e0257b;        /* primary brand */
+    --pink-deep: #b91767;
+    --plum: #3b0d3a;        /* secondary, near-black plum for type contrast */
+    --accent: #ffd24a;      /* sun accent for highlights */
+    --font-display: 'Fraunces', 'GT Sectra', 'Iowan Old Style', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--font-sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+
+  :root { --page-gutter: 32px; }
+  @media (max-width: 720px) { :root { --page-gutter: 20px; } }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 var(--page-gutter); }
+
+  /* ---------- NAV ---------- */
+  .nav { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.92); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 18px 0; }
+  .logo { display: flex; align-items: center; line-height: 0; }
+  .logo img { height: 54px; width: auto; display: block; }
+  .nav-links { display: flex; gap: 32px; font-size: 15px; font-weight: 500; color: var(--plum); }
+  .nav-links a { position: relative; padding: 4px 0; }
+  .nav-links a:hover { color: var(--pink); }
+  .nav-cta { display: flex; gap: 10px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; font-size: 14px; font-weight: 600; border-radius: 999px; transition: transform .15s ease, background .2s, color .2s, box-shadow .2s; cursor: pointer; border: none; font-family: inherit; }
+  .btn-pink { background: var(--pink); color: #fff; }
+  .btn-pink:hover { background: var(--pink-deep); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(224, 37, 123, 0.28); }
+  .btn-ghost { background: transparent; color: var(--plum); border: 1.5px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--plum); }
+  .btn-dark { background: var(--plum); color: #fff; }
+  .btn-dark:hover { background: #1a1024; transform: translateY(-1px); }
+  /* dropdown menus */
+  .nav-links .has-menu { position: relative; }
+  .nav-links .has-menu > a { display: inline-flex; align-items: center; gap: 5px; }
+  .nav-links .has-menu > a::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-1px); opacity: 0.5; transition: opacity .2s; }
+  .nav-links .has-menu:hover > a::after { opacity: 1; }
+  .dropdown { position: absolute; top: 100%; left: 0; transform: translateY(10px); background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 8px; min-width: 100%; width: max-content; box-shadow: 0 24px 60px rgba(59,13,58,0.14); opacity: 0; visibility: hidden; transition: opacity .18s, transform .18s; display: flex; flex-direction: column; gap: 2px; z-index: 60; }
+  .has-menu::after { content: ""; position: absolute; top: 100%; left: 0; right: 0; height: 16px; }
+  .has-menu:hover .dropdown { opacity: 1; visibility: visible; transform: translateY(6px); }
+  .dropdown a { padding: 11px 14px; border-radius: 11px; font-size: 14.5px; font-weight: 600; color: var(--plum); display: flex; flex-direction: column; gap: 2px; line-height: 1.3; }
+  .dropdown a small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .dropdown a:hover { background: var(--soft); color: var(--pink-deep); }
+  .nav-toggle { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 44px; height: 44px; padding: 10px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; flex-shrink: 0; transition: border-color .2s, background .2s; }
+  .nav-toggle:hover { border-color: var(--plum); background: var(--soft); }
+  .nav-toggle-bar { display: block; width: 100%; height: 2px; background: var(--plum); border-radius: 2px; }
+  .mobile-nav { position: fixed; inset: 0; z-index: 200; pointer-events: none; visibility: hidden; }
+  .mobile-nav.open { pointer-events: auto; visibility: visible; }
+  .mobile-nav-backdrop { position: absolute; inset: 0; background: rgba(26, 16, 36, 0.45); opacity: 0; transition: opacity .28s ease; }
+  .mobile-nav.open .mobile-nav-backdrop { opacity: 1; }
+  .mobile-nav-panel { position: absolute; top: 0; right: 0; width: min(340px, 88vw); height: 100%; background: var(--bg); border-left: 1px solid var(--line); box-shadow: -24px 0 60px rgba(59, 13, 58, 0.12); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .32s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
+  .mobile-nav.open .mobile-nav-panel { transform: translateX(0); }
+  .mobile-nav-panel::before { content: ""; position: absolute; top: -120px; right: -80px; width: 280px; height: 280px; background: radial-gradient(circle at center, var(--soft) 0%, transparent 70%); pointer-events: none; }
+  .mobile-nav-head { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, 0.96); }
+  .mobile-nav-brand { display: flex; align-items: center; line-height: 0; }
+  .mobile-nav-brand img { height: 42px; width: auto; display: block; }
+  .mobile-nav-close { width: 40px; height: 40px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; color: var(--plum); font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color .2s, background .2s, color .2s; }
+  .mobile-nav-close:hover { border-color: var(--pink); color: var(--pink-deep); background: var(--soft); }
+  .mobile-nav-body { position: relative; z-index: 1; flex: 1; overflow-y: auto; padding: 16px 14px 24px; }
+  .mobile-nav-group { border: 1px solid var(--line); border-radius: 16px; background: #fff; margin-bottom: 10px; overflow: hidden; }
+  .mobile-nav-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 16px; border: none; background: transparent; font-family: inherit; font-size: 15px; font-weight: 600; color: var(--plum); cursor: pointer; text-align: left; transition: background .2s, color .2s; }
+  .mobile-nav-trigger::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: 0.45; transition: transform .2s, opacity .2s; flex-shrink: 0; }
+  .mobile-nav-group.open .mobile-nav-trigger::after { transform: rotate(-135deg); opacity: 1; }
+  .mobile-nav-trigger:hover, .mobile-nav-trigger.current { color: var(--pink-deep); background: var(--soft); }
+  .mobile-nav-sub { display: none; flex-direction: column; gap: 2px; padding: 4px 8px 10px; border-top: 1px solid var(--line); background: linear-gradient(180deg, var(--soft) 0%, #fff 100%); }
+  .mobile-nav-group.open .mobile-nav-sub { display: flex; }
+  .mobile-nav-sub a { padding: 11px 12px; border-radius: 11px; font-size: 14.5px; font-weight: 600; color: var(--plum); transition: background .2s, color .2s; }
+  .mobile-nav-sub a:hover, .mobile-nav-sub a.active { background: #fff; color: var(--pink-deep); }
+  .mobile-nav-foot { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; padding: 18px 22px 24px; border-top: 1px solid var(--line); background: rgba(255, 255, 255, 0.96); }
+  .mobile-nav-foot .btn { justify-content: center; width: 100%; }
+  body.nav-open { overflow: hidden; }
+  @media (max-width: 1040px) {
+    .nav-links, .nav-cta { display: none; }
+    .nav-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      column-gap: 16px;
+      padding: 14px 0;
+    }
+    .logo { justify-self: start; min-width: 0; }
+    .logo img { height: 42px; }
+    .nav-toggle { display: flex; justify-self: end; }
+  }
+
+  /* ---------- HERO ---------- */
+  .hero { padding: 88px 0 96px; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle at center, var(--soft) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  .hero::after { content: ""; position: absolute; bottom: -300px; left: -200px; width: 700px; height: 700px; background: radial-gradient(circle at center, var(--soft-2) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  .hero-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 64px; align-items: center; position: relative; z-index: 1; }
+  @media (max-width: 960px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: var(--soft); color: var(--pink-deep); font-size: 13px; font-weight: 600; letter-spacing: 0.01em; margin-bottom: 28px; }
+  .pill .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--pink); position: relative; }
+  .pill .pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--pink); opacity: 0.4; animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 70% { transform: scale(1.8); opacity: 0; } 100% { opacity: 0; } }
+  h1 { font-family: var(--font-display); font-weight: 500; font-size: clamp(44px, 5.8vw, 76px); line-height: 1.02; letter-spacing: -0.025em; margin: 0 0 24px; color: var(--plum); text-wrap: balance; }
+  h1 em { font-style: italic; color: var(--pink); font-weight: 400; }
+  h1 .underline { background: linear-gradient(180deg, transparent 65%, var(--accent) 65%, var(--accent) 92%, transparent 92%); padding: 0 4px; }
+  .hero p { font-size: 19px; color: var(--muted); max-width: 540px; line-height: 1.6; margin: 0 0 32px; text-wrap: pretty; }
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .hero-ctas .more { font-size: 14px; color: var(--muted); margin-left: 6px; }
+
+  /* hero visual collage */
+  .collage { position: relative; aspect-ratio: 1/1.05; }
+  .tile { position: absolute; border-radius: 24px; overflow: hidden; background: var(--soft); border: 1px solid var(--line); display: flex; align-items: flex-end; padding: 20px; color: var(--plum); font-size: 12px; font-weight: 600; }
+  .tile.large { width: 62%; height: 60%; top: 0; left: 0; background: url("images/AU9A2892-140.jpg") center / cover no-repeat; color: #fff; align-items: flex-start; }
+  .tile.mid { width: 44%; height: 44%; top: 14%; right: 0; background: url("images/tosh%20clapping.jpeg") center / cover no-repeat; color: #fff; align-items: flex-start; }
+  .tile.small1 { width: 38%; height: 36%; bottom: 0; left: 4%; background: url("images/DSC09476.JPG") center / cover no-repeat; color: #fff; }
+  .tile.small2 { width: 52%; height: 46%; bottom: 4%; right: 0; background: url("images/founders-roundtable.jpg") center / cover no-repeat; color: #fff; }
+  .tile::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.45) 100%); pointer-events: none; }
+  .tile.large::before,
+  .tile.mid::before { background: linear-gradient(0deg, transparent 45%, rgba(0,0,0,0.45) 100%); }
+  .tile span { position: relative; z-index: 1; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.9; }
+  .floating-stat { position: absolute; top: 50%; left: 38%; transform: translate(-50%, -50%); background: #fff; border-radius: 20px; padding: 16px 22px; box-shadow: 0 20px 60px rgba(59,13,58,0.18); border: 1px solid var(--line); display: flex; gap: 14px; align-items: center; z-index: 3; }
+  .floating-stat .num { font-family: var(--font-display); font-weight: 600; font-size: 36px; letter-spacing: -0.03em; color: var(--plum); line-height: 1; }
+  .floating-stat .num .plus { color: var(--pink); }
+  .floating-stat .lbl { font-size: 12px; color: var(--muted); line-height: 1.3; max-width: 90px; }
+
+  /* ---------- TRUST BANNER ---------- */
+  .trust { padding: 56px 0; background: var(--soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .trust-head { text-align: center; margin-bottom: 32px; }
+  .trust-head .k { font-size: 12px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px; }
+  .trust-head h3 { font-family: var(--font-display); font-weight: 500; font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; color: var(--plum); }
+  .trust-head p { color: var(--muted); font-size: 15px; margin: 0; }
+  .marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+  .marquee-track { display: flex; gap: 56px; animation: scroll 40s linear infinite; width: max-content; align-items: center; padding: 8px 0; }
+  @keyframes scroll { to { transform: translateX(-50%); } }
+  .marquee-logo { font-family: var(--font-display); font-weight: 500; font-size: 22px; color: var(--plum); white-space: nowrap; opacity: 0.7; letter-spacing: -0.01em; transition: opacity .2s; }
+  .marquee-logo:hover { opacity: 1; color: var(--pink); }
+
+  /* ---------- EVENTS ---------- */
+  .section { padding: 96px 0; }
+  .sec-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 48px; gap: 32px; flex-wrap: wrap; }
+  .sec-head .left { max-width: 640px; }
+  .kicker { font-size: 12px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 14px; }
+  .sec-head h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(34px, 4vw, 50px); line-height: 1.08; letter-spacing: -0.025em; margin: 0; color: var(--plum); text-wrap: balance; }
+  .sec-head h2 em { font-style: italic; color: var(--pink); font-weight: 400; }
+  .events-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 960px) { .events-grid { grid-template-columns: 1fr; } }
+  .event { background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; transition: transform .25s, box-shadow .25s, border-color .25s; display: flex; flex-direction: column; }
+  .event:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(59,13,58,0.10); border-color: var(--pink); }
+  .event-img { aspect-ratio: 16/10; background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); position: relative; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .event:nth-child(2) .event-img { background: linear-gradient(135deg, #fce4f0 0%, var(--pink) 100%); color: #fff; opacity: 0.95; }
+  .event:nth-child(3) .event-img { background: linear-gradient(135deg, var(--plum) 0%, #5b1e5c 100%); color: rgba(255,255,255,0.7); }
+  .event-img .date-chip { position: absolute; top: 16px; left: 16px; background: #fff; padding: 8px 12px; border-radius: 12px; color: var(--plum); display: flex; flex-direction: column; align-items: center; line-height: 1; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .event-img .date-chip .d { font-family: var(--font-display); font-weight: 600; font-size: 22px; }
+  .event-img .date-chip .m { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pink); margin-top: 2px; }
+  .event-body { padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .event-tag { font-size: 11px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.12em; text-transform: uppercase; }
+  .event-name { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.2; letter-spacing: -0.015em; color: var(--plum); margin: 0; }
+  .event-meta { color: var(--muted); font-size: 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .event-meta .sep { color: var(--line); }
+  .event-cta { margin-top: 12px; padding: 10px 16px; background: var(--soft); color: var(--pink-deep); border-radius: 999px; font-size: 13px; font-weight: 600; align-self: flex-start; transition: background .2s, color .2s; }
+  .event:hover .event-cta { background: var(--pink); color: #fff; }
+  .sec-foot { margin-top: 40px; text-align: center; }
+
+  /* ---------- IFF CAROUSEL ---------- */
+  .iff { background: var(--plum); color: #fff; padding: 96px 0; position: relative; overflow: hidden; }
+  .iff::before { content: ""; position: absolute; top: -200px; right: -100px; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(224,37,123,0.25) 0%, transparent 70%); }
+  .iff .sec-head h2 { color: #fff; }
+  .iff .sec-head h2 em { color: #ffb4d3; }
+  .iff .kicker { color: #ffb4d3; }
+  .iff .sec-head p { color: rgba(255,255,255,0.7); font-size: 16px; margin: 14px 0 0; max-width: 580px; }
+  .iff-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; position: relative; z-index: 1; }
+  @media (max-width: 900px) { .iff-row { grid-template-columns: repeat(2, 1fr); } }
+  .iff-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform .3s, background .3s; cursor: pointer; text-decoration: none; color: inherit; }
+  .iff-card:hover { transform: translateY(-6px); background: rgba(255,255,255,0.08); }
+  .iff-portrait { aspect-ratio: 1/1.1; background: linear-gradient(160deg, #ff7eb9 0%, #e0257b 100%); position: relative; overflow: hidden; }
+  .iff-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
+  .iff-portrait::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.7; transition: opacity .35s ease; pointer-events: none; }
+  /* Meet-the-team g1–g5 placeholder gradients as per-portrait overlays */
+  .iff-card:nth-child(1) .iff-portrait,
+  .iff-card:nth-child(1) .iff-portrait::after { background: linear-gradient(160deg, #ff7eb9 0%, #e0257b 100%); } /* g1 pink */
+  .iff-card:nth-child(2) .iff-portrait,
+  .iff-card:nth-child(2) .iff-portrait::after { background: linear-gradient(160deg, #ffd24a 0%, #ff9a4a 100%); } /* g2 amber */
+  .iff-card:nth-child(3) .iff-portrait,
+  .iff-card:nth-child(3) .iff-portrait::after { background: linear-gradient(160deg, #c084fc 0%, #7e22ce 100%); } /* g3 purple */
+  .iff-card:nth-child(4) .iff-portrait,
+  .iff-card:nth-child(4) .iff-portrait::after { background: linear-gradient(160deg, #5eead4 0%, #0d9488 100%); } /* g4 teal */
+  .iff-card:nth-child(5) .iff-portrait,
+  .iff-card:nth-child(5) .iff-portrait::after { background: linear-gradient(160deg, #fda4af 0%, #be123c 100%); } /* g5 rose */
+  .iff-card:hover .iff-portrait img { filter: none; }
+  .iff-card:hover .iff-portrait::after { opacity: 0; }
+  .iff-portrait .num { position: absolute; top: 14px; left: 14px; font-family: var(--font-display); font-size: 14px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.35); padding: 4px 10px; border-radius: 999px; z-index: 1; }
+  .iff-info { padding: 16px 18px 20px; }
+  .iff-info .name { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .iff-info .role { font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.4; }
+
+  /* ---------- WHY JOIN ---------- */
+  .why-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 8px; }
+  @media (max-width: 900px) { .why-grid { grid-template-columns: 1fr; } }
+  .why-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 36px 32px; position: relative; transition: transform .25s, box-shadow .25s; }
+  .why-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(59,13,58,0.08); }
+  .why-card .num { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--pink); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .why-card .num::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .why-card h3 { font-family: var(--font-display); font-weight: 500; font-size: 26px; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 14px; color: var(--plum); }
+  .why-card p { color: var(--muted); font-size: 15.5px; line-height: 1.6; margin: 0; }
+  .why-cta { text-align: center; margin-top: 56px; }
+
+  /* ---------- PARTNER ---------- */
+  .partner { background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); padding: 96px 0; }
+  .partner-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  @media (max-width: 900px) { .partner-inner { grid-template-columns: 1fr; gap: 40px; } }
+  .partner h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(34px, 4vw, 50px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 20px; color: var(--plum); text-wrap: balance; }
+  .partner h2 em { font-style: italic; color: var(--pink); font-weight: 400; }
+  .partner p { color: var(--muted); font-size: 17px; line-height: 1.65; margin: 0 0 30px; }
+  .partner-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 32px; }
+  .partner-stat .n { font-family: var(--font-display); font-weight: 600; font-size: 44px; line-height: 1; letter-spacing: -0.03em; color: var(--plum); }
+  .partner-stat .n .plus { color: var(--pink); }
+  .partner-stat .lbl { font-size: 13px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+  /* ---------- MISSION ---------- */
+  .mission { padding: 120px 0; text-align: center; position: relative; overflow: hidden; }
+  .mission::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; background: radial-gradient(circle, var(--soft) 0%, transparent 60%); pointer-events: none; z-index: 0; }
+  .mission-inner { max-width: 820px; margin: 0 auto; position: relative; z-index: 1; }
+  .mission h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(38px, 5vw, 60px); line-height: 1.08; letter-spacing: -0.025em; margin: 18px 0 32px; color: var(--plum); text-wrap: balance; }
+  .mission h2 em { font-style: italic; color: var(--pink); font-weight: 400; }
+  .mission p { font-size: 18px; color: var(--muted); line-height: 1.7; margin: 0 0 32px; text-wrap: pretty; }
+
+  /* ---------- FOOTER ---------- */
+  footer { background: var(--plum); color: rgba(255,255,255,0.7); padding: 80px 0 40px; }
+  .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 56px; }
+  @media (max-width: 800px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 36px; } }
+  .foot-brand { font-family: var(--font-display); font-weight: 500; font-size: 28px; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.02em; }
+  .foot-brand .dot { width: 14px; height: 14px; min-width: 14px; min-height: 14px; flex-shrink: 0; border-radius: 50%; background: var(--pink); display: inline-block; }
+  @media (max-width: 1040px) {
+    .foot-brand { font-size: 17px; gap: 8px; }
+    .foot-brand .dot { width: 9px; height: 9px; min-width: 9px; min-height: 9px; }
+  }
+  .foot-grid p { font-size: 14.5px; line-height: 1.6; max-width: 320px; }
+  .foot-col h4 { font-size: 12px; font-weight: 700; color: #ffb4d3; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 18px; }
+  .foot-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .foot-col a { color: rgba(255,255,255,0.75); font-size: 14.5px; transition: color .2s; }
+  .foot-col a:hover { color: #fff; }
+  .foot-bot { padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.12); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: rgba(255,255,255,0.55); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html">Events</a><div class="dropdown"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html">About</a><div class="dropdown"><a href="meet-the-team.html">Meet the Team</a><a href="become-a-member.html">Become a Member</a><a href="index.html#partner">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Events</button>
+        <div class="mobile-nav-sub"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html">Meet the Team</a>
+          <a href="become-a-member.html">Become a Member</a>
+          <a href="index.html#partner">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="become-a-member.html" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="pill"><span class="pulse"></span> Spring 2026 cohort now open</div>
+      <h1>You belong at the <em>table.</em><br/><span class="underline">Build it</span> with us.</h1>
+      <p>Too many women in fintech are building careers in isolation. Join 20,000+ peers, curated events, and the people who open doors and build alongside you.</p>
+      <div class="hero-ctas">
+        <a href="become-a-member.html" class="btn btn-pink">Become a Member →</a>
+        <a href="events.html#upcoming" class="btn btn-ghost">Explore events</a>
+        <span class="more">Free to join · 3 chapters</span>
+      </div>
+    </div>
+    <div class="collage">
+      <div class="tile large"><span>Annual Summit · 2025</span></div>
+      <div class="tile mid"><span>Inspiring Fintech Females</span></div>
+      <div class="tile small1"><span>Member Mixer</span></div>
+      <div class="tile small2"><span>Founders Roundtable</span></div>
+      <div class="floating-stat">
+        <div class="num" data-target="20000">20,000<span class="plus">+</span></div>
+        <div class="lbl">Members across NYC, SF &amp; Chicago</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSPIRING FINTECHS -->
+<section class="trust">
+  <div class="wrap">
+    <div class="trust-head">
+      <div class="k">Inspiring Fintechs</div>
+      <h3>Where our members build, lead, and invest</h3>
+      <p>Chapters in New York, San Francisco, and Chicago</p>
+    </div>
+    <div class="marquee">
+      <div class="marquee-track">
+        <span class="marquee-logo">Goldman Sachs</span>
+        <span class="marquee-logo">Stripe</span>
+        <span class="marquee-logo">JPMorgan</span>
+        <span class="marquee-logo">Brex</span>
+        <span class="marquee-logo">Plaid</span>
+        <span class="marquee-logo">Citi</span>
+        <span class="marquee-logo">Mastercard</span>
+        <span class="marquee-logo">Ramp</span>
+        <span class="marquee-logo">Square</span>
+        <span class="marquee-logo">BlackRock</span>
+        <span class="marquee-logo">American Express</span>
+        <span class="marquee-logo">Mercury</span>
+        <!-- duplicate for seamless loop -->
+        <span class="marquee-logo">Goldman Sachs</span>
+        <span class="marquee-logo">Stripe</span>
+        <span class="marquee-logo">JPMorgan</span>
+        <span class="marquee-logo">Brex</span>
+        <span class="marquee-logo">Plaid</span>
+        <span class="marquee-logo">Citi</span>
+        <span class="marquee-logo">Mastercard</span>
+        <span class="marquee-logo">Ramp</span>
+        <span class="marquee-logo">Square</span>
+        <span class="marquee-logo">BlackRock</span>
+        <span class="marquee-logo">American Express</span>
+        <span class="marquee-logo">Mercury</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- FINTECH FEMALE FRIDAYS -->
+<section class="section" id="fff" style="background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
+  <div class="wrap">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;">
+      <div>
+        <div class="kicker">Fintech Female Fridays</div>
+        <h2 style="font-family: var(--font-display); font-weight: 500; font-size: clamp(34px, 4vw, 50px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 20px; color: var(--plum); text-wrap: balance;">Every Friday, a woman <em style="font-style: italic; color: var(--pink); font-weight: 400;">building the future</em> of fintech.</h2>
+        <p style="color: var(--muted); font-size: 17px; line-height: 1.65; margin: 0 0 30px;">We publish a new conversation every Friday with a founder, operator, investor, or engineer in financial services. Real stories. No fluff. Straight from the people doing the work.</p>
+        <a href="fintech-female-fridays.html" class="btn btn-pink">Read the interviews →</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <a href="fff-shira-amrany.html" style="background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px 28px; display: flex; gap: 18px; align-items: flex-start; text-decoration: none; color: inherit; transition: box-shadow .2s;">
+          <img src="images/fff-shira-amrany.jpg" alt="Shira Amrany" width="48" height="48" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;">Jul 10 · 4 min read</div>
+            <div style="font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--plum); line-height: 1.3; margin-bottom: 4px;">FinTech Female Fridays: Meet Shira Amrany</div>
+          </div>
+        </a>
+
+        <a href="fff-daundra-lewis.html" style="background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px 28px; display: flex; gap: 18px; align-items: flex-start; text-decoration: none; color: inherit; transition: box-shadow .2s;">
+          <img src="images/fff-daundra-lewis.jpg" alt="D&#39;aundra Lewis" width="48" height="48" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;">Jul 3 · 5 min read</div>
+            <div style="font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--plum); line-height: 1.3; margin-bottom: 4px;">FinTech Female Fridays: Meet D&rsquo;aundra Lewis</div>
+          </div>
+        </a>
+
+        <a href="fff-adina-fischer.html" style="background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px 28px; display: flex; gap: 18px; align-items: flex-start; text-decoration: none; color: inherit; transition: box-shadow .2s;">
+          <img src="images/fff-adina-fischer.jpg" alt="Adina Fischer" width="48" height="48" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+          <div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;">May 21 · 3 min read</div>
+            <div style="font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--plum); line-height: 1.3; margin-bottom: 4px;">FinTech Female Fridays: Meet Adina Fischer</div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  @media (max-width: 900px) {
+    #fff .wrap > div { grid-template-columns: 1fr !important; gap: 40px !important; }
+  }
+</style>
+
+<!-- IFF -->
+<section class="iff">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="left">
+        <div class="kicker">Inspiring Fintech Females</div>
+        <h2>The women <em>shaping</em> what comes next.</h2>
+        <p>Each year we honor a cohort of leaders who are building the future of financial services — operators, founders, investors, policy makers.</p>
+      </div>
+      <a href="inspiring-fintech-females.html" class="btn btn-pink">See the full list →</a>
+    </div>
+    <div class="iff-row">
+      <a class="iff-card" href="inspiring-fintech-females.html">
+        <div class="iff-portrait"><div class="num">01</div><img src="images/iff/ximena-aleman.jpg" alt="Ximena Aleman"></div>
+        <div class="iff-info"><h4 class="name">Ximena Aleman</h4><div class="role">Co-Founder &amp; Co-CEO · Prometeo</div></div>
+      </a>
+      <a class="iff-card" href="inspiring-fintech-females.html">
+        <div class="iff-portrait"><div class="num">02</div><img src="images/iff/michele-alt.jpeg" alt="Michele Alt"></div>
+        <div class="iff-info"><h4 class="name">Michele Alt</h4><div class="role">Co-Founder &amp; Partner · Klaros Group</div></div>
+      </a>
+      <a class="iff-card" href="inspiring-fintech-females.html">
+        <div class="iff-portrait"><div class="num">03</div><img src="images/iff/elaine-asher.jpg" alt="Elaine Asher"></div>
+        <div class="iff-info"><h4 class="name">Elaine Asher</h4><div class="role">Co-Founder · Eve Wealth</div></div>
+      </a>
+      <a class="iff-card" href="inspiring-fintech-females.html">
+        <div class="iff-portrait"><div class="num">04</div><img src="images/iff/sarah-biller.jpg" alt="Sarah Biller"></div>
+        <div class="iff-info"><h4 class="name">Sarah Biller</h4><div class="role">Co-Founder · Fintech Sandbox</div></div>
+      </a>
+      <a class="iff-card" href="inspiring-fintech-females.html">
+        <div class="iff-portrait"><div class="num">05</div><img src="images/iff/ruth-blader.jpeg" alt="Ruth Blader"></div>
+        <div class="iff-info"><h4 class="name">Ruth Blader</h4><div class="role">Founder and Managing Partner · Foxe Capital</div></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- WHY JOIN -->
+<section class="section">
+  <div class="wrap">
+    <div class="sec-head" style="margin-bottom: 56px;">
+      <div class="left">
+        <div class="kicker">Why join</div>
+        <h2>A community for women who are <em>serious</em> about where they're going.</h2>
+      </div>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="num">01 / Connect</div>
+        <h3>Get in the right rooms.</h3>
+        <p>Our events bring together founders, investors, and executives across every corner of financial services. Every gathering is curated to create real connections — not another networking happy hour.</p>
+      </div>
+      <div class="why-card">
+        <div class="num">02 / Visibility</div>
+        <h3>Be seen and recognized.</h3>
+        <p>From our annual Inspiring Fintech Females program to speaking opportunities on industry panels, we create visibility for women doing meaningful work in this space.</p>
+      </div>
+      <div class="why-card">
+        <div class="num">03 / Support</div>
+        <h3>Find support wherever you are.</h3>
+        <p>Whether you&#39;re job searching, building a company, or growing into leadership, our community offers mentorship, coaching, co-founder matching, and peers who understand you.</p>
+      </div>
+    </div>
+    <div class="why-cta">
+      <a href="become-a-member.html" class="btn btn-pink">Become a Member →</a>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNER -->
+<section class="partner" id="partner">
+  <div class="wrap partner-inner">
+    <div>
+      <div class="kicker">Partner with us</div>
+      <h2>Put your brand in front of the industry's <em>most talented</em> people.</h2>
+      <p>NYC Fintech Women is a community of 20,000+ professionals across financial services and fintech. We partner with organizations committed to showing up for this community in a meaningful way — event sponsorship, panels, talent access, and more.</p>
+      <a href="mailto:info@nycfintechwomen.com" class="btn btn-dark">Become a Partner →</a>
+    </div>
+    <div class="partner-stats">
+      <div class="partner-stat"><div class="n">20,000<span class="plus">+</span></div><div class="lbl">Active members across fintech & financial services</div></div>
+      <div class="partner-stat"><div class="n">120<span class="plus">+</span></div><div class="lbl">Events hosted every year across three chapters</div></div>
+      <div class="partner-stat"><div class="n">3</div><div class="lbl">Regional chapters — NYC, SF, Chicago</div></div>
+      <div class="partner-stat"><div class="n">8 <span style="font-size:24px; color:var(--muted)">yrs</span></div><div class="lbl">Building the community, one room at a time</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION -->
+<section class="mission" id="mission">
+  <div class="wrap mission-inner">
+    <div class="kicker">Our mission</div>
+    <h2>This community exists because the industry wasn't built for us. <em>We're changing it from within.</em></h2>
+    <p>The number of women leading, building, and investing in financial services has grown — but the structural barriers, missing connections, and rooms women still aren't in haven't disappeared on their own. NYC Fintech Women exists because women in this industry deserve a community built specifically for them — not an afterthought or a diversity initiative. A substantive network where careers get accelerated and ambitions get taken seriously.</p>
+    <p style="color: var(--plum); font-weight: 500;">If you're ready to build your real career in a real community with likeminded women, this is where you start.</p>
+    <a href="become-a-member.html" class="btn btn-pink" style="margin-top: 12px;">Become a Member →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="events.html#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="become-a-member.html">Become a Member</a></li><li><a href="index.html#partner">Sponsor</a></li><li><a href="mailto:info@nycfintechwomen.com">Contact</a></li><li><a href="https://www.linkedin.com/company/nyc-fintech-women/">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script>
+  // Animated counter for the floating stat
+  const num = document.querySelector('.floating-stat .num');
+  if (num) {
+    const target = Number(num.dataset.target);
+    let current = 0;
+    const duration = 1600;
+    const step = target / (duration / 16);
+    const animate = () => {
+      current += step;
+      if (current >= target) {
+        num.innerHTML = target.toLocaleString() + '<span class="plus">+</span>';
+        return;
+      }
+      num.innerHTML = Math.floor(current).toLocaleString() + '<span class="plus">+</span>';
+      requestAnimationFrame(animate);
+    };
+    // Start when in view
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { animate(); io.disconnect(); } });
+    });
+    io.observe(num);
+  }
+</script>
+<script src="nav-mobile.js"></script>
+
+</body>
+</html>
