@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { commitFiles, pathExists, commitWithRetry } from '../lib/github.mjs';
+import { commitFiles, pathExists, commitWithRetry, listDirectory } from '../lib/github.mjs';
 
 /* A scripted fetch: each call shifts the next canned response and records the
    request, so the test asserts the exact Git Data API sequence. */
@@ -250,4 +250,48 @@ test('a 200 response with null body on commit creation throws with code github',
     }),
     (error) => error.code === 'github'
   );
+});
+
+test('listDirectory returns the filenames on the branch', async () => {
+  const fetchImpl = scriptedFetch([{ status: 200, body: [
+    { name: 'a-mixer.json', type: 'file' },
+    { name: 'b-panel.json', type: 'file' },
+    { name: 'nested', type: 'dir' }
+  ] }]);
+  const names = await listDirectory({
+    token: 't', owner: 'o', repo: 'r', branch: 'main',
+    path: 'src/_data/manual-events', fetchImpl
+  });
+  assert.deepEqual(names, ['a-mixer.json', 'b-panel.json'], 'directories are not files');
+  assert.match(fetchImpl.calls[0].url, /\/repos\/o\/r\/contents\/src\/_data\/manual-events\?ref=main$/);
+});
+
+test('listDirectory returns [] for a directory that is not there', async () => {
+  const fetchImpl = scriptedFetch([{ status: 404, body: {} }]);
+  assert.deepEqual(await listDirectory({
+    token: 't', owner: 'o', repo: 'r', branch: 'main', path: 'nope', fetchImpl
+  }), []);
+});
+
+test('listDirectory returns [] when the path is a file, not a directory', async () => {
+  const fetchImpl = scriptedFetch([{ status: 200, body: { name: 'x.json', type: 'file', content: '' } }]);
+  assert.deepEqual(await listDirectory({
+    token: 't', owner: 'o', repo: 'r', branch: 'main', path: 'x.json', fetchImpl
+  }), []);
+});
+
+test('listDirectory raises auth on a rejected credential', async () => {
+  for (const status of [401, 403]) {
+    const fetchImpl = scriptedFetch([{ status, body: {} }]);
+    await assert.rejects(
+      () => listDirectory({ token: 't', owner: 'o', repo: 'r', branch: 'main', path: 'x', fetchImpl }),
+      (error) => error.code === 'auth');
+  }
+});
+
+test('listDirectory raises github on any other failure', async () => {
+  const fetchImpl = scriptedFetch([{ status: 500, body: {} }]);
+  await assert.rejects(
+    () => listDirectory({ token: 't', owner: 'o', repo: 'r', branch: 'main', path: 'x', fetchImpl }),
+    (error) => error.code === 'github');
 });
