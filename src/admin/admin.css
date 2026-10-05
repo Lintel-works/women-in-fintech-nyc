@@ -290,7 +290,8 @@ details.sec-danger[open] {
 
 /* A row in a list drawer: published posts in the editor, added events on the
    events page. The row itself opens the thing, so the target is the whole row
-   rather than a small control, and a destructive action sits apart from it. */
+   rather than a small control, and a destructive action, where there is one,
+   sits apart from it. */
 .post-row {
   display: flex; align-items: center; gap: 8px;
   border-top: 1px solid var(--line);

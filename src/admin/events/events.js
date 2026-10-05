@@ -296,9 +296,7 @@ async function loadEvents() {
     var result = await response.json().catch(function () { return {}; });
     if (!response.ok) {
       if (response.status === 401) handleUnauthorized();
-      setStatus('events-status', response.status === 401
-        ? 'Sign in to see the events you have added.'
-        : (result.message || 'The list could not be loaded.'), 'error');
+      setStatus('events-status', result.message || 'The list could not be loaded.', 'error');
       return;
     }
     setStatus('events-status', '');
@@ -339,50 +337,88 @@ function selectHas(id, value) {
   });
 }
 
+/* A hand-edited file can hold any type in any field, and opening an event is
+   how someone FIXES a bad one -- so nothing here trusts the shape. */
+function text(value) {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+}
+
+/* An unreadable date is left empty rather than thrown on: Intl rejects an
+   invalid Date with a RangeError, which is exactly what a broken row holds. */
+function safeParts(iso, zone) {
+  var empty = { date: '', time: '' };
+  if (typeof iso !== 'string' || isNaN(new Date(iso).getTime())) return empty;
+  return partsInZone(iso, zone);
+}
+
+/* Every value the form needs, computed before the DOM is touched. A throw
+   part-way through writing fields would leave a half-filled form attached to
+   the PREVIOUS event's openedSlug, and Save would write one event's fields
+   over another's file. */
+function fieldsFromRow(row) {
+  var entry = row.entry && typeof row.entry === 'object' ? row.entry : {};
+  var notes = [];
+  var zone = selectHas('f-timezone', entry.timezone) ? entry.timezone : 'America/New_York';
+  if (zone !== entry.timezone) {
+    notes.push('This event\'s time zone (' + (text(entry.timezone) || 'none') +
+      ') is not one this form offers, so it is shown in New York time. Check the times before saving.');
+  }
+  var start = safeParts(entry.startAt, zone);
+  var end = safeParts(entry.endAt, zone);
+  if (!start.date) {
+    notes.push('The stored start time is unreadable, so it is blank here. Choose one; saving will correct it.');
+  }
+  if (row.broken) {
+    notes.push('The stored event is invalid. Saving will correct it.');
+  }
+  return {
+    values: {
+      'f-name': text(entry.name),
+      /* The filename is authoritative; a hand-written file may have no slug. */
+      'f-slug': row.slug,
+      'f-url': text(entry.url),
+      'f-place': text(entry.place),
+      'f-city': selectHas('f-city', entry.city) ? entry.city : 'other',
+      'f-locationType': entry.locationType === 'offline' || entry.locationType === 'zoom'
+        ? entry.locationType : 'offline',
+      /* The inverse of how readForm() splits it. */
+      'f-tags': Array.isArray(entry.tags) ? entry.tags.map(text).join(', ') : '',
+      'f-coverUrl': text(entry.coverUrl),
+      'f-timezone': zone,
+      'f-start-date': start.date,
+      'f-start-time': start.time,
+      'f-end-date': end.date,
+      'f-end-time': end.time
+    },
+    membersOnly: entry.membersOnly === true,
+    notes: notes
+  };
+}
+
 /* Opened from the LIST's own data rather than re-fetching the file: the list
    came from the branch a moment ago, and each row carries its whole entry. */
 function openEvent(slug) {
   var row = loadedEvents.filter(function (item) { return item.slug === slug; })[0];
   if (!row) return;
-  var entry = row.entry || {};
-  var notes = [];
-
-  $('f-name').value = entry.name || '';
-  /* The filename is authoritative; a hand-written file may have no slug. */
-  $('f-slug').value = row.slug;
-  $('f-url').value = entry.url || '';
-  $('f-place').value = entry.place || '';
-  $('f-city').value = selectHas('f-city', entry.city) ? entry.city : 'other';
-  $('f-locationType').value =
-    entry.locationType === 'offline' || entry.locationType === 'zoom' ? entry.locationType : 'offline';
-  $('f-membersOnly').checked = entry.membersOnly === true;
-  $('f-tags').value = (entry.tags || []).join(', ');
-  $('f-coverUrl').value = entry.coverUrl || '';
-  /* The file input is left alone: a cover already committed is not
-     re-uploaded, and the endpoint carries coverPath forward on its own. */
-
-  var zone = selectHas('f-timezone', entry.timezone) ? entry.timezone : 'America/New_York';
-  if (zone !== entry.timezone) {
-    notes.push('This event\'s time zone (' + (entry.timezone || 'none') +
-      ') is not one this form offers, so it is shown in New York time. Check the times before saving.');
+  try {
+    var fields = fieldsFromRow(row);
+    Object.keys(fields.values).forEach(function (id) { $(id).value = fields.values[id]; });
+    $('f-membersOnly').checked = fields.membersOnly;
+    /* Cleared, not left alone: a cover already committed is not re-uploaded
+       (the endpoint carries coverPath forward), but a draft image chosen
+       before opening would otherwise be saved over THIS event's cover. */
+    $('img-file').value = '';
+    onCoverChosen();
+    setOpened(slug);
+    refresh();
+    setStatus('add-status', fields.notes.join(' '), fields.notes.length ? 'error' : '');
+    closeDrawer();
+  } catch (error) {
+    /* Never leave a partial fill attached to a stale openedSlug. */
+    resetForm();
+    setOpened('');
+    setStatus('add-status', 'That event could not be opened. Nothing was changed.', 'error');
   }
-  $('f-timezone').value = zone;
-
-  var start = entry.startAt ? partsInZone(entry.startAt, zone) : { date: '', time: '' };
-  var end = entry.endAt ? partsInZone(entry.endAt, zone) : { date: '', time: '' };
-  $('f-start-date').value = start.date;
-  $('f-start-time').value = start.time;
-  $('f-end-date').value = end.date;
-  $('f-end-time').value = end.time;
-
-  if (row.broken) {
-    notes.push('The stored event is invalid. Saving will correct it.');
-  }
-
-  setOpened(slug);
-  refresh();
-  setStatus('add-status', notes.join(' '), notes.length ? 'error' : '');
-  closeDrawer();
 }
 
 /* The confirm field matches against the slug this session actually opened,
