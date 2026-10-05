@@ -10,9 +10,11 @@
  * Authentication matches publish and unpublish: any signed-in author, no admin
  * check. Adding a partner event is the same kind of act as publishing a post.
  *
- * Add-only, deliberately: lib/event-entry.mjs retires an event once its end
- * time passes, so "it's over, take it down" needs no endpoint. Editing and
- * removing are the known gap -- see the spec's "Out of scope".
+ * Creates or updates, by `mode`, checked against what is on the branch. The
+ * slug is the filename, so it is frozen on update and an update must name it:
+ * a changed slug would write a second file and leave the first. Renaming is
+ * remove-then-add. Removal lives in its own endpoint, and
+ * lib/event-entry.mjs retires an event by itself once its end time passes.
  *
  * Env: the same set api/publish.js documents (CLERK_PEM_PUBLIC_KEY,
  * CLERK_AUTHORIZED_PARTIES, GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
@@ -75,6 +77,18 @@ export default async function handler(request, response) {
   /* Defaults to create: a client that forgets to send one is adding, and the
      worst a wrong guess can do here is a 409 the author can read. */
   const mode = payload.mode === 'update' ? 'update' : 'create';
+  const failedMessage = mode === 'update'
+    ? 'Updating the event failed. Nothing was changed.'
+    : 'Adding the event failed. Nothing was changed.';
+
+  /* Enforced here rather than left to the page: an update that derived its
+     slug from a renamed event would look for a file that was never there and
+     report the event as removed. */
+  if (mode === 'update' && !slugify(submitted.slug)) {
+    return response.status(400).json({
+      message: 'An update must say which event it changes. Reopen the event from the list and try again.'
+    });
+  }
 
   /* The slug is the filename and the identity, and it is interpolated into a
      repository path -- so it is slugified before it is used for anything, the
@@ -159,7 +173,7 @@ export default async function handler(request, response) {
       return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
     }
     console.error('Could not obtain a GitHub credential', error);
-    return response.status(502).json({ message: 'Adding the event failed. Nothing was changed.' });
+    return response.status(502).json({ message: failedMessage });
   }
 
   /* Create versus update checked against the branch, the rule
@@ -196,7 +210,7 @@ export default async function handler(request, response) {
       return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
     }
     console.error('Could not check whether the event already exists', error);
-    return response.status(502).json({ message: 'Adding the event failed. Nothing was changed.' });
+    return response.status(502).json({ message: failedMessage });
   }
 
   /* Cover carry-over. An author editing a start time does not re-upload the
@@ -222,22 +236,27 @@ export default async function handler(request, response) {
       content: String(payload.image.base64),
       encoding: 'base64'
     });
-    /* A PNG replacing a JPG leaves event-<slug>.jpg behind with nothing
-       pointing at it. Deleted only when the live cover is a path THIS endpoint
-       could have written -- a partner-hosted or hand-set one is not ours to
-       remove (the rule api/unpublish.js follows, extended to the other
-       extension here). */
-    for (const other of COVER_EXTS) {
-      if (other !== ext && liveCover === coverPathFor(slug, other)) {
-        files.push({ path: `src/${liveCover}`, delete: true });
-      }
+  }
+
+  /* A cover this endpoint wrote earlier that the event no longer points at --
+     a PNG replacing a JPG, or a hosted coverUrl replacing an upload -- would
+     sit in src/images/ forever. Deleted only when the live cover is a path
+     THIS endpoint could have written: a partner-hosted or hand-set one is not
+     ours to remove (the rule api/unpublish.js follows, extended to both
+     extensions here). */
+  for (const other of COVER_EXTS) {
+    const conventional = coverPathFor(slug, other);
+    if (liveCover === conventional && entry.coverPath !== conventional) {
+      files.push({ path: `src/${conventional}`, delete: true });
     }
   }
 
   try {
     const result = await commitWithRetry({
       token, owner, repo, branch,
-      message: `Add event ${slug}\n\nAdded from the events page by ${authorEmail}.`,
+      message: mode === 'update'
+        ? `Update event ${slug}\n\nUpdated from the events page by ${authorEmail}.`
+        : `Add event ${slug}\n\nAdded from the events page by ${authorEmail}.`,
       author: { name: authorNameFromSub(authorEmail), email: authorEmail },
       files
     });
@@ -255,6 +274,6 @@ export default async function handler(request, response) {
       return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
     }
     console.error('Add event failed', error);
-    return response.status(502).json({ message: 'Adding the event failed. Nothing was changed.' });
+    return response.status(502).json({ message: failedMessage });
   }
 }
