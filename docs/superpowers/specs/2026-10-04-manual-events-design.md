@@ -25,14 +25,27 @@ built to remove, and it is why the file is still `[]`.
 ## What this adds
 
 A page at `/admin/events/` where a signed-in author fills in one form, uploads a
-cover image, and the event appears on the site. No checkout, no JSON, no
-developer.
+cover image, and the event appears on the site — and where they can open an
+event they already added, correct it, or take it down. No checkout, no JSON, no
+developer, for the whole life of the event rather than only its first minute.
 
 ## Decisions taken
 
-1. **Add only.** `lib/manual-events.mjs` already retires an event once its end
-   time passes, so "it's over, take it down" needs no UI. Editing and removing
-   are out of scope; see **Out of scope** for what that costs.
+1. **Add, edit and remove.** *(Revised 2026-10-05. This was originally
+   add-only, on the reasoning that `lib/manual-events.mjs` retires an event
+   once its end time passes, so "it's over, take it down" needs no UI. That
+   holds, and it is the wrong question: an event does not only end, it also
+   **changes** and gets **cancelled**. A partner moves the room, the start
+   slips an hour, the RSVP link breaks, the whole thing is called off in
+   October for a date in November. Add-only leaves every one of those live and
+   wrong until a developer with a checkout edits the file — and the author
+   cannot even correct it by re-adding, because a duplicate slug is refused.
+   The original text named this "the known gap and the most likely thing to
+   want next"; it was wanted immediately.)*
+
+   The consequence for the rest of this document: `POST /api/add-event` grows
+   a `mode`, exactly as `api/publish.js` has one, and two more endpoints join
+   it. See **Editing and removing**.
 2. **Its own page**, not a type inside the post editor. An event is a flat form:
    no body blocks, no slug-driven filename, no article preview. The post
    editor's three panes exist to serve exactly those, and two of the three would
@@ -178,9 +191,14 @@ It:
 1. Validates the submitted event by running it through the **same**
    `normalizeEntry()` the build uses, so the editor cannot write a file the
    renderer would later drop. A refusal names the field.
-2. Refuses a slug that already has a file, rather than overwriting one — the
-   add-only scope has no update path, and a silent overwrite is how the second
-   SVB event replaces the first.
+2. Reads `mode`, which is `create` or `update`, and checks it against what is
+   actually on the branch — the rule `api/publish.js` already enforces.
+   `create` onto an existing file is refused, because a silent overwrite is
+   how the second SVB event replaces the first. `update` onto a file that is
+   not there is refused, because it means the author is editing something that
+   has since been removed, and writing it back would quietly resurrect it.
+   Neither refusal can be reached by accident: the page sends `update` only
+   for an event it opened.
 3. Validates an uploaded cover with the checks `api/publish.js` already
    applies: the size cap, the clean-base64 round-trip, and the JPG/PNG
    allowlist. An event cover is the same problem as a post cover and gets the
@@ -188,6 +206,73 @@ It:
 4. Commits the event JSON and, when present, the image, in **one** commit via
    `commitWithRetry` — so an event is never live with a missing cover, nor an
    image orphaned by a failed event write.
+
+### Editing and removing
+
+*(Added 2026-10-05, with decision 1.)*
+
+Three decisions carry this, and the first is the one with consequences.
+
+**The slug is frozen once an event exists.** It is the filename, so changing it
+on update would write a second file and leave the first — one event silently
+becoming two, both live, differing by a typo. The form shows the address field
+disabled when editing. Renaming is therefore remove-then-add, which is
+honest: a renamed event *is* a new address. This is the same reason
+`api/publish.js` recomputes a slug rather than trusting one.
+
+**The list and the open both read GitHub, not the deployed bundle.** This is
+the decision that separates editing from adding. `api/events.js` reads the
+events out of its own function bundle, which is a build artifact — correct for
+rendering, because a page can only ever show what was built. It is wrong for
+editing: the bundle is as old as the last deploy, so an author would open a
+stale copy of an event, change one field, and write back a file that silently
+reverts whatever someone else changed in between. The posts drawer gets away
+with a built index because it only ever *opens* a post, and the post file it
+then reads is fetched live. An edit form has no such second step, so it reads
+live from the start.
+
+The cost is a new function in `lib/github.mjs`: `listDirectory()`, returning
+the names in a directory on the branch, or `[]` when it does not exist. It is
+the one piece of GitHub plumbing this project does not already have.
+
+**A removed event takes its cover with it**, by exactly the rule
+`api/unpublish.js` follows: the cover is deleted only when the **live** file's
+`coverPath` matches a path this endpoint could have written
+(`images/event-<slug>.jpg` or `.png`). A hand-set or partner-hosted cover is
+left alone, because it is not ours to delete. The live file is read for this
+rather than trusting the client's copy, which may be a stale draft.
+
+#### `GET /api/manual-events`
+
+Authenticated like the rest. Returns every event file on the branch — not
+filtered by expiry, because an event that is over still has a file, and
+housekeeping is the one job that needs to see it. Each row carries the slug,
+the name, the start, and whether it has already passed, so the page can show
+"over" rather than pretending it is upcoming.
+
+A failure here costs the list, not the page: the form still adds.
+
+#### `POST /api/remove-event`
+
+Takes a slug, reads the live file, and deletes it — and its cover, under the
+rule above — in **one** commit. Refuses a slug with no file rather than
+reporting a success that removed nothing.
+
+It asks for confirmation in the page, not in the endpoint. Removal is the one
+irreversible thing an author can do here, and `api/unpublish.js` already
+settled what that looks like: type the address to confirm.
+
+#### Cover images on update
+
+Three cases, and the third is the one that leaks files:
+
+- **No new image.** The live file's `coverPath` is carried over unchanged. The
+  author editing a time must not lose the cover by not re-uploading it.
+- **A new image, same extension.** It overwrites at the same path. Nothing to
+  clean up.
+- **A new image, different extension** — a PNG replacing a JPG. The new file is
+  written *and* the old conventional path is deleted in the same commit, or
+  `event-<slug>.jpg` sits in `src/images/` forever with nothing pointing at it.
 
 ### `/admin/events/`
 
@@ -236,9 +321,20 @@ trip — the rule `api/publish.js` already follows.
 - `loadManualEvents()` reads a directory, skips an unparseable file while
   keeping the rest, names the skipped file, and returns `[]` for a missing
   directory.
-- `POST /api/add-event`: refused without a token; refused for a duplicate slug;
-  refuses an oversized or non-JPG/PNG cover **with no GitHub call**; commits the
-  JSON and the image in one commit; a traversing slug cannot escape.
+- `POST /api/add-event`: refused without a token; `create` onto an existing
+  slug and `update` onto a missing one are both refused; refuses an oversized
+  or non-JPG/PNG cover **with no GitHub call**; commits the JSON and the image
+  in one commit; a traversing slug cannot escape; an update with no new image
+  keeps the live cover; an update whose new image changes the extension deletes
+  the old one in the same commit.
+- `listDirectory()`: returns names on the branch, `[]` for a missing directory,
+  and raises `auth` on a rejected credential like its neighbours.
+- `GET /api/manual-events`: refused without a token; lists events that have
+  already passed as well as upcoming ones; a GitHub failure costs the list and
+  not the page.
+- `POST /api/remove-event`: refused without a token; refused for a slug with no
+  file; deletes the JSON and a conventionally-named cover in one commit; leaves
+  a partner-hosted or hand-set cover alone.
 - An event written by the endpoint survives a round trip through
   `normalizeManualEvents()` and reaches `mergeEvents()` in the right order.
 
@@ -251,15 +347,15 @@ whose end time has passed does not appear.
 
 ## Out of scope
 
-- **Editing and removing events.** Add-only is the agreed scope. A cancelled or
-  mistyped event needs a developer until this is picked up. This is the known
-  gap and the most likely thing to want next.
+- **Renaming an event in place.** The slug is the filename and is frozen once
+  the event exists; renaming is remove-then-add. See **Editing and removing**.
 - **Recurring events.** A series is added as separate events; the id-collision
   fallback already handles two entries sharing a name.
 - **Any change to the Luma sync.** This merges alongside it and touches none of
   it.
-- **A list of existing manual events.** It follows editing and removing, and
-  would reuse the posts drawer built for the post editor.
+- **An undo for removal.** A removed event is a deleted file; recovering one is
+  a developer with the git history, which is why the page asks the author to
+  type the address first.
 
 ## Risks
 
@@ -270,6 +366,13 @@ whose end time has passed does not appear.
 - **Timezones.** The existing normalizer defaults to `America/New_York`, which is
   right for most of these and wrong for a Chicago or SF partner event. The form
   must send an explicit offset rather than leaning on that default.
-- **Add-only will chafe.** Partner events change — rooms move, times shift,
-  things get cancelled. The first time it happens the answer is a developer, and
-  that is the argument for picking up editing sooner rather than later.
+- **Two authors editing one event.** `commitWithRetry` is safe for two authors
+  writing two paths; editing reintroduces two authors writing *one* path, and
+  the retry replays the second author's content over the first's. The window
+  is seconds and the blast radius is one event rather than the whole array, so
+  this is accepted rather than solved — but it is the one place the
+  per-file design does not protect us, and it should not be forgotten.
+- **Removal is irreversible from the page.** Typing the address is the only
+  thing between a mis-click and a deleted event. That is the same bar
+  `api/unpublish.js` set, so it is consistent rather than lax — but it is a
+  real floor, not a safety net.
