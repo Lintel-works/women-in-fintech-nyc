@@ -127,12 +127,14 @@ function updateAvailability() {
 
 function onCoverChosen() {
   var file = $('img-file').files[0];
+  /* A new pick or a reset replaces the thumbnail's blob; the old one would
+     otherwise stay allocated for the life of the page. */
+  if (cover.blobUrl) URL.revokeObjectURL(cover.blobUrl);
   cover = { file: null, base64: '', ext: '', blobUrl: '' };
   $('img-thumb').style.backgroundImage = '';
   $('img-thumb').textContent = 'No image';
   if (!file) { setStatus('img-status', ''); return; }
 
-  var ext = /\.png$/i.test(file.name) || file.type === 'image/png' ? 'png' : 'jpg';
   /* The same two the site serves as a cover, and the same two
      api/add-event.js allows. Refused here so an author learns it from the
      field rather than from a failed submit. */
@@ -146,6 +148,8 @@ function onCoverChosen() {
     $('img-file').value = '';
     return;
   }
+
+  var ext = /\.png$/i.test(file.name) || file.type === 'image/png' ? 'png' : 'jpg';
 
   var reader = new FileReader();
   reader.onload = function () {
@@ -181,7 +185,7 @@ async function addEvent() {
   $('btn-add').disabled = true;
   setStatus('add-status', 'Adding the event…', 'busy');
 
-  var payload = { event: entry };
+  var payload = { mode: 'create', event: entry };
   if (cover.base64) payload.image = { base64: cover.base64, ext: cover.ext };
 
   try {

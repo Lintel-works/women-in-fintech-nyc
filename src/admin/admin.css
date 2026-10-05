@@ -176,7 +176,11 @@ details[open] > summary { margin-bottom: 16px; }
 /* Collapsed rather than display:none: these are role="status" live regions,
    and several screen readers skip text inserted into a region that was
    display:none at the moment it arrived — which would defeat the point. */
-.status-line:empty {
+.status-line:empty,
+/* .vis-hidden: a label that must name a control for assistive technology
+   while the visual layout already makes the pairing obvious (a time input
+   sitting beside its date). One idiom, so there is one way of doing this. */
+.vis-hidden {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
