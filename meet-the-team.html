@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meet the Team — NYC Fintech Women</title>
+<link rel="stylesheet" href="site.css" />
+<style>
+  .team-block + .team-block { margin-top: 64px; }
+  .block-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 26px; }
+  .block-head h2 { font-family: var(--font-display); font-weight: 500; font-size: 30px; letter-spacing: -0.02em; color: var(--plum); margin: 0; }
+  .block-head .count { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .block-head::before { content: ""; }
+  .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .team-grid.three { grid-template-columns: repeat(3, 1fr); }
+  .team-grid.five { grid-template-columns: repeat(5, 1fr); }
+  @media (max-width: 1120px) { .team-grid.five { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 980px) { .team-grid, .team-grid.three, .team-grid.five { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .team-grid, .team-grid.three, .team-grid.five { grid-template-columns: 1fr; } }
+  .team-card { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; transition: transform .25s, box-shadow .25s; }
+  /* Scoped to the anchor: a member with no LinkedIn renders as a div, and
+     lifting a card that cannot be clicked promises a link that is not there. */
+  a.team-card:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(59,13,58,0.10); }
+  .team-photo { aspect-ratio: 1/1; position: relative; overflow: hidden; }
+  /* duotone portraits, matching the IFF row on the homepage */
+  .team-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
+  .team-photo::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.7; transition: opacity .35s ease; pointer-events: none; }
+  a.team-card:hover .team-photo img { filter: none; }
+  a.team-card:hover .team-photo::after { opacity: 0; }
+  .tag-li { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.22); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; z-index: 1; }
+  /* Stands in for a missing headshot, on the gradient the photo would have
+     covered. New volunteers join the page before their photo arrives, and an
+     <img> with no file renders a broken-image glyph instead. */
+  /* z-index, like .tag-li above: .team-photo::after is a positioned box
+     generated after this one, so without it the multiply overlay paints over
+     the initials and washes them into the gradient behind them. */
+  .team-initials { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 42px; color: #fff; letter-spacing: 0.04em; }
+  .team-info { padding: 16px 18px 20px; }
+  .team-info .nm { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--plum); margin: 0 0 3px; }
+  .team-info .rl { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .g1, .g1::after { background: linear-gradient(160deg, #ff7eb9 0%, #e0257b 100%); }
+  .g2, .g2::after { background: linear-gradient(160deg, #ffd24a 0%, #ff9a4a 100%); }
+  .g3, .g3::after { background: linear-gradient(160deg, #c084fc 0%, #7e22ce 100%); }
+  .g4, .g4::after { background: linear-gradient(160deg, #5eead4 0%, #0d9488 100%); }
+  .g5, .g5::after { background: linear-gradient(160deg, #fda4af 0%, #be123c 100%); }
+  .g6, .g6::after { background: linear-gradient(160deg, #93c5fd 0%, #4f46e5 100%); }
+  .g7, .g7::after { background: linear-gradient(160deg, #5b1e5c 0%, #3b0d3a 100%); }
+  .join-team { background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); border-radius: 28px; padding: 56px; text-align: center; margin-top: 72px; }
+  .join-team h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -0.02em; color: var(--plum); margin: 0 0 14px; }
+  .join-team p { color: var(--muted); font-size: 17px; max-width: 540px; margin: 0 auto 26px; line-height: 1.6; }
+  @media (max-width: 560px) { .join-team { padding: 40px 24px; } }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html">Events</a><div class="dropdown"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html" class="active">About</a><div class="dropdown"><a href="meet-the-team.html" class="active">Meet the Team</a><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a><a href="#">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Events</button>
+        <div class="mobile-nav-sub"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group open">
+        <button type="button" class="mobile-nav-trigger current" aria-expanded="true">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html" class="active">Meet the Team</a>
+          <a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a>
+          <a href="#">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="https://www.nycfintechwomen.com/becomeamember" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="wrap inner">
+    <div class="kicker">Meet the team</div>
+    <h1>The people <em>behind the work.</em></h1>
+    <p>NYC Fintech Women runs on people who care. Every event, every recognition, every connection made through this community exists because a group of women in fintech decided to give their time, energy, and expertise to make this industry better than they found it.</p>
+  </div>
+</section>
+
+<!-- TEAM --><section class="section" style="padding-top: 8px;">
+  <div class="wrap">
+    <div class="team-block">
+      <div class="block-head"><h2>Co-founders</h2><span class="count">The core team</span></div>
+      <div class="team-grid">
+        <a class="team-card" href="https://www.linkedin.com/in/michellektran" target="_blank" rel="noopener"><div class="team-photo g1"><span class="tag-li">in</span><img src="images/team/michelle-tran.jpg" alt="Michelle Tran" loading="lazy"></div><div class="team-info"><h3 class="nm">Michelle Tran</h3><div class="rl">Co-Founder · Operations Chair</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/sasha-pilch" target="_blank" rel="noopener"><div class="team-photo g2"><span class="tag-li">in</span><img src="images/team/sasha-pilch.jpg" alt="Sasha Pilch" loading="lazy"></div><div class="team-info"><h3 class="nm">Sasha Pilch</h3><div class="rl">Co-Founder · Sponsorship Chair</div></div></a>
+      </div>
+    </div>
+    <div class="team-block">
+      <div class="block-head"><h2>Chairs</h2><span class="count">Leading each area</span></div>
+      <div class="team-grid">
+        <a class="team-card" href="https://www.linkedin.com/in/fnoghani" target="_blank" rel="noopener"><div class="team-photo g3"><span class="tag-li">in</span><img src="images/team/filippa-noghani.jpg" alt="Filippa Noghani" loading="lazy"></div><div class="team-info"><h3 class="nm">Filippa Noghani</h3><div class="rl">Marketing Chair</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/ratikagandhi" target="_blank" rel="noopener"><div class="team-photo g4"><span class="tag-li">in</span><img src="images/team/ratika-gandhi.jpg" alt="Ratika Gandhi" loading="lazy"></div><div class="team-info"><h3 class="nm">Ratika Gandhi</h3><div class="rl">Professional Development Chair</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/shanaleyva" target="_blank" rel="noopener"><div class="team-photo g5"><span class="tag-li">in</span><img src="images/team/shana-leyva.jpg" alt="Shana Leyva" loading="lazy"></div><div class="team-info"><h3 class="nm">Shana Leyva</h3><div class="rl">Chicago Chapter Chair</div></div></a>
+      </div>
+    </div>
+    <div class="team-block">
+      <div class="block-head"><h2>Committee &amp; team</h2><span class="count">The builders behind the scenes</span></div>
+      <div class="team-grid">
+        <a class="team-card" href="https://www.linkedin.com/in/elsierussellbrown" target="_blank" rel="noopener"><div class="team-photo g6"><span class="tag-li">in</span><img src="images/team/elsie-russell-brown.jpg" alt="Elsie Russell Brown" loading="lazy"></div><div class="team-info"><h3 class="nm">Elsie Russell Brown</h3><div class="rl">Operations Team Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/hanane-bouchareb-15512235" target="_blank" rel="noopener"><div class="team-photo g7"><span class="tag-li">in</span><img src="images/team/hanane-bouchareb.jpg" alt="Hanane Bouchareb" loading="lazy"></div><div class="team-info"><h3 class="nm">Hanane Bouchareb</h3><div class="rl">Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/harrisonandrewr" target="_blank" rel="noopener"><div class="team-photo g1"><span class="tag-li">in</span><span class="team-initials" aria-hidden="true">AH</span></div><div class="team-info"><h3 class="nm">Andrew Harrison</h3><div class="rl">Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/liang-zhao-7167851a" target="_blank" rel="noopener"><div class="team-photo g2"><span class="tag-li">in</span><img src="images/team/liang-zhao.jpg" alt="Liang Zhao" loading="lazy"></div><div class="team-info"><h3 class="nm">Liang Zhao</h3><div class="rl">Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/manvir-singh" target="_blank" rel="noopener"><div class="team-photo g3"><span class="tag-li">in</span><img src="images/team/manvir-singh.jpg" alt="Manvir Singh" loading="lazy"></div><div class="team-info"><h3 class="nm">Manvir Singh</h3><div class="rl">FFF Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/simran-deshpande-9709b6264" target="_blank" rel="noopener"><div class="team-photo g4"><span class="tag-li">in</span><img src="images/team/simran-deshpande.jpg" alt="Simran Deshpande" loading="lazy"></div><div class="team-info"><h3 class="nm">Simran Deshpande</h3><div class="rl">Marketing and Design Committee Member</div></div></a>
+      </div>
+    </div>
+    <div class="team-block">
+      <div class="block-head"><h2>Past volunteers</h2><span class="count">Former chairs and committee members</span></div>
+      <div class="team-grid">
+        <a class="team-card" href="https://www.linkedin.com/in/kristen-stewart-34516814" target="_blank" rel="noopener"><div class="team-photo g5"><span class="tag-li">in</span><img src="images/team/kristen-stewart.jpg" alt="Kristen Stewart" loading="lazy"></div><div class="team-info"><h3 class="nm">Kristen Stewart</h3><div class="rl">Events Chair</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/angeliexiong" target="_blank" rel="noopener"><div class="team-photo g6"><span class="tag-li">in</span><img src="images/team/angelie-xiong.jpg" alt="Angelie Xiong" loading="lazy"></div><div class="team-info"><h3 class="nm">Angelie Xiong</h3><div class="rl">Events Team Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/christinadonnelly" target="_blank" rel="noopener"><div class="team-photo g7"><span class="tag-li">in</span><img src="images/team/christina-donnelly.jpg" alt="Christina Donnelly" loading="lazy"></div><div class="team-info"><h3 class="nm">Christina Donnelly</h3><div class="rl">Events Team Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/evan-z-58737b90" target="_blank" rel="noopener"><div class="team-photo g1"><span class="tag-li">in</span><img src="images/team/evan-zhang.jpg" alt="Evan Zhang" loading="lazy"></div><div class="team-info"><h3 class="nm">Evan Zhang</h3><div class="rl">Hire Her</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/jacqueline--tran" target="_blank" rel="noopener"><div class="team-photo g2"><span class="tag-li">in</span><img src="images/team/jacqueline-tran.jpg" alt="Jacqueline Tran" loading="lazy"></div><div class="team-info"><h3 class="nm">Jacqueline Tran</h3><div class="rl">Co-Founder Matching · Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/anli-valdez" target="_blank" rel="noopener"><div class="team-photo g3"><span class="tag-li">in</span><img src="images/team/anli-valdez.jpg" alt="Anli Valdez" loading="lazy"></div><div class="team-info"><h3 class="nm">Anli Valdez</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/clairefrancispriestley" target="_blank" rel="noopener"><div class="team-photo g4"><span class="tag-li">in</span><img src="images/team/claire-priestley.jpg" alt="Claire Priestley" loading="lazy"></div><div class="team-info"><h3 class="nm">Claire Priestley</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/diwakshi" target="_blank" rel="noopener"><div class="team-photo g5"><span class="tag-li">in</span><img src="images/team/diwakshi-tejaswi.jpg" alt="Diwakshi Tejaswi" loading="lazy"></div><div class="team-info"><h3 class="nm">Diwakshi Tejaswi</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/elizabethwaggoner" target="_blank" rel="noopener"><div class="team-photo g6"><span class="tag-li">in</span><img src="images/team/elizabeth-waggoner.jpg" alt="Elizabeth Waggoner" loading="lazy"></div><div class="team-info"><h3 class="nm">Elizabeth Waggoner</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/ivie-clifford" target="_blank" rel="noopener"><div class="team-photo g7"><span class="tag-li">in</span><img src="images/team/ivie-clifford.jpg" alt="Ivie Clifford" loading="lazy"></div><div class="team-info"><h3 class="nm">Ivie Clifford</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/meganchang98" target="_blank" rel="noopener"><div class="team-photo g1"><span class="tag-li">in</span><img src="images/team/megan-chang.jpg" alt="Megan Chang" loading="lazy"></div><div class="team-info"><h3 class="nm">Megan Chang</h3><div class="rl">Marketing Committee Member</div></div></a>
+        <a class="team-card" href="https://www.linkedin.com/in/tmmaggiewong" target="_blank" rel="noopener"><div class="team-photo g2"><span class="tag-li">in</span><img src="images/team/maggie-wong.jpg" alt="Maggie Wong" loading="lazy"></div><div class="team-info"><h3 class="nm">Maggie Wong</h3><div class="rl">Marketing Committee Member</div></div></a>
+      </div>
+    </div>
+
+    <div class="join-team">
+      <h2>Want to help build this?</h2>
+      <p>We're always looking for women who want to give their time and expertise to the community. Volunteers run our events, programs, and chapters.</p>
+      <a href="https://www.nycfintechwomen.com/becomeamember" class="btn btn-pink btn-lg">Get involved →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="events.html#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a></li><li><a href="#">Sponsor</a></li><li><a href="#">Contact</a></li><li><a href="#">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script src="nav-mobile.js"></script>
+</body>
+</html>

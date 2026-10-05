@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Events — NYC Fintech Women</title>
+<link rel="stylesheet" href="site.css" />
+<style>
+  /* The nav is sticky (~91px), so anchor jumps must clear it or the section
+     heading lands underneath it. #upcoming needs this most: it overrides
+     .section's 80px top padding down to 8px. */
+  #upcoming, #past { scroll-margin-top: 104px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; align-items: center; }
+  .filters .lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+  .chip { padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--plum); font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .18s; }
+  .chip:hover { border-color: var(--pink); color: var(--pink-deep); }
+  .chip.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+  .empty { display: none; text-align: center; color: var(--muted); padding: 48px; font-size: 15px; }
+  /* past events */
+  .past { background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); }
+  .past-list { display: flex; flex-direction: column; gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+  .past-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 22px; align-items: center; padding: 22px 26px; border-bottom: 1px solid var(--line); transition: background .2s; }
+  .past-row:last-child { border-bottom: none; }
+  .past-row:hover { background: var(--soft); }
+  .past-date { font-family: var(--font-display); color: var(--plum); }
+  .past-date .d { font-weight: 600; font-size: 26px; line-height: 1; }
+  .past-date .m { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pink); }
+  .past-main .nm { font-family: var(--font-display); font-weight: 600; font-size: 19px; color: var(--plum); margin: 0 0 4px; letter-spacing: -0.01em; }
+  .past-main .meta { font-size: 13.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  .past-main .meta .sep { color: var(--line); }
+  .past-link { font-size: 13px; font-weight: 600; color: var(--pink-deep); white-space: nowrap; }
+  .past-link:hover { color: var(--pink); }
+  @media (max-width: 640px) { .past-row { grid-template-columns: 64px 1fr; } .past-link { grid-column: 2; } }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html" class="active">Events</a><div class="dropdown"><a href="#upcoming">Upcoming Events</a><a href="#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html">About</a><div class="dropdown"><a href="meet-the-team.html">Meet the Team</a><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a><a href="#">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group open">
+        <button type="button" class="mobile-nav-trigger current" aria-expanded="true">Events</button>
+        <div class="mobile-nav-sub"><a href="#upcoming">Upcoming Events</a><a href="#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html">Meet the Team</a>
+          <a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a>
+          <a href="#">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="https://www.nycfintechwomen.com/becomeamember" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="wrap inner">
+    <div class="kicker">Events</div>
+    <h1>Make connections and <em>build together.</em></h1>
+    <p>Our events are where NYC Fintech Women members find mentors, collaborators, friends, and sometimes their next career opportunity. We curate in-person gatherings across New York, San Francisco, and Chicago designed to put you in conversation with women who are serious about improving the industry — and about bringing others with them.</p>
+  </div>
+</section>
+
+<!-- UPCOMING -->
+<section class="section" id="upcoming" style="padding-top: 8px;">
+  <div class="wrap">
+    <div class="filters" id="filters">
+      <span class="lbl">Filter by city</span>
+      <button class="chip active" data-city="all">All cities</button>
+      <button class="chip" data-city="nyc">New York</button>
+      <button class="chip" data-city="sf">San Francisco</button>
+      <button class="chip" data-city="chi">Chicago</button>
+    </div>
+
+    <div class="events-grid" id="grid">
+      <article class="event" data-city="nyc"><div class="event-img"><div class="date-chip"><div class="d">14</div><div class="m">Jun</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Panel · In person</span><h3 class="event-name">From Founder to Funded: Raising Your First Round</h3><div class="event-meta"><span>Jun 14 · 6:30 PM</span><span class="sep">·</span><span>Soho, NYC</span></div><span class="event-cta">RSVP →</span></div></article>
+      <article class="event v-pink" data-city="sf"><div class="event-img"><div class="date-chip"><div class="d">22</div><div class="m">Jun</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Fireside · In person</span><h3 class="event-name">Operating at Scale: Lessons from Fintech Leaders</h3><div class="event-meta"><span>Jun 22 · 6:00 PM</span><span class="sep">·</span><span>SoMa, SF</span></div><span class="event-cta">RSVP →</span></div></article>
+      <article class="event v-plum" data-city="chi"><div class="event-img"><div class="date-chip"><div class="d">27</div><div class="m">Jun</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Mixer · Members only</span><h3 class="event-name">Chicago Chapter Summer Mixer</h3><div class="event-meta"><span>Jun 27 · 5:30 PM</span><span class="sep">·</span><span>The Loop, Chicago</span></div><span class="event-cta">RSVP →</span></div></article>
+      <article class="event v-sun" data-city="nyc"><div class="event-img"><div class="date-chip"><div class="d">08</div><div class="m">Jul</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Summit · Members only</span><h3 class="event-name">Inspiring FinTech Females Annual Awards Dinner</h3><div class="event-meta"><span>Jul 8 · 7:00 PM</span><span class="sep">·</span><span>Tribeca Rooftop, NYC</span></div><span class="event-cta">RSVP →</span></div></article>
+      <article class="event v-mint" data-city="sf"><div class="event-img"><div class="date-chip"><div class="d">16</div><div class="m">Jul</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Workshop · In person</span><h3 class="event-name">Negotiating Your Next Role &amp; Equity Package</h3><div class="event-meta"><span>Jul 16 · 12:00 PM</span><span class="sep">·</span><span>Financial District, SF</span></div><span class="event-cta">RSVP →</span></div></article>
+      <article class="event" data-city="chi"><div class="event-img"><div class="date-chip"><div class="d">24</div><div class="m">Jul</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Roundtable · In person</span><h3 class="event-name">Founders &amp; Investors Roundtable</h3><div class="event-meta"><span>Jul 24 · 6:00 PM</span><span class="sep">·</span><span>River North, Chicago</span></div><span class="event-cta">RSVP →</span></div></article>
+    </div>
+    <div class="empty" id="empty">No upcoming events in this city right now — new dates are added every month.</div>
+  </div>
+</section>
+
+<!-- PAST EVENTS -->
+<section class="section past" id="past">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="left">
+        <div class="kicker">The archive</div>
+        <h2>Where we've <em>already been.</em></h2>
+      </div>
+    </div>
+    <div class="past-list">
+      <div class="past-row"><div class="past-date"><div class="d">21</div><div class="m">May</div></div><div class="past-main"><h3 class="nm">Building in Public: A Conversation with Stage Founders</h3><div class="meta"><span>Panel</span><span class="sep">·</span><span>NYC</span><span class="sep">·</span><span>140 attendees</span></div></div><a href="#" class="past-link">Recap →</a></div>
+      <div class="past-row"><div class="past-date"><div class="d">09</div><div class="m">May</div></div><div class="past-main"><h3 class="nm">Women in Payments: Where the Money Moves Next</h3><div class="meta"><span>Fireside</span><span class="sep">·</span><span>SF</span><span class="sep">·</span><span>95 attendees</span></div></div><a href="#" class="past-link">Recap →</a></div>
+      <div class="past-row"><div class="past-date"><div class="d">24</div><div class="m">Apr</div></div><div class="past-main"><h3 class="nm">Spring Member Mixer</h3><div class="meta"><span>Mixer</span><span class="sep">·</span><span>Chicago</span><span class="sep">·</span><span>120 attendees</span></div></div><a href="#" class="past-link">Recap →</a></div>
+      <div class="past-row"><div class="past-date"><div class="d">12</div><div class="m">Apr</div></div><div class="past-main"><h3 class="nm">From Operator to Founder: Making the Leap</h3><div class="meta"><span>Workshop</span><span class="sep">·</span><span>NYC</span><span class="sep">·</span><span>80 attendees</span></div></div><a href="#" class="past-link">Recap →</a></div>
+      <div class="past-row"><div class="past-date"><div class="d">28</div><div class="m">Mar</div></div><div class="past-main"><h3 class="nm">Capital &amp; Connections: Meet the Investors</h3><div class="meta"><span>Roundtable</span><span class="sep">·</span><span>SF</span><span class="sep">·</span><span>65 attendees</span></div></div><a href="#" class="past-link">Recap →</a></div>
+    </div>
+    <div class="sec-foot"><a href="#" class="btn btn-dark btn-lg">View all past events →</a></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a></li><li><a href="#">Sponsor</a></li><li><a href="#">Contact</a></li><li><a href="#">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script src="luma-events.js"></script>
+<script>
+  const chips = document.querySelectorAll('.chip');
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+
+  /* Query the cards live rather than snapshotting them: the grid is replaced
+     wholesale once Luma responds. */
+  function applyFilter() {
+    const active = document.querySelector('.chip.active');
+    const city = active ? active.dataset.city : 'all';
+    let shown = 0;
+    grid.querySelectorAll('.event').forEach(e => {
+      const match = city === 'all' || e.dataset.city === city;
+      e.style.display = match ? '' : 'none';
+      if (match) shown++;
+    });
+    empty.style.display = shown === 0 ? 'block' : 'none';
+  }
+
+  chips.forEach(chip => chip.addEventListener('click', () => {
+    chips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    applyFilter();
+  }));
+
+  /* Cards are rendered by luma-events.js, shared with the chapter pages. The
+     six events already in the HTML stay put if /api/events has nothing. */
+  LumaEvents.load({ grid: grid, onRender: applyFilter });
+</script>
+<script src="nav-mobile.js"></script>
+
+</body>
+</html>

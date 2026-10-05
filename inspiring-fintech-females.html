@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Inspiring FinTech Females — NYC Fintech Women</title>
+<link rel="stylesheet" href="site.css" />
+<style>
+  .cat-intro { font-size: 14px; color: var(--muted); margin: 0 0 18px; font-weight: 600; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+  .tab { padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--plum); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .18s; }
+  .tab:hover { border-color: var(--pink); color: var(--pink-deep); }
+  .tab.active { background: var(--pink); border-color: var(--pink); color: #fff; }
+  .honoree-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  @media (max-width: 980px) { .honoree-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .honoree-grid { grid-template-columns: 1fr; } }
+  .hon { background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; transition: transform .25s, box-shadow .25s; }
+  .hon:hover { transform: translateY(-5px); box-shadow: 0 18px 48px rgba(59,13,58,0.12); }
+  .hon-photo { aspect-ratio: 1/1.08; position: relative; overflow: hidden; }
+  /* duotone portraits, matching the IFF row on the homepage */
+  .hon-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
+  .hon-photo::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.7; transition: opacity .35s ease; pointer-events: none; }
+  .hon:hover .hon-photo img { filter: none; }
+  .hon:hover .hon-photo::after { opacity: 0; }
+  .hon-photo .badge { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.28); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 11px; border-radius: 999px; z-index: 1; }
+  .hon-info { padding: 16px 18px 20px; }
+  .hon-info .nm { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--plum); margin: 0 0 4px; }
+  .hon-info .rl { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .g1, .g1::after { background: linear-gradient(160deg, #ff7eb9, #e0257b); } .g2, .g2::after { background: linear-gradient(160deg, #ffd24a, #ff9a4a); }
+  .g3, .g3::after { background: linear-gradient(160deg, #c084fc, #7e22ce); } .g4, .g4::after { background: linear-gradient(160deg, #5eead4, #0d9488); }
+  .g5, .g5::after { background: linear-gradient(160deg, #fda4af, #be123c); } .g6, .g6::after { background: linear-gradient(160deg, #93c5fd, #4f46e5); }
+  .g7, .g7::after { background: linear-gradient(160deg, #5b1e5c, #3b0d3a); } .g8, .g8::after { background: linear-gradient(160deg, #fca5a5, #ea580c); }
+  .empty { display: none; text-align: center; color: var(--muted); padding: 48px; font-size: 15px; }
+  /* nominate */
+  .nominate { background: var(--plum); color: #fff; padding: 88px 0; position: relative; overflow: hidden; margin-top: 24px; }
+  .nominate::before { content: ""; position: absolute; top: -160px; right: -120px; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(224,37,123,0.30) 0%, transparent 70%); }
+  .nominate-inner { max-width: 720px; position: relative; z-index: 1; }
+  .nominate .kicker { color: #ffb4d3; }
+  .nominate h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.025em; line-height: 1.1; margin: 0 0 18px; }
+  .nominate h2 em { font-style: italic; color: #ffb4d3; font-weight: 400; }
+  .nominate p { color: rgba(255,255,255,0.75); font-size: 17px; line-height: 1.65; margin: 0 0 30px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html">Events</a><div class="dropdown"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html" class="active">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html" class="active">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html">About</a><div class="dropdown"><a href="meet-the-team.html">Meet the Team</a><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a><a href="#">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Events</button>
+        <div class="mobile-nav-sub"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group open">
+        <button type="button" class="mobile-nav-trigger current" aria-expanded="true">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html" class="active">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html">Meet the Team</a>
+          <a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a>
+          <a href="#">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="https://www.nycfintechwomen.com/becomeamember" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="wrap inner">
+    <div class="pill"><span class="pulse"></span> 2026 nominations are open</div>
+    <h1>Recognizing the women <em>transforming fintech</em> from the inside out.</h1>
+    <p>The Inspiring FinTech Females list recognizes women who are transforming fintech and who are advocates for women and gender equity. Every year, we shine a light on the founders building from scratch, leaders creating impact at scale, and the builders holding it all together behind the scenes.</p>
+  </div>
+</section>
+
+<!-- HONOREES -->
+<section class="section" style="padding-top: 8px;">
+  <div class="wrap">
+    <p class="cat-intro">The 2025 cohort &mdash; 71 honorees across seven categories:</p>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-cat="all">All</button>
+      <button class="tab" data-cat="judges">Judges</button>
+      <button class="tab" data-cat="founders">Founders</button>
+      <button class="tab" data-cat="leaders">Leaders</button>
+      <button class="tab" data-cat="money">Money Movers</button>
+      <button class="tab" data-cat="network">Network Builders</button>
+      <button class="tab" data-cat="product">Product Builders</button>
+      <button class="tab" data-cat="operators">Operators</button>
+    </div>
+
+    <div class="honoree-grid" id="grid">
+      <article class="hon" data-cat="judges"><div class="hon-photo g1"><span class="badge">Judges</span><img src="images/iff/ilana-fass.jpg" alt="Ilana Fass" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ilana Fass</h3><div class="rl">Director, Fintech Banking · SVB</div></div></article>
+      <article class="hon" data-cat="judges"><div class="hon-photo g2"><span class="badge">Judges</span><img src="images/iff/amanda-estiverne.jpg" alt="Amanda Estiverne" loading="lazy"></div><div class="hon-info"><h3 class="nm">Amanda Estiverne</h3><div class="rl">Director &amp; Head of Payments Practice · Perficient</div></div></article>
+      <article class="hon" data-cat="judges"><div class="hon-photo g3"><span class="badge">Judges</span><img src="images/iff/vikas-raj.jpg" alt="Vikas Raj" loading="lazy"></div><div class="hon-info"><h3 class="nm">Vikas Raj</h3><div class="rl">Co-Founder and General Partner · ResilienceVC</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g4"><span class="badge">Founders</span><img src="images/iff/ximena-aleman.jpg" alt="Ximena Aleman" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ximena Aleman</h3><div class="rl">Co-Founder &amp; Co-CEO · Prometeo</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g5"><span class="badge">Founders</span><img src="images/iff/michele-alt.jpeg" alt="Michele Alt" loading="lazy"></div><div class="hon-info"><h3 class="nm">Michele Alt</h3><div class="rl">Co-Founder &amp; Partner · Klaros Group</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g6"><span class="badge">Founders</span><img src="images/iff/elaine-asher.jpg" alt="Elaine Asher" loading="lazy"></div><div class="hon-info"><h3 class="nm">Elaine Asher</h3><div class="rl">Co-Founder · Eve Wealth</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g7"><span class="badge">Founders</span><img src="images/iff/sarah-biller.jpg" alt="Sarah Biller" loading="lazy"></div><div class="hon-info"><h3 class="nm">Sarah Biller</h3><div class="rl">Co-Founder · Fintech Sandbox</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g8"><span class="badge">Founders</span><img src="images/iff/ruth-blader.jpeg" alt="Ruth Blader" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ruth Blader</h3><div class="rl">Founder and Managing Partner · Foxe Capital</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g1"><span class="badge">Founders</span><img src="images/iff/tess-bloch.jpg" alt="Tess Bloch" loading="lazy"></div><div class="hon-info"><h3 class="nm">Tess Bloch</h3><div class="rl">Co-Founder &amp; COO · Spade</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g2"><span class="badge">Founders</span><img src="images/iff/emily-cisek.jpg" alt="Emily Cisek" loading="lazy"></div><div class="hon-info"><h3 class="nm">Emily Cisek</h3><div class="rl">CEO &amp; Co-Founder · Paige</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g3"><span class="badge">Founders</span><img src="images/iff/anna-joo-fee.jpg" alt="Anna Joo Fee" loading="lazy"></div><div class="hon-info"><h3 class="nm">Anna Joo Fee</h3><div class="rl">CEO and Co-Founder · Goodfin</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g4"><span class="badge">Founders</span><img src="images/iff/dana-fry.jpg" alt="Dana Fry" loading="lazy"></div><div class="hon-info"><h3 class="nm">Dana Fry</h3><div class="rl">CEO/Founder · Ujamaa.Financial</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g5"><span class="badge">Founders</span><img src="images/iff/danielle-hill.jpg" alt="Danielle Hill" loading="lazy"></div><div class="hon-info"><h3 class="nm">Danielle Hill</h3><div class="rl">Co-Founder &amp; COO · Upward Financial</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g6"><span class="badge">Founders</span><img src="images/iff/katie-katz.jpg" alt="Katie Katz" loading="lazy"></div><div class="hon-info"><h3 class="nm">Katie Katz</h3><div class="rl">Founder &amp; CEO · Mitzi</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g7"><span class="badge">Founders</span><img src="images/iff/rachel-lauren.jpg" alt="Rachel Lauren" loading="lazy"></div><div class="hon-info"><h3 class="nm">Rachel Lauren</h3><div class="rl">COO and Co-Founder · Debbie</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g8"><span class="badge">Founders</span><img src="images/iff/erin-levine.jpg" alt="Erin Levine" loading="lazy"></div><div class="hon-info"><h3 class="nm">Erin Levine</h3><div class="rl">CEO &amp; Co-founder · Hello Divorce</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g1"><span class="badge">Founders</span><img src="images/iff/ennie-lim.jpg" alt="Ennie Lim" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ennie Lim</h3><div class="rl">CEO &amp; Co-Founder · Kina</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g2"><span class="badge">Founders</span><img src="images/iff/cindy-morand.jpg" alt="Cindy Morand" loading="lazy"></div><div class="hon-info"><h3 class="nm">Cindy Morand</h3><div class="rl">Co-Founder &amp; CEO · FinOptiv AI</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g3"><span class="badge">Founders</span><img src="images/iff/lauren-myrick.jpg" alt="Lauren Myrick" loading="lazy"></div><div class="hon-info"><h3 class="nm">Lauren Myrick</h3><div class="rl">Cofounder and CEO · Found</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g4"><span class="badge">Founders</span><img src="images/iff/rachael-saunders.jpg" alt="Rachael Saunders" loading="lazy"></div><div class="hon-info"><h3 class="nm">Rachael Saunders</h3><div class="rl">Founder · Saturday Legal</div></div></article>
+      <article class="hon" data-cat="founders"><div class="hon-photo g5"><span class="badge">Founders</span><img src="images/iff/martha-sylla-underwood.jpg" alt="Martha Sylla Underwood" loading="lazy"></div><div class="hon-info"><h3 class="nm">Martha Sylla Underwood</h3><div class="rl">CEO · Prismm</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g6"><span class="badge">Leaders</span><img src="images/iff/lindsey-baptiste-fiedler.jpg" alt="Lindsey Baptiste Fiedler" loading="lazy"></div><div class="hon-info"><h3 class="nm">Lindsey Baptiste Fiedler</h3><div class="rl">CFO · Capitolis Inc.</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g7"><span class="badge">Leaders</span><img src="images/iff/norah-beers.jpg" alt="Norah Beers" loading="lazy"></div><div class="hon-info"><h3 class="nm">Norah Beers</h3><div class="rl">CISO · Grayscale Investments</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g8"><span class="badge">Leaders</span><img src="images/iff/gail-burgos.jpg" alt="Gail Burgos" loading="lazy"></div><div class="hon-info"><h3 class="nm">Gail Burgos</h3><div class="rl">CEO · Paytech Women</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g1"><span class="badge">Leaders</span><img src="images/iff/crissi-cole.jpg" alt="Crissi Cole" loading="lazy"></div><div class="hon-info"><h3 class="nm">Crissi Cole</h3><div class="rl">Founder · Penny Finance</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g2"><span class="badge">Leaders</span><img src="images/iff/karla-hall.jpg" alt="Karla Hall" loading="lazy"></div><div class="hon-info"><h3 class="nm">Karla Hall</h3><div class="rl">Managing Director · Goldman Sachs</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g3"><span class="badge">Leaders</span><img src="images/iff/andrea-inokon.jpg" alt="Andrea Inokon" loading="lazy"></div><div class="hon-info"><h3 class="nm">Andrea Inokon</h3><div class="rl">Co-Founder &amp; COO · Breva</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g4"><span class="badge">Leaders</span><img src="images/iff/allison-macleod.jpg" alt="Allison MacLeod" loading="lazy"></div><div class="hon-info"><h3 class="nm">Allison MacLeod</h3><div class="rl">Chief Marketing Officer &amp; GM US · Flywire</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g5"><span class="badge">Leaders</span><img src="images/iff/keren-milman.jpg" alt="Keren Milman" loading="lazy"></div><div class="hon-info"><h3 class="nm">Keren Milman</h3><div class="rl">COO · Mesh Payments</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g6"><span class="badge">Leaders</span><img src="images/iff/renuka-nayani.jpg" alt="Renuka Nayani" loading="lazy"></div><div class="hon-info"><h3 class="nm">Renuka Nayani</h3><div class="rl">Chief Financial Officer · Fundbox</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g7"><span class="badge">Leaders</span><img src="images/iff/sofya-pogreb.jpg" alt="Sofya Pogreb" loading="lazy"></div><div class="hon-info"><h3 class="nm">Sofya Pogreb</h3><div class="rl">CEO · Butter Payments</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g8"><span class="badge">Leaders</span><img src="images/iff/casey-powers.jpg" alt="Casey Powers" loading="lazy"></div><div class="hon-info"><h3 class="nm">Casey Powers</h3><div class="rl">CEO · Climb Credit</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g1"><span class="badge">Leaders</span><img src="images/iff/tami-rosen.jpg" alt="Tami Rosen" loading="lazy"></div><div class="hon-info"><h3 class="nm">Tami Rosen</h3><div class="rl">Board Member, Chief Development Officer · Pagaya Technologies</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g2"><span class="badge">Leaders</span><img src="images/iff/colleen-rozanski.jpg" alt="Colleen Rozanski" loading="lazy"></div><div class="hon-info"><h3 class="nm">Colleen Rozanski</h3><div class="rl">Chief Operating Officer · Nutshell Labs</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g3"><span class="badge">Leaders</span><img src="images/iff/rebecca-schick.jpg" alt="Rebecca Schick" loading="lazy"></div><div class="hon-info"><h3 class="nm">Rebecca Schick</h3><div class="rl">Chief Financial Officer · Kalshi</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g4"><span class="badge">Leaders</span><img src="images/iff/bobbie-shrivastav.jpg" alt="Bobbie Shrivastav" loading="lazy"></div><div class="hon-info"><h3 class="nm">Bobbie Shrivastav</h3><div class="rl">Co-founder and CEO · Solvrays</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g5"><span class="badge">Leaders</span><img src="images/iff/amanda-tuminelli.jpg" alt="Amanda Tuminelli" loading="lazy"></div><div class="hon-info"><h3 class="nm">Amanda Tuminelli</h3><div class="rl">Executive Director &amp; Chief Legal Officer · DeFi Education Fund</div></div></article>
+      <article class="hon" data-cat="leaders"><div class="hon-photo g6"><span class="badge">Leaders</span><img src="images/iff/yvonne-wang.jpg" alt="Yvonne Wang" loading="lazy"></div><div class="hon-info"><h3 class="nm">Yvonne Wang</h3><div class="rl">COO · DirectBooks</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g7"><span class="badge">Money Movers</span><img src="images/iff/galia-beer-gabel.jpg" alt="Galia Beer-Gabel" loading="lazy"></div><div class="hon-info"><h3 class="nm">Galia Beer-Gabel</h3><div class="rl">Managing Partner · Team8</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g8"><span class="badge">Money Movers</span><img src="images/iff/stephanie-foster.jpg" alt="Stephanie Foster" loading="lazy"></div><div class="hon-info"><h3 class="nm">Stephanie Foster</h3><div class="rl">Director, Solutions Management · Visa</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g1"><span class="badge">Money Movers</span><img src="images/iff/tanvi-lal.jpg" alt="Tanvi Lal" loading="lazy"></div><div class="hon-info"><h3 class="nm">Tanvi Lal</h3><div class="rl">Investor · Intuit Ventures</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g2"><span class="badge">Money Movers</span><img src="images/iff/dominique-ritchie.jpg" alt="Dominique Ritchie" loading="lazy"></div><div class="hon-info"><h3 class="nm">Dominique Ritchie</h3><div class="rl">Chief of Staff · Portage</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g3"><span class="badge">Money Movers</span><img src="images/iff/julie-wagne.jpg" alt="Julie Wagne" loading="lazy"></div><div class="hon-info"><h3 class="nm">Julie Wagne</h3><div class="rl">Managing Director · SVB</div></div></article>
+      <article class="hon" data-cat="money"><div class="hon-photo g4"><span class="badge">Money Movers</span><img src="images/iff/rocio-wu.jpg" alt="Rocio Wu" loading="lazy"></div><div class="hon-info"><h3 class="nm">Rocio Wu</h3><div class="rl">Partner · F-Prime</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g5"><span class="badge">Network Builders</span><img src="images/iff/nikol-barikos.jpg" alt="Nikol Barikos" loading="lazy"></div><div class="hon-info"><h3 class="nm">Nikol Barikos</h3><div class="rl">Group Head of Global Customer Success · London Stock Exchange Group</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g6"><span class="badge">Network Builders</span><img src="images/iff/brittany-eden.jpg" alt="Brittany Eden" loading="lazy"></div><div class="hon-info"><h3 class="nm">Brittany Eden</h3><div class="rl">Head of Marketing &amp; Growth · VGS</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g7"><span class="badge">Network Builders</span><img src="images/iff/jane-ginsburg.jpg" alt="Jane Ginsburg" loading="lazy"></div><div class="hon-info"><h3 class="nm">Jane Ginsburg</h3><div class="rl">GTM Head, Capital Markets and Fintech · AWS</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g8"><span class="badge">Network Builders</span><img src="images/iff/christina-hsu.jpg" alt="Christina Hsu" loading="lazy"></div><div class="hon-info"><h3 class="nm">Christina Hsu</h3><div class="rl">Founder · SF Tech Unleashed</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g1"><span class="badge">Network Builders</span><img src="images/iff/ashley-kiolbasa.jpg" alt="Ashley Kiolbasa" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ashley Kiolbasa</h3><div class="rl">CMO · Prove</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g2"><span class="badge">Network Builders</span><img src="images/iff/ashlyn-lackey.jpg" alt="Ashlyn Lackey" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ashlyn Lackey</h3><div class="rl">Director, Emerging Technology · Prudential</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g3"><span class="badge">Network Builders</span><img src="images/iff/linda-lipovetsky.jpg" alt="Linda Lipovetsky" loading="lazy"></div><div class="hon-info"><h3 class="nm">Linda Lipovetsky</h3><div class="rl">Customer Advocacy Leader · Unqork</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g4"><span class="badge">Network Builders</span><img src="images/iff/jennifer-marshall.jpg" alt="Jennifer Marshall" loading="lazy"></div><div class="hon-info"><h3 class="nm">Jennifer Marshall</h3><div class="rl">Sr. Marketing Manager · VGS</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g5"><span class="badge">Network Builders</span><img src="images/iff/divine-muragijimana.jpg" alt="Divine Muragijimana" loading="lazy"></div><div class="hon-info"><h3 class="nm">Divine Muragijimana</h3><div class="rl">Founder &amp; CEO · Savoir-Faire Global</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g6"><span class="badge">Network Builders</span><img src="images/iff/cadi-perez.jpg" alt="Cadi Perez" loading="lazy"></div><div class="hon-info"><h3 class="nm">Cadi Perez</h3><div class="rl">Growth Manager · Checkbook</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g7"><span class="badge">Network Builders</span><img src="images/iff/natalie-riso.jpg" alt="Natalie Riso" loading="lazy"></div><div class="hon-info"><h3 class="nm">Natalie Riso</h3><div class="rl">Head of Startups and Strategic Partnerships · Rho</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g8"><span class="badge">Network Builders</span><img src="images/iff/nicole-wood.jpg" alt="Nicole Wood" loading="lazy"></div><div class="hon-info"><h3 class="nm">Nicole Wood</h3><div class="rl">Vice President, Communications · Vestwell</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g1"><span class="badge">Network Builders</span><img src="images/iff/po-on-yeung.jpg" alt="Po On Yeung" loading="lazy"></div><div class="hon-info"><h3 class="nm">Po On Yeung</h3><div class="rl">Head of Community · Aptos Foundation</div></div></article>
+      <article class="hon" data-cat="network"><div class="hon-photo g2"><span class="badge">Network Builders</span><img src="images/iff/kseniya-zaslavskaya.jpg" alt="Kseniya Zaslavskaya" loading="lazy"></div><div class="hon-info"><h3 class="nm">Kseniya Zaslavskaya</h3><div class="rl">Business Development Operations Manager · Wysh</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g3"><span class="badge">Product Builders</span><img src="images/iff/caryn-campelo.jpg" alt="Caryn Campelo" loading="lazy"></div><div class="hon-info"><h3 class="nm">Caryn Campelo</h3><div class="rl">Principal Product Manager · Digital Onboarding</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g4"><span class="badge">Product Builders</span><img src="images/iff/ayesha-jaggi.jpg" alt="Ayesha Jaggi" loading="lazy"></div><div class="hon-info"><h3 class="nm">Ayesha Jaggi</h3><div class="rl">Head of Growth and Customer Experience · Plaid</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g5"><span class="badge">Product Builders</span><img src="images/iff/pam-kaur.jpg" alt="Pam Kaur" loading="lazy"></div><div class="hon-info"><h3 class="nm">Pam Kaur</h3><div class="rl">Head of Platform · Alloy Labs</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g6"><span class="badge">Product Builders</span><img src="images/iff/emily-kurtz.jpg" alt="Emily Kurtz" loading="lazy"></div><div class="hon-info"><h3 class="nm">Emily Kurtz</h3><div class="rl">Head of Product · Public</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g7"><span class="badge">Product Builders</span><img src="images/iff/andrea-sabet.jpg" alt="Andrea Sabet" loading="lazy"></div><div class="hon-info"><h3 class="nm">Andrea Sabet</h3><div class="rl">Head of Solutions Architecture, Fintech &amp; Capital Markets · AWS</div></div></article>
+      <article class="hon" data-cat="product"><div class="hon-photo g8"><span class="badge">Product Builders</span><img src="images/iff/colleen-wilson.jpg" alt="Colleen Wilson" loading="lazy"></div><div class="hon-info"><h3 class="nm">Colleen Wilson</h3><div class="rl">Chief Product Officer · Best Egg</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g1"><span class="badge">Operators</span><img src="images/iff/kelly-buchanan.jpg" alt="Kelly Buchanan" loading="lazy"></div><div class="hon-info"><h3 class="nm">Kelly Buchanan</h3><div class="rl">Chief Divisional Technology, Data &amp; Operations Officer · Truist</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g2"><span class="badge">Operators</span><img src="images/iff/melissa-desjardins.jpg" alt="Melissa Desjardins" loading="lazy"></div><div class="hon-info"><h3 class="nm">Melissa Desjardins</h3><div class="rl">Director · Protiviti</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g3"><span class="badge">Operators</span><img src="images/iff/inna-erenberg.jpg" alt="Inna Erenberg" loading="lazy"></div><div class="hon-info"><h3 class="nm">Inna Erenberg</h3><div class="rl">VP Treasury Services Commercialization, Payments · JPMorgan Chase &amp; Co</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g4"><span class="badge">Operators</span><img src="images/iff/meryem-erzi.jpg" alt="Meryem Erzi" loading="lazy"></div><div class="hon-info"><h3 class="nm">Meryem Erzi</h3><div class="rl">Chief Compliance Officer · Pagaya Technologies</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g5"><span class="badge">Operators</span><img src="images/iff/cass-sanford.jpg" alt="Cass Sanford" loading="lazy"></div><div class="hon-info"><h3 class="nm">Cass Sanford</h3><div class="rl">Senior Product Counsel · AngelList</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g6"><span class="badge">Operators</span><img src="images/iff/kristin-slink.jpg" alt="Kristin Slink" loading="lazy"></div><div class="hon-info"><h3 class="nm">Kristin Slink</h3><div class="rl">Founder · Tech AF</div></div></article>
+      <article class="hon" data-cat="operators"><div class="hon-photo g7"><span class="badge">Operators</span><img src="images/iff/tiffany-j-smith.jpg" alt="Tiffany J. Smith" loading="lazy"></div><div class="hon-info"><h3 class="nm">Tiffany J. Smith</h3><div class="rl">Partner, Co-Chair of Blockchain &amp; Cryptocurrency Working Group · WilmerHale</div></div></article>
+    </div>
+    <div class="empty" id="empty">No honorees in this category yet — check back as the 2026 cohort is announced.</div>
+  </div>
+</section>
+
+<!-- NOMINATE -->
+<section class="nominate" id="nominate">
+  <div class="wrap nominate-inner">
+    <div class="kicker">Nominate</div>
+    <h2>Know a woman who <em>belongs on this list?</em></h2>
+    <p>Nominations for the 2026 Inspiring FinTech Females program are open now. If you know a woman in fintech doing meaningful work and advocating for others along the way, we want to know about her.</p>
+    <a href="#" class="btn btn-pink btn-lg">Submit a Nomination →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="events.html#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="https://www.nycfintechwomen.com/becomeamember">Become a Member</a></li><li><a href="#">Sponsor</a></li><li><a href="#">Contact</a></li><li><a href="#">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const cards = document.querySelectorAll('.hon');
+  const empty = document.getElementById('empty');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const cat = tab.dataset.cat;
+    let shown = 0;
+    cards.forEach(c => {
+      const match = cat === 'all' || c.dataset.cat === cat;
+      c.style.display = match ? '' : 'none';
+      if (match) shown++;
+    });
+    empty.style.display = shown === 0 ? 'block' : 'none';
+  }));
+</script>
+
+<script src="nav-mobile.js"></script>
+</body>
+</html>
