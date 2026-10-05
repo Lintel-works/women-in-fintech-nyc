@@ -9,12 +9,12 @@
     {
       "id": "board",
       "heading": "Board of Directors",
-      "subtitle": "Chairs leading each area",
+      "subtitle": "",
       "gridModifier": ""
     },
     {
       "id": "volunteers",
-      "heading": "Volunteers",
+      "heading": "Our volunteers",
       "subtitle": "The builders behind the scenes",
       "gridModifier": ""
     },
@@ -29,7 +29,7 @@
   "members": [
     {
       "name": "Michelle Tran",
-      "role": "Co-Founder · Operations Chair · SF Chapter Chair",
+      "role": "Co-Founder · SF Chapter Chair",
       "group": "founders",
       "photo": "images/team/michelle-tran.jpg",
       "linkedin": "https://www.linkedin.com/in/michellektran",
@@ -69,8 +69,8 @@
     },
     {
       "name": "Elsie Russell Brown",
-      "role": "Operations Team Member",
-      "group": "volunteers",
+      "role": "Operations Chair",
+      "group": "board",
       "photo": "images/team/elsie-russell-brown.jpg",
       "linkedin": "https://www.linkedin.com/in/elsierussellbrown",
       "gradient": "g6"
@@ -86,7 +86,7 @@
     {
       "name": "Andrew Harrison",
       "role": "Chicago Chapter Chair",
-      "group": "volunteers",
+      "group": "board",
       "linkedin": "https://www.linkedin.com/in/harrisonandrewr",
       "gradient": "g1"
     },
