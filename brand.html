@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brand Guide — NYC Fintech Women</title>
+<link rel="stylesheet" href="site.css" />
+<style>
+  /* brand guide layout */
+  .brand-hero { padding: 84px 0 64px; position: relative; overflow: hidden; }
+  .brand-hero::before { content: ""; position: absolute; top: -200px; right: -160px; width: 600px; height: 600px; background: radial-gradient(circle at center, var(--soft) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  .brand-hero .inner { position: relative; z-index: 1; }
+  .brand-section { padding: 72px 0; border-top: 1px solid var(--line); }
+  .brand-section:first-of-type { border-top: none; }
+  .section-label { font-size: 12px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 10px; }
+  .section-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(28px, 3.2vw, 38px); letter-spacing: -0.02em; color: var(--plum); margin: 0 0 32px; }
+
+  /* color palette */
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .swatch { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+  .swatch-color { height: 96px; }
+  .swatch-info { padding: 14px 16px; background: #fff; }
+  .swatch-info .name { font-weight: 700; font-size: 14px; color: var(--plum); margin-bottom: 4px; }
+  .swatch-info .hex { font-size: 13px; color: var(--muted); font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace; }
+  .swatch-info .token { font-size: 11px; color: var(--muted); font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace; margin-top: 4px; opacity: 0.75; }
+
+  /* typography */
+  .type-row { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px; margin-bottom: 16px; }
+  .type-row .meta { font-size: 12px; font-weight: 700; color: var(--pink-deep); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; display: flex; gap: 16px; align-items: center; }
+  .type-row .meta span { font-weight: 400; color: var(--muted); letter-spacing: 0; text-transform: none; font-size: 12px; }
+  .type-specimen-display { font-family: 'Fraunces', 'GT Sectra', Georgia, serif; font-weight: 500; font-size: clamp(36px, 5vw, 64px); line-height: 1.05; letter-spacing: -0.03em; color: var(--plum); }
+  .type-specimen-display em { font-style: italic; color: var(--pink); }
+  .type-specimen-sans { font-family: 'Inter', system-ui, sans-serif; font-weight: 400; font-size: 18px; line-height: 1.65; color: var(--muted); }
+  .type-specimen-label { font-family: 'Inter', system-ui, sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pink-deep); }
+
+  /* logo placeholder */
+  .logo-placeholder { background: var(--soft); border: 2px dashed var(--line); border-radius: 20px; padding: 56px 32px; text-align: center; }
+  .logo-placeholder .logo-preview { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 32px; letter-spacing: -0.02em; color: var(--plum); display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 20px; }
+  .logo-placeholder .logo-preview .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--pink); display: inline-block; }
+  .logo-placeholder .note { font-size: 14px; color: var(--muted); }
+
+  /* voice / placeholder blocks */
+  .placeholder-block { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 28px 32px; margin-bottom: 12px; position: relative; }
+  .placeholder-block::before { content: "Placeholder — awaiting content from Filippa"; position: absolute; top: 12px; right: 16px; font-size: 11px; font-weight: 600; color: var(--pink-deep); letter-spacing: 0.04em; text-transform: uppercase; background: var(--soft); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); }
+  .placeholder-block h3 { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--plum); margin: 0 0 10px; }
+  .placeholder-block p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0; }
+
+  /* canva links */
+  .canva-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .canva-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; transition: border-color .2s, box-shadow .2s; }
+  .canva-card:hover { border-color: var(--pink); box-shadow: 0 8px 24px rgba(59,13,58,0.08); }
+  .canva-card .icon { width: 40px; height: 40px; border-radius: 12px; background: var(--soft); display: flex; align-items: center; justify-content: center; }
+  .canva-card .icon svg { width: 20px; height: 20px; color: var(--pink); }
+  .canva-card h4 { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--plum); margin: 0; }
+  .canva-card p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+  .canva-card a { font-size: 13px; font-weight: 600; color: var(--pink-deep); margin-top: auto; }
+  .canva-card a:hover { color: var(--pink); }
+
+  /* usage rules */
+  .rule-row { display: flex; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .rule-row:last-child { border-bottom: none; }
+  .rule-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .rule-dot.do { background: #10b981; }
+  .rule-dot.dont { background: #ef4444; }
+  .rule-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); width: 36px; flex-shrink: 0; margin-top: 4px; }
+  .rule-text { font-size: 15px; color: var(--fg); line-height: 1.5; }
+
+  /* tertiary note */
+  .palette-note { font-size: 15px; color: var(--muted); line-height: 1.6; margin: 0 0 20px; max-width: 720px; }
+  .palette-subhead { font-family: var(--font-display); font-weight: 600; font-size: 20px; color: var(--plum); margin: 40px 0 8px; }
+  .swatch .proposed-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pink-deep); background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-top: 8px; }
+
+  /* font source links */
+  .font-links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+  .font-link { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; background: #fff; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--plum); transition: border-color .2s, box-shadow .2s; }
+  .font-link:hover { border-color: var(--pink); box-shadow: 0 6px 18px rgba(59,13,58,0.08); color: var(--pink-deep); }
+  .font-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* photo / duotone treatment */
+  .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 8px; }
+  .duotone-card { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .duotone-frame { position: relative; aspect-ratio: 1 / 1.15; overflow: hidden; background: var(--plum); }
+  .duotone-frame img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
+  .duotone-frame::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.88; transition: opacity .35s ease; pointer-events: none; }
+  .duotone-frame.pink::after { background: #e0257b; }
+  .duotone-frame.plum::after { background: #8b4a7a; opacity: 0.65; }
+  .duotone-frame.teal::after { background: #0f766e; }
+  .duotone-frame.teal-light::after { background: #14b8a6; }
+  .duotone-frame.teal-mist::after { background: #99f6e4; }
+  .duotone-card:hover .duotone-frame img { filter: none; }
+  .duotone-card:hover .duotone-frame::after { opacity: 0; }
+  .duotone-meta { padding: 14px 16px; }
+  .duotone-meta .name { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--plum); margin: 0 0 4px; }
+  .duotone-meta .hint { font-size: 12px; color: var(--muted); }
+
+  /* social templates */
+  .social-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+  .social-card { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .social-mock { aspect-ratio: 1; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 22px; overflow: hidden; }
+  .social-mock .brand-mark { position: absolute; top: 18px; left: 18px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+  .social-mock .headline { font-family: var(--font-display); font-weight: 500; font-size: 26px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .social-mock .sub { font-size: 13px; line-height: 1.4; opacity: 0.85; margin: 0; }
+  .social-mock.do-balance { background: linear-gradient(160deg, #3b0d3a 0%, #5b1e5c 55%, #0f766e 100%); color: #fff; }
+  .social-mock.do-text { background: #fff; color: var(--plum); border-bottom: 1px solid var(--line); }
+  .social-mock.do-text .brand-mark { color: var(--pink-deep); }
+  .social-mock.do-text .headline em { color: var(--pink); font-style: italic; }
+  .social-mock.do-photo { background: url("images/iff/ximena-aleman.jpg") center / cover no-repeat; color: #fff; }
+  .social-mock.do-photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(59,13,58,0.15) 0%, rgba(59,13,58,0.82) 100%); z-index: 0; }
+  .social-mock.do-photo .brand-mark,
+  .social-mock.do-photo .headline,
+  .social-mock.do-photo .sub { position: relative; z-index: 1; }
+  .social-mock.do-photo .brand-mark { position: absolute; z-index: 1; }
+  .social-mock.dont-pink { background: linear-gradient(145deg, #ff7eb9 0%, #e0257b 45%, #ff4da6 100%); color: #fff; }
+  .social-mock.dont-clash { background: #ffd24a; color: #e0257b; }
+  .social-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .social-badge.do { color: #047857; }
+  .social-badge.dont { color: #b91c1c; }
+  .social-badge .pip { width: 8px; height: 8px; border-radius: 50%; }
+  .social-badge.do .pip { background: #10b981; }
+  .social-badge.dont .pip { background: #ef4444; }
+  .social-card .caption { padding: 0 16px 16px; font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html">Events</a><div class="dropdown"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html">About</a><div class="dropdown"><a href="meet-the-team.html">Meet the Team</a><a href="become-a-member.html">Become a Member</a><a href="#">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Events</button>
+        <div class="mobile-nav-sub"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html">Meet the Team</a>
+          <a href="become-a-member.html">Become a Member</a>
+          <a href="#">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="become-a-member.html" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="brand-hero">
+  <div class="wrap">
+    <div class="inner">
+      <div class="kicker">Brand Guide</div>
+      <h1 style="font-family: var(--font-display); font-weight: 500; font-size: clamp(42px, 5.5vw, 68px); line-height: 1.02; letter-spacing: -0.025em; margin: 0 0 20px; color: var(--plum); text-wrap: balance;">The NYC Fintech Women <em style="font-style: italic; color: var(--pink); font-weight: 400;">visual identity.</em></h1>
+      <p style="font-size: 18px; color: var(--muted); max-width: 640px; line-height: 1.65; margin: 0;">This guide covers how the brand looks, sounds, and shows up — colors, typography, voice, and templates for the team. Use it to keep everything consistent across social media, events, and communications.</p>
+    </div>
+  </div>
+</section>
+
+<!-- COLOR PALETTE -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">01 — Colors</div>
+    <h2 class="section-title">Color palette</h2>
+    <div class="color-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background: #e0257b;"></div>
+        <div class="swatch-info">
+          <div class="name">Brand Pink</div>
+          <div class="hex">#e0257b</div>
+          <div class="token">--pink · Primary brand color</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #b91767;"></div>
+        <div class="swatch-info">
+          <div class="name">Deep Pink</div>
+          <div class="hex">#b91767</div>
+          <div class="token">--pink-deep · Hover / emphasis</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #3b0d3a;"></div>
+        <div class="swatch-info">
+          <div class="name">Deep Plum</div>
+          <div class="hex">#3b0d3a</div>
+          <div class="token">--plum · Text / dark surfaces</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #8b4a7a;"></div>
+        <div class="swatch-info">
+          <div class="name">Soft Plum</div>
+          <div class="hex">#8b4a7a</div>
+          <div class="token">--plum-soft · Portrait duotone</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #ffd24a;"></div>
+        <div class="swatch-info">
+          <div class="name">Sun Accent</div>
+          <div class="hex">#ffd24a</div>
+          <div class="token">--accent · Highlights / warmth</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #fdf2f7;"></div>
+        <div class="swatch-info">
+          <div class="name">Soft Pink</div>
+          <div class="hex">#fdf2f7</div>
+          <div class="token">--soft · Backgrounds / tints</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #faf5ff;"></div>
+        <div class="swatch-info">
+          <div class="name">Soft Lavender</div>
+          <div class="hex">#faf5ff</div>
+          <div class="token">--soft-2 · Alt backgrounds</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #5b4a66;"></div>
+        <div class="swatch-info">
+          <div class="name">Muted Plum</div>
+          <div class="hex">#5b4a66</div>
+          <div class="token">--muted · Body text / secondary</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #ece4f0; border-bottom: 1px solid #d8cce4;"></div>
+        <div class="swatch-info">
+          <div class="name">Border</div>
+          <div class="hex">#ece4f0</div>
+          <div class="token">--line · Borders / dividers</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #0f766e;"></div>
+        <div class="swatch-info">
+          <div class="name">Brand Teal</div>
+          <div class="hex">#0f766e</div>
+          <div class="token">--teal · Tertiary accent</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #14b8a6;"></div>
+        <div class="swatch-info">
+          <div class="name">Light Teal</div>
+          <div class="hex">#14b8a6</div>
+          <div class="token">--teal-light · Soft tertiary</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background: #99f6e4;"></div>
+        <div class="swatch-info">
+          <div class="name">Mist Teal</div>
+          <div class="hex">#99f6e4</div>
+          <div class="token">--teal-mist · Lightest tertiary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TYPOGRAPHY -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">02 — Typography</div>
+    <h2 class="section-title">Type system</h2>
+
+    <div class="type-row">
+      <div class="meta">Display typeface <span>Fraunces · Serif · Used for all headlines and display text</span></div>
+      <div class="type-specimen-display">You belong at the <em>table.</em></div>
+    </div>
+
+    <div class="type-row">
+      <div class="meta">Body typeface <span>Inter · Sans-serif · Used for all body copy, UI, and labels</span></div>
+      <div class="type-specimen-sans">NYC Fintech Women is a community of 20,000+ professionals across financial services and fintech. We partner with organizations committed to showing up for this community in a meaningful way.</div>
+    </div>
+
+    <div class="type-row">
+      <div class="meta">Label / kicker style <span>Inter · 12px · Bold · Uppercase · 0.14em tracking · Pink-deep color</span></div>
+      <div class="type-specimen-label">Upcoming events</div>
+    </div>
+
+    <div style="background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 24px 28px; margin-top: 8px;">
+      <div class="section-label" style="margin-bottom: 12px;">Type scale — headlines</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-family: 'Fraunces', Georgia, serif; font-size: 64px; line-height: 1.0; letter-spacing: -0.03em; color: var(--plum); font-weight: 500;">H1 · 64px / 80px</div>
+        <div style="font-family: 'Fraunces', Georgia, serif; font-size: 46px; line-height: 1.08; letter-spacing: -0.025em; color: var(--plum); font-weight: 500;">H2 · 46px / 50px</div>
+        <div style="font-family: 'Fraunces', Georgia, serif; font-size: 30px; line-height: 1.15; letter-spacing: -0.02em; color: var(--plum); font-weight: 500;">H3 · 30px / 38px</div>
+        <div style="font-family: 'Inter', system-ui, sans-serif; font-size: 18px; line-height: 1.65; color: var(--muted);">Body · 18px — Inter Regular for long-form copy. 17px for secondary paragraphs.</div>
+        <div style="font-family: 'Inter', system-ui, sans-serif; font-size: 14px; font-weight: 600; color: var(--plum);">UI / Button · 14px Semi-bold — used in navigation, buttons, and labels.</div>
+      </div>
+    </div>
+
+    <h3 class="palette-subhead">Font sources</h3>
+    <p class="palette-note">Do not embed font files in brand assets. Pull Fraunces and Inter from Google Fonts when setting up Canva, Figma, or web projects.</p>
+    <div class="font-links">
+      <a class="font-link" href="https://fonts.google.com/specimen/Fraunces" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Fraunces on Google Fonts
+      </a>
+      <a class="font-link" href="https://fonts.google.com/specimen/Inter" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Inter on Google Fonts
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- LOGO -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">03 — Logo</div>
+    <h2 class="section-title">Logo usage</h2>
+    <div class="logo-placeholder">
+      <div class="logo-preview"><span class="dot"></span> NYC Fintech Women</div>
+      <p class="note">Logo asset files (SVG / PNG) to be provided. The wordmark is set in Fraunces 600 at 22px with a 12px pink circle mark. A full asset kit including light, dark, and social variants is pending.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PHOTO TREATMENT -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">04 — Photography</div>
+    <h2 class="section-title">Member portrait treatment</h2>
+    <p class="palette-note">Member portraits use a brand-color duotone overlay by default. Preferred treatment for IFF and member grids: soft plum (<code>#8b4a7a</code> at 65% opacity) over a desaturated photo. On hover (web), the overlay lifts to reveal the full-color photo. Alternate with teal overlays so grids do not read as all pink.</p>
+    <div class="photo-grid">
+      <div class="duotone-card">
+        <div class="duotone-frame plum">
+          <img src="images/iff/michele-alt.jpeg" alt="Example portrait with soft plum duotone">
+        </div>
+        <div class="duotone-meta">
+          <div class="name">Plum duotone · preferred</div>
+          <div class="hint">#8b4a7a · 65% opacity · hover to reveal</div>
+        </div>
+      </div>
+      <div class="duotone-card">
+        <div class="duotone-frame pink">
+          <img src="images/iff/ximena-aleman.jpg" alt="Example portrait with pink duotone">
+        </div>
+        <div class="duotone-meta">
+          <div class="name">Pink duotone</div>
+          <div class="hint">Hover to reveal full color</div>
+        </div>
+      </div>
+      <div class="duotone-card">
+        <div class="duotone-frame teal">
+          <img src="images/iff/elaine-asher.jpg" alt="Example portrait with teal duotone">
+        </div>
+        <div class="duotone-meta">
+          <div class="name">Teal duotone</div>
+          <div class="hint">Hover to reveal full color</div>
+        </div>
+      </div>
+      <div class="duotone-card">
+        <div class="duotone-frame teal-mist">
+          <img src="images/iff/sarah-biller.jpg" alt="Example portrait with mist teal duotone">
+        </div>
+        <div class="duotone-meta">
+          <div class="name">Mist Teal duotone</div>
+          <div class="hint">Hover to reveal full color</div>
+        </div>
+      </div>
+    </div>
+    <div style="background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px; margin-top: 28px;">
+      <div class="rule-row">
+        <div class="rule-dot do"></div>
+        <div class="rule-label">Do</div>
+        <div class="rule-text">Default member and IFF portraits to soft plum duotone (<code>#8b4a7a</code>, 65% multiply) — lighter than Deep Plum so faces stay readable.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot do"></div>
+        <div class="rule-label">Do</div>
+        <div class="rule-text">On web, remove the overlay on hover so the authentic photo shows through.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot dont"></div>
+        <div class="rule-label">Don't</div>
+        <div class="rule-text">Use Deep Plum (<code>#3b0d3a</code>) at full strength for duotones — it reads too dark on portrait grids.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot dont"></div>
+        <div class="rule-label">Don't</div>
+        <div class="rule-text">Run an entire row in the same pink overlay. Alternate tertiary colors to avoid a “too pink” grid.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">05 — Mission</div>
+    <h2 class="section-title">Mission statement</h2>
+    <div class="placeholder-block">
+      <h3>Mission statement</h3>
+      <p>The official one-sentence mission statement will go here. Once Filippa confirms the final wording, this section will be updated with the approved copy for use across all brand materials, social profiles, and event descriptions.</p>
+    </div>
+    <div class="placeholder-block">
+      <h3>About paragraph</h3>
+      <p>A 2–3 sentence community description for use in event listings, press materials, and partner decks. To be finalized and placed here.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VOICE GUIDELINES -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">06 — Voice</div>
+    <h2 class="section-title">Brand voice &amp; tone</h2>
+
+    <div class="placeholder-block" style="padding-bottom: 36px;">
+      <h3>Voice guidelines</h3>
+      <p>Full voice and tone guidelines to be provided by Filippa. This section will include: how we describe the community, words we use and avoid, and how to calibrate tone across promotional, educational, and celebratory content.</p>
+    </div>
+
+    <div style="background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px; margin-top: 16px;">
+      <h3 style="font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--plum); margin: 0 0 24px;">Emoji &amp; promotion policies</h3>
+      <div class="rule-row">
+        <div class="rule-dot do"></div>
+        <div class="rule-label">Do</div>
+        <div class="rule-text">Placeholder — emoji usage guidelines to come from Filippa. Example: use sparingly and only where they add warmth or emphasis.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot do"></div>
+        <div class="rule-label">Do</div>
+        <div class="rule-text">Placeholder — promotional language guidance to come. Example: favor community framing over hard sales language in event promotion.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot dont"></div>
+        <div class="rule-label">Don't</div>
+        <div class="rule-text">Placeholder — language or tone to avoid to be specified by the team.</div>
+      </div>
+      <div class="rule-row">
+        <div class="rule-dot dont"></div>
+        <div class="rule-label">Don't</div>
+        <div class="rule-text">Placeholder — additional restrictions on emoji use or promotional copy.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CANVA TEMPLATES -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">07 — Templates</div>
+    <h2 class="section-title">Canva templates</h2>
+    <p style="color: var(--muted); font-size: 16px; margin: 0 0 28px; max-width: 600px;">Canva templates for the team use the colors, fonts, and style defined in this guide. Links will be added here as templates are created.</p>
+    <div class="canva-grid">
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12h8M12 8v8"/></svg>
+        </div>
+        <h4>Event announcement</h4>
+        <p>Square and story formats for promoting upcoming events across Instagram and LinkedIn.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <h4>Speaker feature</h4>
+        <p>Headshot + name card template for announcing speakers and featured members.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h4>Event recap</h4>
+        <p>Post-event graphics for sharing highlights, photos, and attendee counts.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+        </div>
+        <h4>IFF honoree card</h4>
+        <p>Inspiring Fintech Females announcement cards for each honoree cohort.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h4>FFF quote card</h4>
+        <p>Fintech Female Fridays quote pullout cards for sharing interview highlights.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+      <div class="canva-card">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h4>Stat / milestone card</h4>
+        <p>For sharing member milestones, event numbers, and community stats.</p>
+        <a href="#">Template coming soon →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL MEDIA -->
+<section class="brand-section">
+  <div class="wrap">
+    <div class="section-label">08 — Social</div>
+    <h2 class="section-title">Social media templates</h2>
+    <p class="palette-note">Use these patterns for Instagram and LinkedIn. Balance brand pink with plum and tertiary teal. Prefer clear hierarchy: one headline, one supporting line, and either a photo treatment or a strong text-only lockup.</p>
+
+    <h3 class="palette-subhead" style="margin-top: 8px;">Color combinations</h3>
+    <div class="social-grid" style="margin-bottom: 36px;">
+      <div class="social-card">
+        <div class="social-mock do-balance">
+          <div class="brand-mark">NYC Fintech Women</div>
+          <div class="headline">Build with women who get it.</div>
+          <p class="sub">Plum + teal balance · brand-forward without all pink</p>
+        </div>
+        <div class="social-badge do"><span class="pip"></span> Do · Balanced palette</div>
+        <p class="caption">Lead with plum, introduce teal as a second plane. Keep pink for accents and CTAs.</p>
+      </div>
+      <div class="social-card">
+        <div class="social-mock dont-pink">
+          <div class="brand-mark">NYC Fintech Women</div>
+          <div class="headline">Everything in pink.</div>
+          <p class="sub">Too much brand pink across the whole frame</p>
+        </div>
+        <div class="social-badge dont"><span class="pip"></span> Don't · All pink</div>
+        <p class="caption">Avoid flooding the canvas with pink gradients. It reads promotional and washes out type.</p>
+      </div>
+      <div class="social-card">
+        <div class="social-mock dont-clash">
+          <div class="brand-mark">NYC Fintech Women</div>
+          <div class="headline">Sun + pink clash</div>
+          <p class="sub">Accent yellow as a full background fights the brand</p>
+        </div>
+        <div class="social-badge dont"><span class="pip"></span> Don't · Accent overload</div>
+        <p class="caption">Sun Accent is for highlights and chips, not full-bleed backgrounds behind body copy.</p>
+      </div>
+    </div>
+
+    <h3 class="palette-subhead">Text-only vs. image with text</h3>
+    <div class="social-grid">
+      <div class="social-card">
+        <div class="social-mock do-text">
+          <div class="brand-mark">Fintech Female Fridays</div>
+          <div class="headline">Every Friday, a woman <em>building</em> the future.</div>
+          <p class="sub">Text-only · strong type hierarchy</p>
+        </div>
+        <div class="social-badge do"><span class="pip"></span> Do · Text-only</div>
+        <p class="caption">Use Fraunces for the line, Inter for the kicker. White or soft backgrounds keep long headlines readable.</p>
+      </div>
+      <div class="social-card">
+        <div class="social-mock do-photo">
+          <div class="brand-mark">Inspiring Fintech Females</div>
+          <div class="headline">Meet the 2025 cohort.</div>
+          <p class="sub">Photo + gradient scrim · name or theme below</p>
+        </div>
+        <div class="social-badge do"><span class="pip"></span> Do · Image with text</div>
+        <p class="caption">Anchor with a real photo, then a dark plum scrim for type. Keep text in the lower third.</p>
+      </div>
+      <div class="social-card">
+        <div class="social-mock dont-pink" style="justify-content: center; text-align: center;">
+          <div class="brand-mark" style="position: static; margin-bottom: 16px;">NYC Fintech Women</div>
+          <div class="headline" style="font-size: 20px;">Event tonight!! Join us now!! Speakers!! RSVP!!</div>
+          <p class="sub">Crowded copy · no hierarchy</p>
+        </div>
+        <div class="social-badge dont"><span class="pip"></span> Don't · Overstuffed text</div>
+        <p class="caption">One message per post. Skip stacked CTAs, emoji piles, and competing headlines.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="events.html#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="become-a-member.html">Become a Member</a></li><li><a href="#">Sponsor</a></li><li><a href="#">Contact</a></li><li><a href="#">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script src="nav-mobile.js"></script>
+</body>
+</html>

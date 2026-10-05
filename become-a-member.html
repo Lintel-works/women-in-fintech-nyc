@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Become a Member — NYC Fintech Women</title>
+<link rel="stylesheet" href="site.css" />
+<style>
+  /* The co-founder page's form card, rail and chips, reused verbatim so the two
+     public forms are one component rather than two that drift. Anything that
+     differs below is noted. */
+  .join-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 56px; align-items: start; }
+  @media (max-width: 940px) { .join-grid { grid-template-columns: 1fr; gap: 40px; } }
+  .rail .points { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 18px; }
+  .rail .points li { display: flex; gap: 14px; align-items: flex-start; }
+  .rail .points .ic { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--soft); color: var(--pink-deep); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .rail .points .t { font-weight: 600; color: var(--plum); font-size: 15.5px; margin: 0 0 2px; }
+  .rail .points .d { color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+  .rail .stat-card { margin-top: 34px; background: var(--plum); color: #fff; border-radius: 22px; padding: 28px 30px; position: relative; overflow: hidden; }
+  .rail .stat-card::before { content: ""; position: absolute; top: -80px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(224,37,123,0.4) 0%, transparent 70%); }
+  .rail .stat-card .num { font-family: var(--font-display); font-weight: 600; font-size: 46px; letter-spacing: -0.03em; line-height: 1; position: relative; }
+  .rail .stat-card .num .plus { color: #ffb4d3; }
+  .rail .stat-card .lbl { font-size: 14px; color: rgba(255,255,255,0.75); margin-top: 8px; position: relative; }
+
+  .form-card { background: #fff; border: 1px solid var(--line); border-radius: 26px; padding: 40px; box-shadow: 0 16px 50px rgba(59,13,58,0.06); }
+  @media (max-width: 560px) { .form-card { padding: 28px 22px; } }
+  .form-card h2 { font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.02em; color: var(--plum); margin: 0 0 6px; }
+  .form-card .sub { color: var(--muted); font-size: 14.5px; margin: 0 0 28px; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--plum); margin-bottom: 7px; }
+  .field label .req { color: var(--pink); }
+  .field input, .field select, .field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; font-family: inherit; font-size: 15px; color: var(--fg); background: #fff; transition: border-color .18s, box-shadow .18s; }
+  .field textarea { resize: vertical; min-height: 96px; line-height: 1.5; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px rgba(224,37,123,0.12); }
+  .field input.err, .field select.err, .field textarea.err { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+  .field .msg { display: none; color: #dc2626; font-size: 12.5px; margin-top: 6px; }
+  .field.invalid .msg { display: block; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .two { grid-template-columns: 1fr; gap: 0; } }
+  .chips-input { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chips-input .opt { padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; font-size: 13px; font-weight: 600; color: var(--plum); cursor: pointer; transition: all .15s; user-select: none; }
+  .chips-input .opt.sel { background: var(--soft); border-color: var(--pink); color: var(--pink-deep); }
+  /* The chips are the required field here, unlike the co-founder form where
+     they are optional, so they need an invalid state of their own. */
+  .field.invalid .chips-input .opt { border-color: #f0a9a9; }
+  .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; color: var(--muted); line-height: 1.5; }
+  .checkline input { width: auto; flex-shrink: 0; margin-top: 3px; accent-color: var(--pink); }
+  .group-head { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--plum); margin: 34px 0 16px; padding-top: 26px; border-top: 1px solid var(--line); }
+  .group-head:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+  .form-actions { margin-top: 28px; }
+  .form-foot { font-size: 13px; color: var(--muted); margin: 14px 0 0; }
+  .err-box { display: none; margin-bottom: 20px; padding: 13px 16px; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 14px; }
+  .err-box.show { display: block; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .success { display: none; text-align: center; padding: 20px 0 8px; }
+  .success.show { display: block; }
+  .success .ico { width: 58px; height: 58px; border-radius: 50%; background: var(--soft); margin: 0 auto 18px; position: relative; }
+  .success .ico::after { content: ""; position: absolute; left: 20px; top: 16px; width: 14px; height: 24px; border: solid var(--pink-deep); border-width: 0 3px 3px 0; transform: rotate(45deg); }
+  .success h2 { font-family: var(--font-display); font-weight: 500; font-size: 27px; color: var(--plum); margin: 0 0 10px; }
+  .success p { color: var(--muted); font-size: 15.5px; line-height: 1.6; max-width: 440px; margin: 0 auto 22px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+    <a href="index.html" class="logo"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></a>
+    <div class="nav-links">
+      <div class="has-menu"><a href="events.html">Events</a><div class="dropdown"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div></div>
+      <div class="has-menu"><a href="fintech-female-fridays.html">Our Programs</a><div class="dropdown"><a href="fintech-female-fridays.html">Fintech Female Fridays</a><a href="co-founder-matching.html">Co-founder Matching</a><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></div></div>
+      <div class="has-menu"><a href="meet-the-team.html">About</a><div class="dropdown"><a href="meet-the-team.html">Meet the Team</a><a href="become-a-member.html">Become a Member</a><a href="#">Sponsor</a></div></div>
+      <a href="new-york.html">New York</a>
+      <a href="chicago.html">Chicago</a>
+      <a href="san-francisco.html">San Francisco</a>
+    </div>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+      <span class="nav-toggle-bar"></span>
+    </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <div class="mobile-nav-backdrop"></div>
+  <aside class="mobile-nav-panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div class="mobile-nav-head">
+      <div class="mobile-nav-brand"><img src="images/nyc-fintech-women-logo.png" alt="NYC Fintech Women"></div>
+      <button type="button" class="mobile-nav-close" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="mobile-nav-body">
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Chapters</button>
+        <div class="mobile-nav-sub">
+          <a href="new-york.html">New York</a>
+          <a href="san-francisco.html">San Francisco</a>
+          <a href="chicago.html">Chicago</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Events</button>
+        <div class="mobile-nav-sub"><a href="events.html#upcoming">Upcoming Events</a><a href="events.html#past">Past Events</a></div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">Our Programs</button>
+        <div class="mobile-nav-sub">
+          <a href="fintech-female-fridays.html">Fintech Female Fridays</a>
+          <a href="co-founder-matching.html">Co-founder Matching</a>
+          <a href="inspiring-fintech-females.html">Inspiring Fintech Females</a>
+        </div>
+      </div>
+      <div class="mobile-nav-group">
+        <button type="button" class="mobile-nav-trigger" aria-expanded="false">About</button>
+        <div class="mobile-nav-sub">
+          <a href="meet-the-team.html">Meet the Team</a>
+          <a href="become-a-member.html">Become a Member</a>
+          <a href="#">Sponsor</a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-nav-foot">
+      <a href="become-a-member.html" class="btn btn-pink">Become a Member</a>
+    </div>
+  </aside>
+</div>
+
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="wrap inner">
+    <div class="kicker">Become a member</div>
+    <h1>Join the room <em>where it happens.</em></h1>
+    <p>Get invited to events, speak on panels, keep up to date on fintech in New York, San Francisco and Chicago, and meet the women building this industry.</p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 8px;">
+  <div class="wrap">
+    <div class="join-grid">
+
+      <!-- LEFT RAIL -->
+      <div class="rail">
+        <div class="kicker">What you get</div>
+        <h2 style="font-family: var(--font-display); font-weight: 500; font-size: clamp(26px, 3vw, 34px); letter-spacing: -0.02em; color: var(--plum); margin: 10px 0 0;">Membership is <em>free.</em></h2>
+        <ul class="points">
+          <li><span class="ic">1</span><div><p class="t">An invitation to every event</p><p class="d">Panels, workshops and socials across all three chapters.</p></div></li>
+          <li><span class="ic">2</span><div><p class="t">A room full of introductions</p><p class="d">The members here hire each other, back each other and speak on each other's panels.</p></div></li>
+          <li><span class="ic">3</span><div><p class="t">A platform when you want one</p><p class="d">Tell us you are interested in speaking and we will come to you when a panel fits.</p></div></li>
+        </ul>
+        <div class="stat-card">
+          <div class="num">20,000<span class="plus">+</span></div>
+          <div class="lbl">women in fintech already here</div>
+        </div>
+      </div>
+
+      <!-- FORM -->
+      <div class="form-card">
+        <div class="err-box" id="join-error"><strong>That did not send.</strong> <span id="join-error-text">Please check the form and try again.</span></div>
+
+        <form id="join-form" novalidate>
+          <!-- Honeypot: not a real field. A visitor never sees it, so anything
+               typed here came from a script. Same trick as the co-founder form. -->
+          <div class="hp" aria-hidden="true">
+            <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+          </div>
+
+          <h2>Join NYC Fintech Women</h2>
+          <p class="sub">Takes about two minutes. Required fields are marked <span style="color: var(--pink);">*</span>.</p>
+
+          <p class="group-head">About you</p>
+          <div class="two">
+            <div class="field"><label>First name <span class="req">*</span></label><input type="text" name="firstName" data-required placeholder="First name" /><div class="msg">Please enter your first name.</div></div>
+            <div class="field"><label>Last name <span class="req">*</span></label><input type="text" name="lastName" data-required placeholder="Last name" /><div class="msg">Please enter your last name.</div></div>
+          </div>
+          <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" data-required data-email placeholder="you@email.com" /><div class="msg">Enter a valid email address.</div></div>
+
+          <p class="group-head">Where you work</p>
+          <div class="two">
+            <div class="field"><label>Job title</label><input type="text" name="jobTitle" placeholder="e.g. Product Lead" /></div>
+            <div class="field"><label>Company</label><input type="text" name="company" placeholder="Where you work" /></div>
+          </div>
+          <div class="two">
+            <div class="field"><label>Years of experience</label>
+              <select name="experience"><option value="">Select…</option><option>Student</option><option>1-2 years</option><option>3-5 years</option><option>6-9 years</option><option>10 - 15 years</option><option>15 + years</option><option>Prefer not to answer</option></select>
+            </div>
+            <div class="field"><label>Company type</label>
+              <select name="companyType"><option value="">Select…</option><option>Early Stage Startup</option><option>Established FinTech</option><option>Banking</option><option>Venture Capital</option><option>Alternatives/ Private Equity</option><option>RegTech</option><option>Other</option></select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field"><label>Professional status</label>
+              <select name="status"><option value="">Select…</option><option>Employed</option><option>Seeking employment</option><option>Looking for new opportunities</option><option>Prefer not to answer</option><option>Other (Please specify)</option></select>
+            </div>
+            <div class="field"><label>Professional role</label>
+              <select name="role"><option value="">Select…</option><option>Asset management</option><option>Banking</option><option>Business development / Growth</option><option>Compliance / Regulatory</option><option>C-suite</option><option>Data Analyst / scientist</option><option>Design</option><option>Engineering</option><option>Founder</option><option>Human Resource / Management</option><option>Legal</option><option>Marketing</option><option>Operations</option><option>Product management</option><option>Sales</option><option>Student</option><option>Other (Please specify)</option></select>
+            </div>
+          </div>
+
+          <p class="group-head">The community</p>
+          <div class="field"><label>Which city's events would you like to be invited to?</label>
+            <select name="city"><option value="">Select…</option><option>New York City</option><option>San Francisco</option><option>Chicago</option><option>Seattle</option><option>Other - please specify in comments</option></select>
+          </div>
+          <div class="two">
+            <div class="field"><label>Made a hire through NYCFW?</label>
+              <select name="madeHire"><option value="">Select…</option><option>Yes (Wonderful!)</option><option>No (If you're looking for talent, we know some amazing women)</option><option>I'd like more information</option></select>
+            </div>
+            <div class="field"><label>Found a job through NYCFW?</label>
+              <select name="foundJob"><option value="">Select…</option><option>Yes (Congrats!)</option><option>No (If you're looking for talent, we know some amazing women)</option><option>I'd like more information</option></select>
+            </div>
+          </div>
+          <div class="field"><label>How did you hear about NYC Fintech Women?</label>
+            <select name="heardFrom"><option value="">Select…</option><option>Word of mouth</option><option>Event</option><option>Search engine</option><option>LinkedIn</option><option>Twitter</option><option>Instagram</option><option>Facebook</option><option>Meetup</option><option>Other</option></select>
+          </div>
+
+          <div class="field" id="support-field" data-required-group>
+            <label>How can NYC Fintech Women best support you? <span class="req">*</span></label>
+            <div class="chips-input" data-group="support">
+              <span class="opt">Industry Specific Panels</span><span class="opt">Learn from FinTech Experts</span><span class="opt">Mentorship Support</span><span class="opt">Entrepreneurship and Startups</span><span class="opt">Networking Opportunities</span><span class="opt">Fintech Trends</span><span class="opt">Career Advancement</span><span class="opt">One-on-One Coaching Support</span><span class="opt">Job Search</span><span class="opt">Legal Support</span><span class="opt">Other (Please specify)</span>
+            </div>
+            <div class="msg">Choose at least one.</div>
+          </div>
+
+          <p class="group-head">Anything else</p>
+          <div class="field"><label>Interested in speaking with us? Tell us about yourself.</label><textarea name="speaking" placeholder="A short bio, and the topics you could speak to."></textarea></div>
+          <div class="field"><label>Leave us a testimonial — you could be featured on this site.</label><textarea name="testimonial" placeholder="What the community has meant to you."></textarea></div>
+          <div class="field"><label>Comments</label><textarea name="comments" placeholder="Anything we should know."></textarea></div>
+
+          <div class="field">
+            <label class="checkline"><input type="checkbox" name="subscribe" value="Yes" checked /> <span>Subscribe to NYC Fintech Women communications and get invited to events.</span></label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-pink btn-lg">Join the community →</button>
+          </div>
+          <p class="form-foot">We use your answers to invite you to the right things. We never sell them.</p>
+        </form>
+
+        <!-- SUCCESS -->
+        <div class="success" id="success">
+          <div class="ico"></div>
+          <h2>Welcome in.</h2>
+          <p>Your membership request is with us. You will start receiving invitations to events in the chapters you chose — keep an eye on your inbox.</p>
+          <a href="events.html" class="btn btn-ghost">See what's coming up</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand"><span class="dot"></span> NYC Fintech Women</div>
+        <p>A community of 20,000+ women shaping the future of financial services across NYC, San Francisco, and Chicago.</p>
+      </div>
+      <div class="foot-col"><h4>Events</h4><ul><li><a href="events.html">Events</a></li><li><a href="events.html#past">Past Events</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="fintech-female-fridays.html">Fintech Female Fridays</a></li></ul></div>
+      <div class="foot-col"><h4>Community</h4><ul><li><a href="co-founder-matching.html">Co-founder Matching</a></li><li><a href="meet-the-team.html">Meet the Team</a></li><li><a href="inspiring-fintech-females.html">Inspiring Fintech Females</a></li><li><a href="new-york.html">New York</a></li><li><a href="san-francisco.html">San Francisco</a></li><li><a href="chicago.html">Chicago</a></li></ul></div>
+      <div class="foot-col"><h4>Get involved</h4><ul><li><a href="become-a-member.html">Become a Member</a></li><li><a href="#">Sponsor</a></li><li><a href="#">Contact</a></li><li><a href="#">LinkedIn</a></li></ul></div>
+    </div>
+    <div class="foot-bot"><span>© 2026 NYC Fintech Women · All rights reserved</span><span>Built with care in NYC</span></div>
+  </div>
+</footer>
+
+
+<script>
+  document.querySelectorAll('.chips-input .opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      opt.classList.toggle('sel');
+      /* Clear the group's error the moment a choice is made, the way the text
+         fields clear theirs on input. */
+      const field = opt.closest('.field');
+      if (field.classList.contains('invalid') && field.querySelector('.opt.sel')) {
+        field.classList.remove('invalid');
+      }
+    });
+  });
+
+  const form = document.getElementById('join-form');
+  const success = document.getElementById('success');
+  const supportField = document.getElementById('support-field');
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function validateField(el) {
+    const field = el.closest('.field');
+    let ok = true;
+    const val = el.value.trim();
+    if (el.hasAttribute('data-required') && !val) ok = false;
+    if (ok && el.hasAttribute('data-email') && !emailRe.test(val)) ok = false;
+    field.classList.toggle('invalid', !ok);
+    el.classList.toggle('err', !ok);
+    return ok;
+  }
+
+  function validateSupport() {
+    const ok = !!supportField.querySelector('.opt.sel');
+    supportField.classList.toggle('invalid', !ok);
+    return ok;
+  }
+
+  form.querySelectorAll('[data-required]').forEach(el => {
+    el.addEventListener('input', () => { if (el.closest('.field').classList.contains('invalid')) validateField(el); });
+  });
+
+  /* Stamped on load so the server can tell a person from a script that posts
+     the instant the page exists. Forgeable, and treated as a hint. */
+  const loadedAt = Date.now();
+  const errorBox = document.getElementById('join-error');
+  const errorText = document.getElementById('join-error-text');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const submitLabel = submitBtn ? submitBtn.textContent : '';
+
+  function showError(message) {
+    if (message) errorText.textContent = message;
+    errorBox.classList.add('show');
+    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+    let firstBad = null;
+    form.querySelectorAll('[data-required]').forEach(el => {
+      const ok = validateField(el);
+      if (!ok && !firstBad) firstBad = el;
+      valid = valid && ok;
+    });
+    if (!validateSupport()) {
+      valid = false;
+      if (!firstBad) firstBad = supportField;
+    }
+    if (!valid) {
+      firstBad && (firstBad.focus ? firstBad.focus() : firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+      return;
+    }
+
+    errorBox.classList.remove('show');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+
+    const payload = Object.fromEntries(new FormData(form));
+    payload.kind = 'membership';
+    payload.elapsedMs = Date.now() - loadedAt;
+    /* Chips are spans toggled with a class, not inputs, so FormData never sees
+       them. Read them explicitly or they are silently dropped. */
+    payload.support = Array.prototype.slice
+      .call(form.querySelectorAll('[data-group="support"] .opt.sel'))
+      .map(el => el.textContent.trim());
+    /* An unchecked box is absent from FormData entirely, which would read as
+       "not answered" rather than "declined". */
+    if (!payload.subscribe) payload.subscribe = 'No';
+
+    try {
+      const response = await fetch('/api/form', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        /* The form stays visible with every answer intact: hiding it before
+           the send succeeded is how a failure looks like a success. */
+        showError(data.message);
+        return;
+      }
+
+      form.style.display = 'none';
+      success.classList.add('show');
+      const y = success.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } catch (err) {
+      showError('We could not reach the site to send that. Check your connection and try again.');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = submitLabel; }
+    }
+  });
+</script>
+<script src="nav-mobile.js"></script>
+
+</body>
+</html>
