@@ -19,18 +19,62 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ 'src/admin': 'admin' });
   /* Only the four lib/ modules the browser actually imports (see
      src/admin/editor.js and src/admin/text.js) -- passing through the whole
-     lib/ directory used to also publish lib/session.mjs, lib/password.mjs
-     and lib/github.mjs, none of which the editor needs and none of which
-     were meant to be public: they contain the session-cookie signing logic,
-     the scrypt password check, and the GitHub commit machinery. Nothing in
-     them was a secret (no key or token lives in source), but there is no
-     reason to serve them to anyone who asks either. */
+     lib/ directory would also publish lib/clerk-jwt.mjs and lib/github.mjs,
+     neither of which the editor needs and neither of which was meant to be
+     public: they hold the session-token verification and the GitHub commit
+     machinery. Nothing in them is a secret (no key or token lives in
+     source), but there is no reason to serve them to anyone who asks. */
   eleventyConfig.addPassthroughCopy({
     'lib/render-blocks.mjs': 'lib/render-blocks.mjs',
     'lib/post-file.mjs': 'lib/post-file.mjs',
     'lib/post-types.mjs': 'lib/post-types.mjs',
     'lib/slug.mjs': 'lib/slug.mjs'
   });
+  /* The editor needs two public Clerk values in the browser. /admin is
+     rendered statically and copied verbatim, so there is no request-time
+     hook to read process.env from -- the values are written into a generated
+     file at build time instead. The consequence worth knowing: rotating
+     either key requires a redeploy, not just an environment variable edit.
+
+     Failing the build when they are absent is deliberate. A deployed editor
+     with no publishable key renders a sign-in form that can never succeed,
+     and the error surfaces in the browser console of whoever happens to try
+     it -- which is nobody, until an author needs to publish. */
+  const clerkPublishableKey = process.env.CLERK_PUBLISHABLE_KEY;
+  const clerkFrontendApiUrl = process.env.CLERK_FRONTEND_API_URL;
+  if (!clerkPublishableKey || !clerkFrontendApiUrl) {
+    throw new Error(
+      'CLERK_PUBLISHABLE_KEY and CLERK_FRONTEND_API_URL must be set at build time; /admin cannot sign anyone in without them.'
+    );
+  }
+  /* The loader lives here rather than in index.html because Clerk serves its
+     browser bundles from the instance's OWN Frontend API host, which differs
+     between the development and production instances. Hardcoding a public CDN
+     in the markup would load a bundle pointed at the wrong instance, which
+     presents as a sign-in form that renders and then rejects every
+     credential.
+
+     Registered as a .html template with an explicit permalink, not as a bare
+     .js path: templateFormats is ['html'], so the virtual path's extension is
+     what selects an engine, and a .js extension would not be emitted as text.
+     The engine is switched off so a Nunjucks delimiter inside a key or URL
+     cannot be interpreted. */
+  eleventyConfig.addTemplate(
+    'admin-clerk-config.html',
+    `window.CLERK_PUBLISHABLE_KEY = ${JSON.stringify(clerkPublishableKey)};\n` +
+    `window.CLERK_FRONTEND_API_URL = ${JSON.stringify(clerkFrontendApiUrl)};\n` +
+    `(function () {\n` +
+    `  var host = ${JSON.stringify(clerkFrontendApiUrl)}.replace(/\\/$/, '');\n` +
+    `  [host + '/npm/@clerk/ui@1/dist/ui.browser.js',\n` +
+    `   host + '/npm/@clerk/clerk-js@6/dist/clerk.browser.js'].forEach(function (src) {\n` +
+    `    var tag = document.createElement('script');\n` +
+    `    tag.src = src; tag.defer = true; tag.crossOrigin = 'anonymous';\n` +
+    `    tag.setAttribute('data-clerk-publishable-key', window.CLERK_PUBLISHABLE_KEY);\n` +
+    `    document.head.appendChild(tag);\n` +
+    `  });\n` +
+    `}());\n`,
+    { permalink: 'admin/clerk-config.js', templateEngineOverride: false }
+  );
   eleventyConfig.addPassthroughCopy({ 'src/images': 'images' });
   eleventyConfig.addPassthroughCopy({ 'src/site.css': 'site.css' });
   eleventyConfig.addPassthroughCopy({ 'src/nav-mobile.js': 'nav-mobile.js' });
@@ -65,6 +109,21 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter('selfLink', (href, selfPage) =>
     selfPage && href.startsWith(selfPage + '#') ? href.slice(selfPage.length) : href
   );
+
+  /* Initials for a team member with no headshot yet -- src/meet-the-team.html
+     prints them over the card's gradient instead of an <img> pointing at a
+     file that is not there. First and last initial, except for a one-word
+     name, where taking the first and last word gives the same letter twice
+     ("MM" for "Madonna"). Splitting on runs of whitespace rather than a
+     single space means a stray double space in team.json cannot produce an
+     empty segment and drop a letter. */
+  eleventyConfig.addFilter('initials', (name) => {
+    const parts = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    const first = parts[0][0];
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+    return (first + last).toUpperCase();
+  });
 
   eleventyConfig.setServerOptions({ domDiff: false });
 

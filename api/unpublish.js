@@ -8,7 +8,8 @@
  * Env: see api/publish.js -- both endpoints read the same variables and mint
  * a GitHub credential the same way.
  */
-import { verifySession, authorNameFromSub, readCookie } from '../lib/session.mjs';
+import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
+import { authorNameFromSub } from '../lib/session.mjs';
 import { slugify, postPath } from '../lib/publish-validate.mjs';
 import { commitWithRetry, getFileContent } from '../lib/github.mjs';
 import { resolveGithubToken } from '../lib/github-auth.mjs';
@@ -27,20 +28,19 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
-  const secret = process.env.AUTH_SECRET;
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
   const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
     !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
-  if (!secret || !owner || !repo || !hasGithubCredential) {
-    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
+  if (!owner || !repo || !hasGithubCredential) {
+    console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
-  const session = verifySession(readCookie(request.headers.cookie, 'wif_session'), secret);
-  if (!session) {
-    return response.status(401).json({ message: 'Your session expired — sign in again.' });
+  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const payload = typeof request.body === 'object' && request.body ? request.body : {};
@@ -132,8 +132,8 @@ export default async function handler(request, response) {
   try {
     const result = await commitWithRetry({
       token, owner, repo, branch,
-      message: `Unpublish ${slug}\n\nUnpublished from the editor by ${session.sub}.`,
-      author: { name: authorNameFromSub(session.sub), email: session.sub },
+      message: `Unpublish ${slug}\n\nUnpublished from the editor by ${authorEmail}.`,
+      author: { name: authorNameFromSub(authorEmail), email: authorEmail },
       files
     });
     return response.status(200).json({ commit: result.sha });

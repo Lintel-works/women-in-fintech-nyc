@@ -43,7 +43,8 @@ npm test                   # every tools/*.test.mjs suite: post-file round
                            # renderer's escaping and links, slug/post-type
                            # rules, and the publishing/session/GitHub-auth
                            # suites covering /api/publish, /api/unpublish,
-                           # login and the editor's own publish/unpublish code
+                           # Clerk token verification, the author-management endpoints and the
+                           # editor's own publish/unpublish code
 npm run verify             # compare the build against the pre-eleventy baseline
 npm run verify:self-test   # confirm the check can still detect a change
 ```
@@ -92,7 +93,8 @@ imported.
 │   └── admin/           # Post editor (not linked from the site)
 ├── api/                 # Vercel Functions — must stay at the repo root,
 │   ├── events.js        # NOT in src/, or Vercel won't detect them
-│   ├── login.js         # Sign-in: exchanges email+password for a session cookie
+│   ├── invite.js        # Admin-only: invite an author through Clerk
+│   ├── authors.js       # Admin-only: list, remove, promote and demote authors
 │   ├── publish.js       # Publish/update a post from the editor, one commit
 │   └── unpublish.js     # Remove a published post, one commit
 ├── lib/                 # Node-only modules, plus the four served at /lib/
@@ -102,19 +104,18 @@ imported.
 │   ├── post-file.mjs        # Reads and writes the src/posts/ file format (served)
 │   ├── post-types.mjs       # The fff/post type registry (served)
 │   ├── slug.mjs             # slugify(), shared by the editor and the server (served)
+│   ├── clerk-jwt.mjs        # Verifies Clerk session tokens against CLERK_PEM_PUBLIC_KEY
+│   ├── clerk-request.mjs    # Shared Clerk auth and Backend API plumbing for the api/ handlers
+│   ├── session.mjs          # authorNameFromSub(), used by both publish endpoints
 │   ├── publish-validate.mjs # Validates a publish payload, computes its path
 │   ├── publish.mjs          # Serializes + render-gates + parse-gates a post
 │   ├── github.mjs           # Git Data API: read/commit/delete via the Contents/Git APIs
-│   ├── github-auth.mjs      # Mints a GitHub App installation token per request
-│   ├── session.mjs          # Signs/verifies the editor's session cookie
-│   └── password.mjs         # scrypt password hashing for AUTH_USERS
+│   └── github-auth.mjs      # Mints a GitHub App installation token per request
 ├── tools/               # Dev-only (not deployed) -- the *.test.mjs files
 │   │                    # here are what `npm test` runs; see below
 │   ├── htmlcanon.mjs
 │   ├── snapshot.mjs
-│   ├── import-wix-post.mjs # One-shot: Wix archive -> src/posts/
-│   └── hash-password.mjs   # Hashes a password for an AUTH_USERS entry --
-│                            # see docs/publishing-setup.md
+│   └── import-wix-post.mjs # One-shot: Wix archive -> src/posts/
 ├── eleventy.config.js
 ├── _site/               # Build output — generated, gitignored
 └── design/              # Reference PDFs from the design process
@@ -272,8 +273,12 @@ section will show its fallback. To run the function locally use `vercel dev`
 | Variable | Used by | Purpose |
 |---|---|---|
 | `LUMA_API_KEY` | `api/events.js` | Reads the Luma calendar for the events section. See [Luma events integration](#luma-events-integration). |
-| `AUTH_SECRET` | `api/login.js`, `api/publish.js`, `api/unpublish.js` | Signs the editor's session cookie. At least 32 characters. Rotating it signs every author out. |
-| `AUTH_USERS` | `api/login.js` | JSON map of lowercase author email → scrypt hash, produced by `node tools/hash-password.mjs`. |
+| `CLERK_PUBLISHABLE_KEY` | build (`/admin`) | Public Clerk key, baked into the editor at **build** time. Changing it needs a redeploy; the build fails if it is missing. |
+| `CLERK_FRONTEND_API_URL` | build (`/admin`) | Clerk's Frontend API URL, baked in at **build** time like the key above. |
+| `CLERK_SECRET_KEY` | `api/invite.js`, `api/authors.js` | Server-side only. Lets the site invite, list, remove and promote users. Never expose it to the browser. |
+| `CLERK_PEM_PUBLIC_KEY` | `api/publish.js`, `api/unpublish.js`, `api/invite.js`, `api/authors.js` | Verifies Clerk's session tokens. Server-side only. |
+| `CLERK_AUTHORIZED_PARTIES` | same | Comma-separated origins a token may be minted for. Required: an empty value is a configuration fault, not "allow all". |
+| `CLERK_INVITE_REDIRECT_URL` | `api/invite.js` | Where an invitation link lands. Must be an allowed redirect in the Clerk Dashboard. |
 | `GITHUB_APP_ID` | `api/publish.js`, `api/unpublish.js` (via `lib/github-auth.mjs`) | The GitHub App's id, used to mint a fresh installation token on every publish/unpublish request. |
 | `GITHUB_APP_PRIVATE_KEY` | same | The App's private key (PEM). A fresh commit token is minted from this, per request — nothing here expires the way a pasted token would. |
 | `GITHUB_INSTALLATION_ID` | same | The App's installation on this repository. |
@@ -282,7 +287,8 @@ section will show its fallback. To run the function locally use `vercel dev`
 | `GITHUB_REPO` | `api/publish.js`, `api/unpublish.js` | The repository name the editor commits to. |
 | `GITHUB_BRANCH` | `api/publish.js`, `api/unpublish.js` | Optional; defaults to `main`. |
 
-`.env.example` documents every variable above, including the `GITHUB_*` ones.
+`.env.example` documents every variable above, including the `CLERK_*` and
+`GITHUB_*` ones.
 Full setup for the publishing variables — creating the GitHub App, installing
 it, and why an App and not a personal access token — is in
 [`docs/publishing-setup.md`](docs/publishing-setup.md).
@@ -330,9 +336,9 @@ the post, the listing page and the homepage.
 ### Signing in and publishing
 
 Publishing and unpublishing need an author account — there is no self-service
-sign-up. **Sign in to publish**, at the top of the editor, takes an email and
-password; a successful sign-in shows "Signed in as `<email>`." Without signing
-in, the editor still works fully for writing, previewing and downloading — only
+sign-up; an admin invites each author from `/admin`. The **Account** section,
+at the top of the editor, shows Clerk's sign-in form; a successful sign-in
+shows "Signed in as `<email>`." Without signing in, the editor still works fully for writing, previewing and downloading — only
 the Publish and Unpublish buttons are disabled.
 
 **Pick the type before signing in, not after.** Switching type reloads the
@@ -365,13 +371,13 @@ The editor has no copy of anything. It imports `lib/render-blocks.mjs`,
 any of them is picked up by the editor and the build at once — and the site
 nav, drawer and footer live only in `src/_includes/`. `eleventy.config.js`
 passes through exactly these four modules and nothing else from `lib/` —
-`lib/session.mjs`, `lib/password.mjs`, `lib/github.mjs` and the rest stay
+`lib/clerk-jwt.mjs`, `lib/github.mjs` and the rest stay
 server-only.
 
 `admin/` is deployed but unlinked. `robots.txt` keeps it out of search
 results; it does not make it private — anyone with the URL can open it, write,
 preview and download. Publishing and unpublishing are the only actions behind
-a password (see "Signing in and publishing" above); reaching the editor itself
+a sign-in (see "Signing in and publishing" above); reaching the editor itself
 still needs no credential.
 
 **Known issue:** cover images can only be published as a JPG or a PNG.

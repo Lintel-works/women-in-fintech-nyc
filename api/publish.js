@@ -8,7 +8,10 @@
  * is known to build.
  *
  * Env:
- *   AUTH_SECRET             — verifies the session cookie (see api/login.js)
+ *   CLERK_PEM_PUBLIC_KEY    — Clerk's JWT public key (PEM); verifies the
+ *                             Authorization: Bearer session token
+ *   CLERK_AUTHORIZED_PARTIES — comma-separated origins allowed as the
+ *                             token's azp; unset is a configuration fault
  *   GITHUB_APP_ID           — the GitHub App's id, used to mint a fresh
  *                             installation token on every request
  *   GITHUB_APP_PRIVATE_KEY  — the App's private key (PEM)
@@ -23,7 +26,8 @@
  *   GITHUB_REPO             — repository name
  *   GITHUB_BRANCH           — defaults to main
  */
-import { verifySession, authorNameFromSub, readCookie } from '../lib/session.mjs';
+import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
+import { authorNameFromSub } from '../lib/session.mjs';
 import { preparePublish } from '../lib/publish.mjs';
 import { commitWithRetry, pathExists } from '../lib/github.mjs';
 import { resolveGithubToken } from '../lib/github-auth.mjs';
@@ -62,20 +66,19 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
-  const secret = process.env.AUTH_SECRET;
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
   const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
     !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
-  if (!secret || !owner || !repo || !hasGithubCredential) {
-    console.error('Publishing is not configured: missing AUTH_SECRET/GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
+  if (!owner || !repo || !hasGithubCredential) {
+    console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
-  const session = verifySession(readCookie(request.headers.cookie, 'wif_session'), secret);
-  if (!session) {
-    return response.status(401).json({ message: 'Your session expired — sign in again.' });
+  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const payload = typeof request.body === 'object' && request.body ? request.body : {};
@@ -166,12 +169,12 @@ export default async function handler(request, response) {
     return response.status(502).json({ message: 'Publishing failed. Nothing was changed.' });
   }
 
-  const authorName = authorNameFromSub(session.sub);
+  const authorName = authorNameFromSub(authorEmail);
 
   const commit = {
     token, owner, repo, branch,
-    message: `Publish ${prepared.slug}\n\nPublished from the editor by ${session.sub}.`,
-    author: { name: authorName, email: session.sub },
+    message: `Publish ${prepared.slug}\n\nPublished from the editor by ${authorEmail}.`,
+    author: { name: authorName, email: authorEmail },
     files
   };
 

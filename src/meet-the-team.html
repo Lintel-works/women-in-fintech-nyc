@@ -21,14 +21,23 @@ active: "meet-the-team.html"
   @media (max-width: 980px) { .team-grid, .team-grid.three, .team-grid.five { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .team-grid, .team-grid.three, .team-grid.five { grid-template-columns: 1fr; } }
   .team-card { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; transition: transform .25s, box-shadow .25s; }
-  .team-card:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(59,13,58,0.10); }
+  /* Scoped to the anchor: a member with no LinkedIn renders as a div, and
+     lifting a card that cannot be clicked promises a link that is not there. */
+  a.team-card:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(59,13,58,0.10); }
   .team-photo { aspect-ratio: 1/1; position: relative; overflow: hidden; }
   /* duotone portraits, matching the IFF row on the homepage */
   .team-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
   .team-photo::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.7; transition: opacity .35s ease; pointer-events: none; }
-  .team-card:hover .team-photo img { filter: none; }
-  .team-card:hover .team-photo::after { opacity: 0; }
+  a.team-card:hover .team-photo img { filter: none; }
+  a.team-card:hover .team-photo::after { opacity: 0; }
   .tag-li { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.22); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; z-index: 1; }
+  /* Stands in for a missing headshot, on the gradient the photo would have
+     covered. New volunteers join the page before their photo arrives, and an
+     <img> with no file renders a broken-image glyph instead. */
+  /* z-index, like .tag-li above: .team-photo::after is a positioned box
+     generated after this one, so without it the multiply overlay paints over
+     the initials and washes them into the gradient behind them. */
+  .team-initials { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 42px; color: #fff; letter-spacing: 0.04em; }
   .team-info { padding: 16px 18px 20px; }
   .team-info .nm { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--plum); margin: 0 0 3px; }
   .team-info .rl { font-size: 13px; color: var(--muted); line-height: 1.4; }
@@ -62,6 +71,13 @@ active: "meet-the-team.html"
 </section>
 
 <!-- TEAM -->
+{#- The card body, shared by the linked and unlinked forms. A member with no
+    LinkedIn is not wrapped in an anchor at all: an <a> with an empty href
+    reloads the page, which reads as a broken link rather than as no link. -#}
+{%- macro card(member) -%}
+<div class="team-photo {{ member.gradient }}">{% if member.linkedin %}<span class="tag-li">in</span>{% endif %}{% if member.photo %}<img src="{{ member.photo }}" alt="{{ member.name }}" loading="lazy">{% else %}<span class="team-initials" aria-hidden="true">{{ member.name | initials }}</span>{% endif %}</div><div class="team-info"><h3 class="nm">{{ member.name }}</h3><div class="rl">{{ member.role }}</div></div>
+{%- endmacro -%}
+
 <section class="section" style="padding-top: 8px;">
   <div class="wrap">
     {%- for group in team.groups %}
@@ -69,7 +85,7 @@ active: "meet-the-team.html"
       <div class="block-head"><h2>{{ group.heading | safe }}</h2><span class="count">{{ group.subtitle }}</span></div>
       <div class="team-grid{{ group.gridModifier }}">
         {%- for member in team.members %}{% if member.group == group.id %}
-        <a class="team-card" href="{{ member.linkedin }}" target="_blank" rel="noopener"><div class="team-photo {{ member.gradient }}"><span class="tag-li">in</span><img src="{{ member.photo }}" alt="{{ member.name }}" loading="lazy"></div><div class="team-info"><h3 class="nm">{{ member.name }}</h3><div class="rl">{{ member.role }}</div></div></a>
+        {% if member.linkedin %}<a class="team-card" href="{{ member.linkedin }}" target="_blank" rel="noopener">{{ card(member) }}</a>{% else %}<div class="team-card">{{ card(member) }}</div>{% endif %}
         {%- endif %}{% endfor %}
       </div>
     </div>
@@ -79,7 +95,7 @@ active: "meet-the-team.html"
     <div class="join-team">
       <h2>Want to help build this?</h2>
       <p>We're always looking for women who want to give their time and expertise to the community. Volunteers run our events, programs, and chapters.</p>
-      <a href="#" class="btn btn-pink btn-lg">Get involved →</a>
+      <a href="{{ site.membershipUrl }}" class="btn btn-pink btn-lg">Get involved →</a>
     </div>
   </div>
 </section>

@@ -24,9 +24,8 @@ var slugTouched = false;
 var cover = { file: null, blobUrl: null, ext: 'jpg' };
 var previewTimer = null;
 
-/* Publishing state. The cookie itself is HttpOnly and unreadable here by
-   design -- this flag only drives what the UI offers. The server is the thing
-   that actually decides, on every request. */
+/* Publishing state. This flag only drives what the UI offers; the server
+   verifies the Clerk session token on every request and is what decides. */
 var signedIn = false;
 
 /* Set only inside openPostFile, to the slug of the post that was opened.
@@ -57,6 +56,17 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(function () { el.classList.remove('show'); }, 1800);
+}
+
+/* Status text alone cannot tell you whether something worked: 'Published.'
+   and 'Publishing failed.' render identically as grey copy. Every status goes
+   through here so the tone — busy, ok, error — carries a colour and a glyph
+   from .status-line as well as the wording. */
+function setStatus(el, text, tone) {
+  var node = typeof el === 'string' ? $(el) : el;
+  if (!node) return;
+  node.textContent = text;
+  node.className = 'status-line' + (tone ? ' is-' + tone : '');
 }
 
 function autoGrow(el) {
@@ -679,31 +689,286 @@ function downloadRenamedImage() {
 
 /* ------------------------------------------------------------------- auth */
 
-async function signIn() {
-  var email = $('signin-email').value.trim();
-  var password = $('signin-password').value;
+var clerk = null;
+
+/* A Clerk session token lives 60 SECONDS. Fetching one at sign-in and
+   reusing it would produce an editor that publishes successfully for about a
+   minute and then returns 401 forever -- indistinguishable, to an author,
+   from a revoked account. getToken() is therefore called per request, and
+   never stored. */
+async function authHeaders() {
+  var headers = { 'content-type': 'application/json' };
+  if (clerk && clerk.session) {
+    var token = await clerk.session.getToken();
+    if (token) headers.authorization = 'Bearer ' + token;
+  }
+  return headers;
+}
+
+/* With 60-second tokens, a 401 usually means the token aged out mid-request,
+   not that the author signed out. Only drop the signed-in state when Clerk
+   itself says there is no session; otherwise leave Publish enabled so the
+   author can simply retry with a fresh token. */
+function handleUnauthorized() {
+  if (!clerk || !clerk.isSignedIn) {
+    signedIn = false;
+    updatePublishAvailability();
+  }
+}
+
+/* clerk-config.js inserts Clerk's two bundles dynamically, so they run async
+   and in no guaranteed order, and neither exists yet when this module runs.
+   Waiting for window.Clerk alone could reach load() before the UI bundle has
+   set its constructor. Polling briefly is cheaper than a load event on tags
+   this file did not create. */
+function waitForClerk(timeoutMs) {
+  var deadline = Date.now() + timeoutMs;
+  return new Promise(function (resolve) {
+    (function poll() {
+      if (window.Clerk && window.__internal_ClerkUICtor) return resolve(window.Clerk);
+      if (Date.now() > deadline) return resolve(null);
+      setTimeout(poll, 50);
+    }());
+  });
+}
+
+async function initClerk() {
   var status = $('signin-status');
-  status.textContent = 'Signing in…';
+  var mount = $('clerk-auth');
+  var rendered = null;
+  setStatus(status, 'Loading sign-in…', 'busy');
+  clerk = await waitForClerk(10000);
+  if (!clerk) {
+    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
+    return;
+  }
   try {
-    var response = await fetch('/api/login', {
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
+  } catch (error) {
+    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
+    return;
+  }
+  render();
+
+  /* Clerk notifies listeners as a sign-in attempt progresses, not only when
+     the signed-in state flips. Remounting on each event would reset a
+     half-finished password or emailed-code step, so act only on a change. */
+  function render() {
+    var nowSignedIn = !!clerk.isSignedIn;
+    if (rendered === nowSignedIn) return;
+    if (rendered === true) clerk.unmountUserButton(mount);
+    if (rendered === false) clerk.unmountSignIn(mount);
+    rendered = nowSignedIn;
+    if (nowSignedIn) {
+      signedIn = true;
+      var email = clerk.user && clerk.user.primaryEmailAddress
+        ? clerk.user.primaryEmailAddress.emailAddress : '';
+      setStatus(status, 'Signed in as ' + email + '.', 'ok');
+      updateAccountButton(email);
+      clerk.mountUserButton(mount);
+      renderAdminTools(isAdminUser());
+    } else {
+      signedIn = false;
+      setStatus(status, '');
+      updateAccountButton('');
+      clerk.mountSignIn(mount);
+      renderAdminTools(false);
+    }
+    updatePublishAvailability();
+  }
+
+  clerk.addListener(function () { render(); });
+}
+
+/* A throw inside initClerk would otherwise be an unhandled rejection and
+   leave the author a blank panel with no explanation. */
+/* The account drawer. Sign-in and author management live here rather than at
+   the top of the writing column, where an author scrolled past them on every
+   post and an admin saw invite controls while drafting. */
+function drawerIsOpen() {
+  return $('account-drawer').classList.contains('open');
+}
+
+function openDrawer() {
+  var drawer = $('account-drawer');
+  $('drawer-backdrop').hidden = false;
+  drawer.hidden = false;
+  /* Unhiding and transforming in the same frame skips the transition, so the
+     panel would snap rather than slide. */
+  requestAnimationFrame(function () { drawer.classList.add('open'); });
+  $('btn-drawer-close').focus();
+}
+
+function closeDrawer() {
+  var drawer = $('account-drawer');
+  drawer.classList.remove('open');
+  $('drawer-backdrop').hidden = true;
+  /* Hide only once the slide-out has run; hiding immediately would make the
+     panel disappear instead of leaving. */
+  setTimeout(function () {
+    if (!drawer.classList.contains('open')) drawer.hidden = true;
+  }, 200);
+  $('btn-account').focus();
+}
+
+/* Signing in is the one thing a new author must find, and the drawer hides it
+   behind a button -- so the trigger says so, and wears the primary style until
+   they are signed in. */
+function updateAccountButton(email) {
+  var button = $('btn-account');
+  button.textContent = signedIn ? (email || 'Account') : 'Sign in';
+  if (signedIn) button.classList.remove('btn-pink');
+  else button.classList.add('btn-pink');
+}
+
+function startClerk() {
+  initClerk().catch(function () {
+    setStatus('signin-status', 'Could not load the sign-in form. Check your connection and reload.', 'error');
+  });
+}
+
+function isAdminUser() {
+  return !!(clerk && clerk.user && clerk.user.publicMetadata && clerk.user.publicMetadata.role === 'admin');
+}
+
+/* Runs only when the signed-in state flips (see render() above), so someone
+   promoted to admin mid-session sees nothing until they sign out and in. */
+function renderAdminTools(isAdmin) {
+  $('admin-tools').hidden = !isAdmin;
+  if (isAdmin) loadAuthors();
+}
+
+/* Each load takes a number; only the latest may draw, so a slow earlier
+   response cannot overwrite a newer list with stale rows. */
+var authorLoadCount = 0;
+
+function setAuthorButtons(disabled) {
+  var buttons = $('author-list').querySelectorAll('button');
+  for (var i = 0; i < buttons.length; i++) buttons[i].disabled = disabled;
+}
+
+async function loadAuthors() {
+  var holder = $('author-list');
+  var thisLoad = ++authorLoadCount;
+  holder.innerHTML = '';
+  holder.appendChild(emptyNote('Loading authors…'));
+  try {
+    var response = await fetch('/api/authors', { headers: await authHeaders() });
+    var data = await response.json().catch(function () { return {}; });
+    if (thisLoad !== authorLoadCount) return;
+    if (response.status === 401) handleUnauthorized();
+    if (!response.ok) {
+      holder.innerHTML = '';
+      holder.appendChild(emptyNote(data.message || 'Could not load the author list.'));
+      return;
+    }
+    holder.innerHTML = '';
+    if (!(data.authors || []).length) {
+      holder.appendChild(emptyNote('No authors yet. Invite one above.'));
+      return;
+    }
+    (data.authors || []).forEach(function (author) {
+      var row = document.createElement('div');
+      row.className = 'author-row';
+      var who = document.createElement('span');
+      who.className = 'who';
+      // The address is the identity; role and invitation state are metadata,
+      // so they go in pills rather than a parenthesised run-on.
+      var email = document.createElement('strong');
+      email.textContent = author.email;
+      who.appendChild(email);
+      who.appendChild(pill(author.role, false));
+      if (author.state && author.state !== 'active') who.appendChild(pill(author.state, true));
+      row.appendChild(who);
+      ['remove', author.role === 'admin' ? 'demote' : 'promote'].forEach(function (action) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = action === 'remove' ? 'btn btn-sm btn-danger' : 'btn btn-sm';
+        button.textContent = action.charAt(0).toUpperCase() + action.slice(1);
+        button.setAttribute('aria-label', action + ' ' + author.email);
+        button.addEventListener('click', function () { actOnAuthor(action, author.id, author.email); });
+        row.appendChild(button);
+      });
+      holder.appendChild(row);
+    });
+  } catch (error) {
+    if (thisLoad === authorLoadCount) {
+      holder.innerHTML = '';
+      holder.appendChild(emptyNote('Could not reach the site to load the author list.'));
+    }
+  }
+}
+
+function emptyNote(text) {
+  var note = document.createElement('p');
+  note.className = 'empty-note';
+  note.textContent = text;
+  return note;
+}
+
+function pill(text, muted) {
+  var span = document.createElement('span');
+  span.className = muted ? 'pill pill-muted' : 'pill';
+  span.textContent = text;
+  return span;
+}
+
+async function actOnAuthor(action, id, email) {
+  var status = $('invite-status');
+  // Removal deletes the account and cannot be undone from here.
+  if (action === 'remove' && !window.confirm('Remove ' + email + '? They will lose access immediately.')) return;
+  setStatus(status, 'Working…', 'busy');
+  // A double-click on a destructive action must not send it twice.
+  setAuthorButtons(true);
+  try {
+    var response = await fetch('/api/authors', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password })
+      headers: await authHeaders(),
+      body: JSON.stringify({ action: action, id: id })
     });
     if (response.status === 204) {
-      signedIn = true;
-      status.textContent = 'Signed in as ' + email + '.';
-      $('signin-password').value = '';
-      updatePublishAvailability();
+      setStatus(status, action === 'remove' ? ('Removed ' + email + '.') : ('Updated ' + email + '.'), 'ok');
+      loadAuthors();
       return;
     }
-    if (response.status === 503) {
-      status.textContent = 'Publishing is not set up on this site yet.';
-      return;
-    }
-    status.textContent = 'That email and password do not match.';
+    if (response.status === 401) handleUnauthorized();
+    var data = await response.json().catch(function () { return {}; });
+    setStatus(status, data.message || 'That did not work.', 'error');
+    setAuthorButtons(false);
   } catch (error) {
-    status.textContent = 'Could not reach the site to sign in. Check your connection.';
+    setStatus(status, 'Could not reach the site.', 'error');
+    setAuthorButtons(false);
+  }
+}
+
+async function sendInvite() {
+  var input = $('invite-email');
+  var button = $('btn-invite');
+  var status = $('invite-status');
+  var email = input.value.trim();
+  if (!email) { setStatus(status, 'Enter an email address first.', 'error'); return; }
+  setStatus(status, 'Sending…', 'busy');
+  // One click is one of Clerk's 100 invitations an hour; a double-click
+  // must not spend two.
+  button.disabled = true;
+  try {
+    var response = await fetch('/api/invite', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ email: email })
+    });
+    if (response.status === 204) {
+      setStatus(status, 'Invitation sent to ' + email + '.', 'ok');
+      input.value = '';
+      return;
+    }
+    if (response.status === 401) handleUnauthorized();
+    var data = await response.json().catch(function () { return {}; });
+    setStatus(status, data.message || 'Could not send that invitation.', 'error');
+  } catch (error) {
+    setStatus(status, 'Could not reach the site to send that invitation.', 'error');
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -852,9 +1117,9 @@ async function publishPost() {
      the server. buildPostObject() has already toasted the reason. */
   if (!buildPostObject()) return;
   if (!coverExtIsPublishable()) {
-    status.textContent = 'That cover image is a .' + cover.ext + ' file with "keep original" checked — ' +
+    setStatus(status, 'That cover image is a .' + cover.ext + ' file with "keep original" checked — ' +
       'only JPG and PNG can be published that way. Uncheck "keep original" (it will be resized to a JPG), ' +
-      'or choose a JPG or PNG cover instead.';
+      'or choose a JPG or PNG cover instead.', 'error');
     return;
   }
   button.disabled = true;
@@ -864,7 +1129,7 @@ async function publishPost() {
   // the one thing an author can control if it seems stuck is told to them
   // up front instead of left to worry that a reload might duplicate or
   // half-finish something.
-  status.textContent = 'Publishing… if this doesn’t finish in about a minute, reload and try again — nothing has been published yet.';
+  setStatus(status, 'Publishing… if this doesn’t finish in about a minute, reload and try again — nothing has been published yet.', 'busy');
   try {
     var image = await coverAsBase64();
     var payload = publishPayload(image);
@@ -872,10 +1137,10 @@ async function publishPost() {
        publishable. The specific toast already fired inside buildPostObject();
        leave the status line clear rather than layering a generic failure over
        it, and let the finally block below re-enable the button. */
-    if (!payload) { status.textContent = ''; return; }
+    if (!payload) { setStatus(status, ''); return; }
     var response = await fetch('/api/publish', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify(payload)
     });
     var data = await response.json().catch(function () { return {}; });
@@ -889,13 +1154,13 @@ async function publishPost() {
          slug too), so its answer is the one to trust. */
       openedSlug = data.slug;
       updatePublishAvailability();
-      status.textContent = 'Published. Live in about a minute: ' + data.url;
+      setStatus(status, 'Published. Live in about a minute: ' + data.url, 'ok');
       return;
     }
-    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
-    status.textContent = data.message || 'Publishing failed. Nothing was changed.';
+    if (response.status === 401) handleUnauthorized();
+    setStatus(status, data.message || 'Publishing failed. Nothing was changed.', 'error');
   } catch (error) {
-    status.textContent = error.message || 'Publishing failed. Nothing was changed.';
+    setStatus(status, error.message || 'Publishing failed. Nothing was changed.', 'error');
   } finally {
     button.disabled = !signedIn;
   }
@@ -918,18 +1183,18 @@ async function publishPost() {
 async function unpublishPost() {
   var status = $('unpublish-status');
   var slug = openedSlug;
-  if (!slug) { status.textContent = 'Open or publish a post first.'; return; }
+  if (!slug) { setStatus(status, 'Open or publish a post first.', 'error'); return; }
   if ($('unpublish-confirm').value.trim() !== slug) {
-    status.textContent = 'Type ' + slug + ' to confirm.';
+    setStatus(status, 'Type ' + slug + ' to confirm.', 'error');
     return;
   }
   var button = $('btn-unpublish');
   button.disabled = true;
-  status.textContent = 'Unpublishing…';
+  setStatus(status, 'Unpublishing…', 'busy');
   try {
     var response = await fetch('/api/unpublish', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({ type: typeKey, slug: slug })
     });
     var data = await response.json().catch(function () { return {}; });
@@ -944,14 +1209,14 @@ async function unpublishPost() {
          same now-deleted address. */
       openedSlug = null;
       updatePublishAvailability();
-      status.textContent = 'Unpublished. The page will disappear in about a minute.';
+      setStatus(status, 'Unpublished. The page will disappear in about a minute.', 'ok');
       $('unpublish-confirm').value = '';
       return;
     }
-    if (response.status === 401) { signedIn = false; updatePublishAvailability(); }
-    status.textContent = data.message || 'Unpublishing failed. Nothing was changed.';
+    if (response.status === 401) handleUnauthorized();
+    setStatus(status, data.message || 'Unpublishing failed. Nothing was changed.', 'error');
   } catch (error) {
-    status.textContent = error.message || 'Unpublishing failed. Nothing was changed.';
+    setStatus(status, error.message || 'Unpublishing failed. Nothing was changed.', 'error');
   } finally {
     // Not a bare `false`: updatePublishAvailability() re-applies the real
     // signedIn/openedSlug gate, which the success path above may just have
@@ -1017,14 +1282,23 @@ function renderAll() {
 
 function init() {
   var select = $('type-select');
-  Object.keys(TYPES).forEach(function (key) {
+  /* A hidden type is not offered, but it IS still shown when it is the type
+     already loaded via ?type=. That keeps a deliberate escape hatch: if a type
+     is hidden while published posts of it still exist, someone can reach the
+     editor with ?type= to open and unpublish them, and switch back afterwards.
+     Without the exception the control would carry a value with no matching
+     option, which renders blank. */
+  var offered = Object.keys(TYPES).filter(function (key) {
+    return !POST_TYPES[key].hidden || key === typeKey;
+  });
+  offered.forEach(function (key) {
     var opt = document.createElement('option');
     opt.value = key;
     opt.textContent = POST_TYPES[key].label;
     select.appendChild(opt);
   });
   select.value = typeKey;
-  select.disabled = Object.keys(TYPES).length < 2;
+  select.disabled = offered.length < 2;
 
   /* Switching type reloads with ?type=, which is where typeKey comes from.
      Each type keeps its own autosaved draft, so nothing is lost either way. */
@@ -1046,15 +1320,22 @@ function init() {
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);
 
-  $('btn-signin').addEventListener('click', signIn);
+  startClerk();
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', function () { $('post-file').click(); });
+  $('btn-account').addEventListener('click', openDrawer);
+  $('btn-drawer-close').addEventListener('click', closeDrawer);
+  $('drawer-backdrop').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && drawerIsOpen()) closeDrawer();
+  });
   $('post-file').addEventListener('change', function (e) {
     if (e.target.files[0]) openPostFile(e.target.files[0]);
     e.target.value = '';
   });
   $('btn-unpublish').addEventListener('click', unpublishPost);
+  $('btn-invite').addEventListener('click', sendInvite);
   $('btn-export').addEventListener('click', exportJson);
   $('btn-clear').addEventListener('click', clearAll);
   $('btn-import').addEventListener('click', function () { $('import-file').click(); });
@@ -1072,15 +1353,19 @@ function init() {
     model.coverPath = e.target.value;
     onChange();
   });
-  $('btn-desktop').addEventListener('click', function () {
-    $('preview').classList.remove('mobile');
-    fitPreview();
-  });
-  $('btn-mobile').addEventListener('click', function () {
-    $('preview').classList.add('mobile');
-    fitPreview();
-  });
+  $('btn-desktop').addEventListener('click', function () { setPreviewWidth(false); });
+  $('btn-mobile').addEventListener('click', function () { setPreviewWidth(true); });
   window.addEventListener('resize', fitPreview);
+  fitPreview();
+}
+
+/* The two width buttons are a segmented control, so the pressed one has to
+   be marked: aria-pressed both announces the state and drives the styling,
+   which previously left an author guessing which width they were looking at. */
+function setPreviewWidth(mobile) {
+  $('preview').classList.toggle('mobile', mobile);
+  $('btn-desktop').setAttribute('aria-pressed', mobile ? 'false' : 'true');
+  $('btn-mobile').setAttribute('aria-pressed', mobile ? 'true' : 'false');
   fitPreview();
 }
 

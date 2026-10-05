@@ -10,6 +10,17 @@ test('the registry holds exactly the two types the site publishes', () => {
   assert.equal(DEFAULT_TYPE, 'fff');
 });
 
+/* Jobs & Happenings is held back from launch. It must stay REGISTERED while
+   hidden: api/unpublish.js refuses an unknown type, so removing the entry
+   would strand any published post of it, and the renderer would lose the
+   prefix and partials needed to rebuild one. This pins both halves -- if
+   someone deletes the entry instead of the flag, the test above fails; if
+   someone unhides it without meaning to, this one does. */
+test('the post type is registered but hidden, and fff is not', () => {
+  assert.equal(POST_TYPES.post.hidden, true);
+  assert.ok(!POST_TYPES.fff.hidden, 'the default type must never be hidden');
+});
+
 // FIX 4 (final wave): the one cover-path convention, shared now by the
 // editor, the renderer, and both publish endpoints -- there used to be four
 // separate implementations of this same shape.

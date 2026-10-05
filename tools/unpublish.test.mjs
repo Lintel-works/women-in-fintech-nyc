@@ -1,11 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../api/unpublish.js';
-import { signSession } from '../lib/session.mjs';
+import { generateKeyPairSync, createSign } from 'node:crypto';
 import { serializePost } from '../lib/post-file.mjs';
 
+const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const CLERK_PEM = publicKey.export({ type: 'spki', format: 'pem' });
+
 const ENV = {
-  AUTH_SECRET: 'a-test-secret-that-is-long-enough',
+  CLERK_PEM_PUBLIC_KEY: CLERK_PEM,
+  CLERK_AUTHORIZED_PARTIES: 'https://nycfintechwomen.com',
   GITHUB_TOKEN: 'ghtoken',
   GITHUB_OWNER: 'owner',
   GITHUB_REPO: 'repo',
@@ -31,13 +35,29 @@ function makeResponse() {
   };
 }
 
-function makeRequest({ method = 'POST', cookie, body } = {}) {
-  return { method, headers: cookie ? { cookie } : {}, body };
+function makeRequest({ method = 'POST', authorization, body } = {}) {
+  return { method, headers: authorization ? { authorization } : {}, body };
 }
 
-function validCookie() {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  return `wif_session=${signSession({ sub: 'jane@example.com', exp }, ENV.AUTH_SECRET)}`;
+/* Mints a token the way Clerk does -- RS256, short-lived, azp matching the
+   configured origin -- so the handler's real verification path is exercised
+   rather than stubbed. `email: null` omits the claim, as Clerk's default
+   session token does. */
+function bearer({ email = 'jane@example.com', role, exp } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    sub: 'user_123',
+    azp: 'https://nycfintechwomen.com',
+    exp: exp === undefined ? now + 60 : exp,
+    nbf: now - 5
+  };
+  if (email !== null) payload.email = email;
+  if (role) payload.public_metadata = { role };
+  const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const input = `${b64(header)}.${b64(payload)}`;
+  const sig = createSign('RSA-SHA256').update(input).sign(privateKey).toString('base64url');
+  return `Bearer ${input}.${sig}`;
 }
 
 /* api/unpublish.js calls getFileContent()/commitWithRetry() with no injected
@@ -48,7 +68,7 @@ function stubFetch(responses) {
   const calls = [];
   const original = globalThis.fetch;
   globalThis.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), method: options.method || 'GET' });
+    calls.push({ url: String(url), method: options.method || 'GET', body: options.body ? JSON.parse(options.body) : null });
     const next = responses.shift();
     if (!next) throw new Error(`unexpected fetch to ${url}`);
     return { ok: next.status < 400, status: next.status, json: async () => next.body };
@@ -71,26 +91,27 @@ function contentsResponse(text) {
   return { status: 200, body: { content: Buffer.from(text).toString('base64') + '\n', encoding: 'base64' } };
 }
 
-test('no cookie is refused with 401 and makes no GitHub call', () => withEnv(async () => {
+test('no bearer token is refused with 401 and makes no GitHub call', () => withEnv(async () => {
   const restore = noNetwork();
   try {
     const request = makeRequest({ body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 401);
-    assert.match(response.body.message, /session expired/i);
+    // Distinct from an expired token: nothing was presented, so nothing expired.
+    assert.match(response.body.message, /not signed in/i);
+    assert.doesNotMatch(response.body.message, /expired/i);
   } finally {
     restore();
   }
 }));
 
-test('a forged cookie is refused with 401 and makes no GitHub call', () => withEnv(async () => {
+test('a token with a bad signature is refused with 401 and makes no GitHub call', () => withEnv(async () => {
   const restore = noNetwork();
   try {
-    const exp = Math.floor(Date.now() / 1000) + 3600;
-    const forgedBody = Buffer.from(JSON.stringify({ sub: 'attacker@example.com', exp })).toString('base64url');
+    const [header, body] = bearer().replace(/^Bearer /, '').split('.');
     const request = makeRequest({
-      cookie: `wif_session=${forgedBody}.not-a-real-signature`,
+      authorization: `Bearer ${header}.${body}.not-a-real-signature`,
       body: { type: 'post', slug: 'october-recap' }
     });
     const response = makeResponse();
@@ -101,10 +122,45 @@ test('a forged cookie is refused with 401 and makes no GitHub call', () => withE
   }
 }));
 
+test('an expired token is refused with 401 saying so, with no GitHub call', () => withEnv(async () => {
+  const restore = noNetwork();
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const request = makeRequest({
+      authorization: bearer({ exp: now - 600 }),
+      body: { type: 'post', slug: 'october-recap' }
+    });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 401);
+    assert.match(response.body.message, /expired/i);
+  } finally {
+    restore();
+  }
+}));
+
+/* Clerk's default session token has no email claim; see the matching test in
+   tools/publish-handler.test.mjs. */
+test('a token with no email claim is a configuration fault, not an author', () => withEnv(async () => {
+  const restore = noNetwork();
+  try {
+    const request = makeRequest({
+      authorization: bearer({ email: null }),
+      body: { type: 'post', slug: 'october-recap' }
+    });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 503);
+    assert.match(response.body.message, /not set up/i);
+  } finally {
+    restore();
+  }
+}));
+
 test('GET is refused with 405 and makes no GitHub call', () => withEnv(async () => {
   const restore = noNetwork();
   try {
-    const request = makeRequest({ method: 'GET', cookie: validCookie() });
+    const request = makeRequest({ method: 'GET', authorization: bearer() });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 405);
@@ -117,7 +173,7 @@ test('GET is refused with 405 and makes no GitHub call', () => withEnv(async () 
 test('an unknown post type is refused with 400 and makes no GitHub call', () => withEnv(async () => {
   const restore = noNetwork();
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'not-a-type', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'not-a-type', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 400);
@@ -130,7 +186,7 @@ test('an unknown post type is refused with 400 and makes no GitHub call', () => 
 test('a missing slug is refused with 400 and makes no GitHub call', () => withEnv(async () => {
   const restore = noNetwork();
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: '   ' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: '   ' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 400);
@@ -145,7 +201,7 @@ test('unpublishing a path that does not exist is refused with 404 and commits no
     { status: 404, body: {} } // getFileContent: the post is not there
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'never-published' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'never-published' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 404);
@@ -171,7 +227,7 @@ test('a valid request deletes the computed path and returns the commit sha', () 
     { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }       // update ref
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'October Recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'October Recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 200);
@@ -197,6 +253,36 @@ function stubFetchWithBodies(responses) {
   return { calls, restore() { globalThis.fetch = original; } };
 }
 
+/* The point of this whole change: the commit is authored by the verified
+   email claim, lower-cased, never by the opaque Clerk user id. */
+test('the commit is authored by the lower-cased email claim, not the user id', () => withEnv(async () => {
+  const post = serializePost({ type: 'post', slug: 'october-recap', title: 'October Recap', blocks: [] });
+  const fetchStub = stubFetch([
+    contentsResponse(post),
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  try {
+    const request = makeRequest({
+      authorization: bearer({ email: 'Jane@Example.COM' }),
+      body: { type: 'post', slug: 'october-recap' }
+    });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200);
+    const commitCall = fetchStub.calls.find((c) => c.method === 'POST' && c.url.endsWith('/git/commits'));
+    assert.equal(commitCall.body.author.email, 'jane@example.com');
+    assert.equal(commitCall.body.author.name, 'jane');
+    assert.match(commitCall.body.message, /by jane@example\.com\./);
+    assert.doesNotMatch(JSON.stringify(commitCall.body), /user_123/);
+  } finally {
+    fetchStub.restore();
+  }
+}));
+
 test('the cover image path is included in the tree delete when coverPath matches the convention', () => withEnv(async () => {
   const post = serializePost({
     type: 'post', slug: 'october-recap', title: 'October Recap',
@@ -212,7 +298,7 @@ test('the cover image path is included in the tree delete when coverPath matches
     { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 200);
@@ -240,7 +326,7 @@ test('the cover image is left alone when coverPath does not match the convention
     { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 200);
@@ -254,7 +340,7 @@ test('the cover image is left alone when coverPath does not match the convention
 test('a GitHub auth failure on the existence check is reported without ever naming the token', () => withEnv(async () => {
   const fetchStub = stubFetch([{ status: 401, body: { message: 'Bad credentials' } }]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 503);
@@ -272,7 +358,7 @@ test('unpublishing the wrong type for a real post is refused as not-found, and c
   const fffPost = serializePost({ type: 'fff', slug: 'shira-amrany', name: 'Shira Amrany', blocks: [] });
   const fetchStub = stubFetch([contentsResponse(fffPost)]); // getFileContent only
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'shira-amrany' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'shira-amrany' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 404, 'a type mismatch must not be distinguishable from not-found');
@@ -294,7 +380,7 @@ test('unpublishing the matching type still deletes normally', () => withEnv(asyn
     { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'fff', slug: 'shira-amrany' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'fff', slug: 'shira-amrany' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 200);
@@ -321,7 +407,7 @@ test('a PNG cover at the conventional path is deleted too', () => withEnv(async 
     { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 200);
@@ -340,7 +426,7 @@ test('a GitHub auth failure on the commit itself is reported without ever naming
     { status: 401, body: { message: 'Bad credentials' } }
   ]);
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 503);
@@ -355,7 +441,8 @@ test('a GitHub auth failure on the commit itself is reported without ever naming
 // API call -- proving the App path is actually wired in, not just present as
 // unused code in lib/github-auth.mjs.
 const APP_ENV = {
-  AUTH_SECRET: 'a-test-secret-that-is-long-enough',
+  CLERK_PEM_PUBLIC_KEY: CLERK_PEM,
+  CLERK_AUTHORIZED_PARTIES: 'https://nycfintechwomen.com',
   GITHUB_APP_ID: '1',
   GITHUB_APP_PRIVATE_KEY: '',   // set per-test below with a real generated PEM
   GITHUB_INSTALLATION_ID: '999',
@@ -391,7 +478,7 @@ test('with no GITHUB_TOKEN override, an installation token is minted before the 
     return { ok: false, status: 404, json: async () => ({}) }; // getFileContent: not found is fine here
   };
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(calls[0].includes('/access_tokens'), true, 'the token must be minted before any other GitHub call');
@@ -405,7 +492,7 @@ test('a malformed App private key is reported distinctly from a GitHub-rejected 
   process.env.GITHUB_APP_PRIVATE_KEY = 'not a real pem';
   const restore = noNetwork();
   try {
-    const request = makeRequest({ cookie: validCookie(), body: { type: 'post', slug: 'october-recap' } });
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
     const response = makeResponse();
     await handler(request, response);
     assert.equal(response.statusCode, 503);

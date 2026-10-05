@@ -1,0 +1,159 @@
+{
+  "_comment": [
+    "Hand-settled entries for tools/fff-manifest.mjs, keyed by the archived filename.",
+    "Every value here was read off the archived page's own title; nothing is invented.",
+    "Applying an override clears that post's review flags -- the override is the review.",
+    "Re-run `node tools/fff-manifest.mjs` after editing this file."
+  ],
+
+  "fintech-female-fridays-meet-marcia-tal-ceo-of-tal-solutions-llc-and-founder-of-positivitytech.html": {
+    "_why": "Title names two companies. The card has room for one, so it takes the first.",
+    "name": "Marcia Tal",
+    "role": "CEO",
+    "company": "Tal Solutions, LLC"
+  },
+  "fintech-female-fridays-meet-danita-harris-managing-member-director-of-philanthropy.html": {
+    "_why": "The source title stops mid-phrase at 'Director of Philanthropy at'. The employer it was about to name is not recoverable from the page, so no company is claimed.",
+    "name": "Danita Harris",
+    "role": "Managing Member & Director of Philanthropy",
+    "company": ""
+  },
+  "fintech-female-fridays-meet-ceo-co-founder-at-clutch-wallet-rebecca-bec-jones.html": {
+    "_why": "Role-first title. The nickname is kept as she wrote it.",
+    "name": "Rebecca (Bec) Jones",
+    "role": "CEO & Co-founder",
+    "company": "Clutch Wallet"
+  },
+  "fintech-female-fridays-meet-chair-ceo-founder-of-bm-technologies-inc-bmtx-luvleen-sidhu.html": {
+    "_why": "Name last, and the company's own name carries commas, which is what defeated the split.",
+    "name": "Luvleen Sidhu",
+    "role": "Chair, CEO & Founder",
+    "company": "BM Technologies (BMTX)"
+  },
+  "fintech-female-fridays-meet-founder-ceo-at-orum-stephany-kirkpatrick.html": {
+    "_why": "Interviewed twice. This is the 2025 post and keeps the bare slug; the 2022 one is suffixed.",
+    "name": "Stephany Kirkpatrick",
+    "role": "Founder & CEO",
+    "company": "Orum"
+  },
+  "fintech-female-fridays-meet-fintech-investor-founder-and-gp-at-mendoza-ventures-senofer-mendoza.html": {
+    "name": "Senofer Mendoza",
+    "role": "Founder & GP",
+    "company": "Mendoza Ventures"
+  },
+  "fintech-female-fridays-meet-the-svp-product-at-saavymoney-bhavna-guglani.html": {
+    "name": "Bhavna Guglani",
+    "role": "SVP, Product",
+    "company": "SavvyMoney"
+  },
+  "fintech-female-fridays-meet-the-nyc-fintech-women-team.html": {
+    "_why": "A post about the organisation rather than one person. No role or company applies.",
+    "name": "The NYC FinTech Women Team",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-meet-chief-marketing-officer-karen-voci.html": {
+    "_why": "Title separates the series with a comma rather than a colon, so the prefix was never stripped.",
+    "name": "Karen Voci",
+    "role": "Chief Marketing Officer",
+    "company": ""
+  },
+  "fintech-female-fridays-meet-vp-marketing-communications-yasmin-moaven.html": {
+    "name": "Yasmin Moaven",
+    "role": "VP, Marketing & Communications",
+    "company": ""
+  },
+  "fintech-female-fridays-meet-team-lead-account-management-joanne-liu.html": {
+    "name": "Joanne Liu",
+    "role": "Team Lead, Account Management",
+    "company": ""
+  },
+  "fintech-female-fridays-meet-global-head-of-diversity-inclusion-and-belonging-supriya-jha.html": {
+    "name": "Supriya Jha",
+    "role": "Global Head of Diversity, Inclusion and Belonging",
+    "company": ""
+  },
+  "fintech-female-fridays.html": {
+    "_why": "A second post about the team, two years before the other one. Slug is stated so the two never race for the same filename.",
+    "name": "The NYC FinTech Women Team",
+    "slug": "the-nyc-fintech-women-team-2020",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-kelsey-weaver-and-lindsay-lockhart-co-founders-neocova.html": {
+    "_why": "The only post about two people. Both names stay, and the slug follows them.",
+    "name": "Kelsey Weaver and Lindsay Lockhart",
+    "role": "Co-Founders",
+    "company": "Neocova"
+  },
+  "fintech-female-fridays-stephany-zoo-head-of-marketing-branding-and-communications-aza.html": {
+    "_why": "Commas belong to the role, which lists three functions. Derivation was right.",
+    "name": "Stephany Zoo",
+    "role": "Head of Marketing, Branding, and Communications",
+    "company": "Aza"
+  },
+  "fintech-female-fridays-kisha-allison-head-of-content-usa-money20-20.html": {
+    "name": "Kisha Allison",
+    "role": "Head of Content, USA",
+    "company": "Money20/20"
+  },
+  "fintech-female-fridays-charlotte-guy-product-manager-lukka-inc.html": {
+    "_why": "The comma is inside the company name, not between role and company.",
+    "name": "Charlotte Guy",
+    "role": "Product Manager",
+    "company": "Lukka, Inc."
+  },
+  "fintech-female-fridays-barbara-zhan-vice-president-quantitative-research-two-sigma.html": {
+    "name": "Barbara Zhan",
+    "role": "Vice President, Quantitative Research",
+    "company": "Two Sigma"
+  },
+  "fintech-female-fridays-petal.html": {
+    "_why": "A post about a company, not a profile. Kept because it was published in the category.",
+    "name": "Petal",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-marketaxess.html": {
+    "name": "MarketAxess",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-nyc-fintech-women-steering-committee.html": {
+    "name": "NYC FinTech Women Steering Committee",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-jackie-hyland-angel-investor-advisor-and-head-of-mexico-a55.html": {
+    "name": "Jackie Hyland",
+    "role": "Angel Investor, Advisor and Head of Mexico",
+    "company": "a55"
+  },
+  "fintech-female-fridays-team-dailypay.html": {
+    "name": "Team DailyPay",
+    "role": "",
+    "company": ""
+  },
+  "fintech-female-fridays-devika-tampi-senior-manager-innovation-ecosystem-fidelity-investments.html": {
+    "name": "Devika Tampi",
+    "role": "Senior Manager, Innovation Ecosystem",
+    "company": "Fidelity Investments"
+  },
+  "fintech-female-fridays-sasha-pilch-sales-plaid-co-founder-nyc-fintech-women.html": {
+    "_why": "Title names her day job and her role co-founding this organisation. The card carries the day job.",
+    "name": "Sasha Pilch",
+    "role": "Sales",
+    "company": "Plaid"
+  },
+  "fintech-female-fridays-katie-prentke-english-co-founder-cmo-harness-wealth.html": {
+    "name": "Katie Prentke English",
+    "role": "Co-Founder & CMO",
+    "company": "Harness Wealth"
+  },
+  "fintech-female-fridays-lauren-crossett-enterprise-account-executive-plaid.html": {
+    "_why": "Interviewed twice. The 2023 Pinwheel post keeps the bare slug; this earlier one is suffixed with its year.",
+    "name": "Lauren Crossett",
+    "role": "Enterprise Account Executive",
+    "company": "Plaid"
+  }
+}
