@@ -66,6 +66,13 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
+  /* Before the configuration check: a refusal there would tell an
+     unauthenticated caller whether the site is misconfigured. */
+  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
+  }
+
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
@@ -74,11 +81,6 @@ export default async function handler(request, response) {
   if (!owner || !repo || !hasGithubCredential) {
     console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential (GITHUB_TOKEN, or GITHUB_APP_ID+GITHUB_APP_PRIVATE_KEY+GITHUB_INSTALLATION_ID)');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
-  }
-
-  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
-  if (refusal) {
-    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const payload = typeof request.body === 'object' && request.body ? request.body : {};

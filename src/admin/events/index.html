@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Add an event — NYC Fintech Women</title>
+<link rel="stylesheet" href="../admin.css" />
+<style>
+  /* This page's own. One column, because an event is a flat form: the
+     editor's preview and output panes would both have nothing to show. */
+  .column { width: min(680px, 100%); margin: 0 auto; padding: 0 0 48px; }
+  /* Bottom-aligned because the time field's label is visually hidden and so
+     adds no height: top-aligned, its input would float above the date beside
+     it. Aligning the bottoms keeps the pair level however labels render. */
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  .row > .field { flex: 1; min-width: 0; }
+  .img-row { display: flex; gap: 14px; align-items: flex-start; }
+  .img-thumb {
+    width: 112px; height: 70px; border-radius: 10px; flex-shrink: 0;
+    background: var(--soft) center/cover no-repeat; border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--muted); text-align: center; overflow: hidden;
+  }
+  .img-ctl { flex: 1; min-width: 0; }
+  input[type="file"] { font-size: 12px; max-width: 100%; color: var(--muted); }
+  input[type="file"]::file-selector-button {
+    font: inherit; font-size: 12px; font-weight: 600; margin-right: 10px;
+    padding: 5px 11px; border-radius: 7px; cursor: pointer;
+    background: #fff; color: var(--plum); border: 1px solid var(--line);
+  }
+  .sec-submit { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> Add an event</div>
+  <div class="spacer"></div>
+  <div class="bar-group">
+    <a class="btn btn-sm" href="../">Post editor</a>
+  </div>
+  <div class="bar-group" role="group" aria-label="Events">
+    <span class="status" id="edit-status">New event</span>
+    <button type="button" class="btn btn-sm" id="btn-new">New event</button>
+    <button type="button" class="btn btn-sm" id="btn-open-event">Open event</button>
+  </div>
+  <div class="bar-group">
+    <button type="button" class="btn btn-sm" id="btn-account">Sign in</button>
+  </div>
+  <p id="add-status" class="status-line" role="status"></p>
+</header>
+
+<!-- Account controls live in a drawer rather than above the form, for the
+     same reason as on the post editor (see ../index.html): an author
+     otherwise scrolls past them on every event. The Clerk mount points
+     below carry the ids admin-session.js looks for. -->
+<div id="drawer-backdrop" hidden></div>
+<aside id="account-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="drawer-title">Account</h2>
+    <button type="button" class="btn-icon" id="btn-drawer-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <section id="signin" class="sec">
+      <p class="hint">Adding an event needs an account.</p>
+      <div id="clerk-auth"></div>
+      <p id="signin-status" class="status-line" role="status"></p>
+    </section>
+  </div>
+</aside>
+
+<!-- The events already added. "Open event" opens this rather than a file
+     picker: an author signed in here has no clone of the repository. The list
+     is read from the branch, not from the last deploy, so an event added a
+     moment ago is already in it. -->
+<aside id="events-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="events-drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="events-drawer-title">Events you have added</h2>
+    <button type="button" class="btn-icon" id="btn-events-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sticky">
+      <p id="events-status" class="status-line" role="status"></p>
+      <p class="hint">Events that have finished are still listed &mdash; the site hides them, but the file stays until it is removed.</p>
+    </div>
+    <div id="events-list"></div>
+  </div>
+</aside>
+
+<div class="column">
+
+  <section class="sec">
+    <h2>What and when</h2>
+    <div class="field">
+      <label for="f-name">Event name <span class="req">*</span></label>
+      <input type="text" id="f-name" autocomplete="off" placeholder="Fintech Forward with SVB" />
+      <div class="help">How it reads on the card.</div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="f-start-date">Starts <span class="req">*</span></label>
+        <input type="date" id="f-start-date" />
+      </div>
+      <div class="field">
+        <label for="f-start-time" class="vis-hidden">Start time</label>
+        <input type="time" id="f-start-time" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="f-end-date">Ends</label>
+        <input type="date" id="f-end-date" />
+      </div>
+      <div class="field">
+        <label for="f-end-time" class="vis-hidden">End time</label>
+        <input type="time" id="f-end-time" />
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-timezone">Time zone <span class="req">*</span></label>
+      <select id="f-timezone">
+        <option value="America/New_York">New York (Eastern)</option>
+        <option value="America/Chicago">Chicago (Central)</option>
+        <option value="America/Denver">Denver (Mountain)</option>
+        <option value="America/Los_Angeles">San Francisco (Pacific)</option>
+        <option value="UTC">UTC</option>
+      </select>
+      <div class="help">
+        Decides when the event drops off the site, as well as what the card says.
+        An event with no end time retires when it starts.
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Where it sends people</h2>
+    <div class="field">
+      <label for="f-url">RSVP link <span class="req">*</span></label>
+      <input type="url" id="f-url" class="mono" autocomplete="off" placeholder="https://www.svb.com/events/…" />
+      <div class="help">
+        Must start with <code>https://</code>. This is the whole point of this page:
+        the event lives on somebody else's registration page, and RSVP goes there.
+      </div>
+      <p class="warn" id="f-url-warn" hidden>
+        That is a Luma link. An event already in Luma appears on the site on its own —
+        this page is for the ones that are not.
+      </p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Where it is</h2>
+    <div class="field">
+      <label for="f-city">City <span class="req">*</span></label>
+      <select id="f-city">
+        <option value="nyc">New York</option>
+        <option value="sf">San Francisco</option>
+        <option value="chi">Chicago</option>
+        <option value="other">Somewhere else</option>
+      </select>
+      <div class="help">Decides which chapter page it appears on. "Somewhere else" shows under All cities only.</div>
+    </div>
+    <div class="field">
+      <label for="f-locationType">In person or online <span class="req">*</span></label>
+      <select id="f-locationType">
+        <option value="offline">In person</option>
+        <option value="zoom">Online</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-place">Place</label>
+      <input type="text" id="f-place" autocomplete="off" placeholder="SVB, 1 Hudson Yards" />
+      <div class="help">Free text. An online event with no place reads "Online".</div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Cover image</h2>
+    <div class="img-row">
+      <div class="img-thumb" id="img-thumb">No image</div>
+      <div class="img-ctl">
+        <label for="img-file" class="vis-hidden">Cover image</label>
+        <input type="file" id="img-file" accept="image/jpeg,image/png" />
+        <div class="help">1600 × 1000, JPG or PNG, under 3 MB. Anything else is cropped to 16:10 from the centre. A dark gradient covers the top-left, where the date sits — keep logos and faces away from it.</div>
+        <p class="status-line" id="img-status" role="status"></p>
+      </div>
+    </div>
+    <div class="field field-spaced">
+      <label for="f-coverUrl">Or an image the partner hosts</label>
+      <input type="url" id="f-coverUrl" class="mono" placeholder="https://example.com/cover.jpg" />
+      <div class="help">Used only when no file is chosen above. Must be <code>https://</code>.</div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Labels</h2>
+    <div class="field">
+      <label for="f-tags">Tags</label>
+      <input type="text" id="f-tags" autocomplete="off" placeholder="Partner event, Panel" />
+      <div class="help">Up to three, separated by commas. Anything past the third is dropped.</div>
+    </div>
+    <label class="check check-spaced">
+      <input type="checkbox" id="f-membersOnly" /> Members only
+    </label>
+  </section>
+
+  <section class="sec">
+    <h2>Address</h2>
+    <div class="field">
+      <label for="f-slug">Web address</label>
+      <input type="text" id="f-slug" class="mono" autocomplete="off" />
+      <div class="help">Filled in from the event name. Change it only when two events share a name.</div>
+    </div>
+  </section>
+
+  <section class="sec sec-submit">
+    <button type="button" class="btn btn-pink" id="btn-add" disabled title="Sign in to add an event">Add this event</button>
+    <span class="hint">It appears on the site once the deploy finishes, a minute or two later.</span>
+  </section>
+
+  <details id="remove-panel" class="sec sec-danger" hidden>
+    <summary>Remove this event</summary>
+    <p class="hint">This takes the event off the site, along with a cover uploaded here. It cannot be undone. Type the event's address to confirm.</p>
+    <div class="field field-spaced">
+      <label for="remove-confirm">Event address <span class="req">*</span></label>
+      <input id="remove-confirm" type="text" class="mono" autocomplete="off" placeholder="the-event-address" />
+    </div>
+    <button id="btn-remove" type="button" class="btn btn-sm btn-danger" disabled>Remove</button>
+    <p id="remove-status" class="status-line" role="status"></p>
+  </details>
+
+</div>
+
+<script src="../clerk-config.js"></script>
+<script type="module" src="events.js"></script>
+<script>
+  /* The page is an ES module importing /lib/*.mjs, so it needs an HTTP origin
+     AND the trailing slash — at /admin/events the relative imports resolve
+     one directory up and every one of them 404s, leaving a form that
+     validates nothing. vercel.json redirects to the slash; this is what says
+     so when something else went wrong. */
+  window.addEventListener('load', function () {
+    if (window.WIF_EVENTS) return;
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div class="load-error" role="alert">' +
+      'This page did not load. It imports ES modules, so it has to be served: ' +
+      'open <code>/admin/events/</code> with the trailing slash.</div>');
+  });
+</script>
+</body>
+</html>

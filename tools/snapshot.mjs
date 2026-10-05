@@ -6,6 +6,10 @@
  *
  * Baseline comes from `git show <tag>:<file>` so no duplicate copies are
  * committed. Exits non-zero on any difference.
+ *
+ * The default tag is a parentless commit holding just the built pages: they
+ * are generated into _site/ now, which is gitignored, so there is no ordinary
+ * commit to compare against. Re-baseline by tagging a new one -- see README.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,7 +22,7 @@ const flag = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1];
 };
 
-const TAG = flag('tag', 'pre-eleventy');
+const TAG = flag('tag', 'baseline-2026-10-05');
 const SELF_TEST = args.includes('--self-test');
 
 function baselineFiles(tag) {

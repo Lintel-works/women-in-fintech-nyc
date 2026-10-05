@@ -4,13 +4,18 @@
   "outputDirectory": "_site",
   "functions": {
     "api/events.js": {
-      "includeFiles": "src/_data/manual-events.json"
+      "includeFiles": "src/_data/manual-events/**"
     }
   },
   "redirects": [
     {
       "source": "/admin",
       "destination": "/admin/",
+      "permanent": false
+    },
+    {
+      "source": "/admin/events",
+      "destination": "/admin/events/",
       "permanent": false
     }
   ],

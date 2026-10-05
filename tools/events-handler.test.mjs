@@ -1,31 +1,49 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { normalizeManualEvents } from '../lib/manual-events.mjs';
 
-/* api/events.js merges the Luma calendar with src/_data/manual-events.json.
+/* api/events.js merges the Luma calendar with the files in src/_data/manual-events/.
    The two halves are unit-tested in tools/manual-events.test.mjs; what this
    covers is the wiring -- that manual events reach the response at all, that
    they survive a Luma outage (the reason they are merged on the server rather
    than in the page), and that the "Luma changed shape" alarm is still
    measured on Luma's own events rather than being silenced by them.
  *
- * This is the only test file that touches src/_data/manual-events.json, and
- * node:test runs the tests within a file one at a time, so the fixture below
- * is never visible to anything else. lib/manual-events.mjs reads that file on
- * each call rather than importing it, which is what makes this possible: an
- * imported JSON module is cached for the life of the process, so the first
- * read would win for ever and the handler could not be tested at all. */
+ * Fixtures go in a temp directory that MANUAL_EVENTS_DIR points the loader
+ * at, never into src/_data/manual-events/, where a real event could be
+ * clobbered and where a committed event would break the exact counts below.
+ * lib/manual-events.mjs reads the directory on each call rather than
+ * importing it, which is what makes this possible: an imported JSON module is
+ * cached for the life of the process, so the first read would win for ever
+ * and the handler could not be tested at all. */
 
-const DATA = new URL('../src/_data/manual-events.json', import.meta.url);
-const ORIGINAL = fs.readFileSync(DATA, 'utf8');
+const REAL_DIR = new URL('../src/_data/manual-events/', import.meta.url);
+const REAL_BEFORE = fs.readdirSync(REAL_DIR).sort();
 
-/* Last resort. The finally in withManual() is what runs in practice; this
-   covers the file being left modified by a crash inside that window. */
-process.on('exit', () => {
-  try {
-    if (fs.readFileSync(DATA, 'utf8') !== ORIGINAL) fs.writeFileSync(DATA, ORIGINAL);
-  } catch { /* nothing useful to do while exiting */ }
+/* Every test in this file runs against an empty directory unless withManual()
+   says otherwise. Without this, a test that calls the handler with no
+   fixtures falls through to the real directory and starts failing the moment
+   a real event is committed. Only the two tests that name REAL_DIR read it. */
+const EMPTY_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'events-handler-empty-'));
+const ENV_BEFORE = process.env.MANUAL_EVENTS_DIR;
+process.env.MANUAL_EVENTS_DIR = EMPTY_DIR;
+
+/* This file sets the override on purpose, and the loader warns about it on
+   every call. Only that warning is dropped, so any other warning still shows. */
+const realWarn = console.warn;
+console.warn = (...args) => {
+  if (String(args[0]).startsWith('MANUAL_EVENTS_DIR is set')) return;
+  realWarn(...args);
+};
+
+after(() => {
+  console.warn = realWarn;
+  if (ENV_BEFORE === undefined) delete process.env.MANUAL_EVENTS_DIR;
+  else process.env.MANUAL_EVENTS_DIR = ENV_BEFORE;
+  fs.rmSync(EMPTY_DIR, { recursive: true, force: true });
 });
 
 /* Far enough out that they never expire, and listed out of order so the
@@ -36,11 +54,18 @@ const FIXTURE = [
 ];
 
 async function withManual(entries, fn) {
-  fs.writeFileSync(DATA, JSON.stringify(entries, null, 2) + '\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'events-handler-'));
+  entries.forEach((entry, index) => {
+    fs.writeFileSync(path.join(dir, `event-${index}.json`), JSON.stringify(entry, null, 2) + '\n');
+  });
+  const previous = process.env.MANUAL_EVENTS_DIR;
+  process.env.MANUAL_EVENTS_DIR = dir;
   try {
     return await fn();
   } finally {
-    fs.writeFileSync(DATA, ORIGINAL);
+    if (previous === undefined) delete process.env.MANUAL_EVENTS_DIR;
+    else process.env.MANUAL_EVENTS_DIR = previous;
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -84,10 +109,13 @@ const down = async () => ({ ok: false, status: 500, statusText: 'Server Error', 
 const timeout = async () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
 const brokenShape = ok([{ id: 'x', name: 'No date', url: 'x' }]);
 
-test('every entry in the committed file is usable', () => {
-  /* The file ships empty, but once events are added a typo in one of them
-     should fail here rather than quietly vanish from the calendar. */
-  for (const event of normalizeManualEvents(JSON.parse(ORIGINAL))) {
+test('every committed event file is usable', () => {
+  /* The directory ships empty, but once events are added a typo in one of
+     them should fail here rather than quietly vanish from the calendar. */
+  const committed = REAL_BEFORE
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => JSON.parse(fs.readFileSync(new URL(name, REAL_DIR), 'utf8')));
+  for (const event of normalizeManualEvents(committed)) {
     assert.ok(event.name, 'an event in the committed file has no name');
     assert.match(event.url, /^https:\/\//);
     assert.match(event.id, /^manual-/);
@@ -179,6 +207,6 @@ test('only GET is allowed', async () => {
   assert.equal(r.code, 405);
 });
 
-test('the committed manual events file was left exactly as it was found', () => {
-  assert.equal(fs.readFileSync(DATA, 'utf8'), ORIGINAL);
+test('the committed manual events directory was left exactly as it was found', () => {
+  assert.deepEqual(fs.readdirSync(REAL_DIR).sort(), REAL_BEFORE);
 });

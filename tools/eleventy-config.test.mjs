@@ -11,7 +11,7 @@ process.env.CLERK_FRONTEND_API_URL ??= 'https://default.clerk.accounts.dev';
 /* FIX 7 (final wave): the whole lib/ directory used to be passed through
    verbatim, which meant lib/session.mjs (cookie signing), lib/password.mjs
    (the scrypt check) and lib/github.mjs (the commit machinery) were served
-   publicly alongside the four modules the editor actually imports. A fake
+   publicly alongside the five modules the editor and events page actually import. A fake
    eleventyConfig captures every addPassthroughCopy mapping so this can be
    asserted without running a full build. */
 function makeFakeEleventyConfig() {
@@ -38,7 +38,7 @@ function makeFakeEleventyConfig() {
   });
 }
 
-test('only the four browser-imported lib/ modules are passed through', () => {
+test('only the five browser-imported lib/ modules are passed through', () => {
   const fake = makeFakeEleventyConfig();
   eleventyConfigFn(fake);
 
@@ -49,7 +49,7 @@ test('only the four browser-imported lib/ modules are passed through', () => {
   assert.ok(!libSources.includes('lib'), 'the whole lib/ directory must not be passed through wholesale');
   assert.deepEqual(
     libSources.sort(),
-    ['lib/post-file.mjs', 'lib/post-types.mjs', 'lib/render-blocks.mjs', 'lib/slug.mjs'].sort()
+    ['lib/event-entry.mjs', 'lib/post-file.mjs', 'lib/post-types.mjs', 'lib/render-blocks.mjs', 'lib/slug.mjs'].sort()
   );
   for (const secret of ['lib/clerk-jwt.mjs', 'lib/github.mjs', 'lib/github-auth.mjs', 'lib/publish.mjs', 'lib/publish-validate.mjs']) {
     assert.ok(!libSources.includes(secret), `${secret} must not be served publicly`);

@@ -8,6 +8,9 @@ import { serializePost, parsePost } from '/lib/post-file.mjs';
 import { POST_TYPES, postTitle, coverPathFor } from '/lib/post-types.mjs';
 import { slugify, isUrlSafe, badSlugChars } from './text.js';
 import { TYPES, BLOCK_LABELS, BLOCK_FIELDS, blankBlock } from './types.js';
+import { authHeaders, handleUnauthorized, isSignedIn, startClerk, currentUser } from './admin-session.js';
+import { openDrawer, closeDrawer, drawerIsOpen } from './admin-drawer.js';
+import { $, setStatus } from './dom.js';
 
 var typeKey = (new URLSearchParams(location.search).get('type')) || 'fff';
 if (!TYPES[typeKey] || !POST_TYPES[typeKey]) typeKey = 'fff';
@@ -24,17 +27,11 @@ var slugTouched = false;
 var cover = { file: null, blobUrl: null, ext: 'jpg' };
 var previewTimer = null;
 
-/* Publishing state. This flag only drives what the UI offers; the server
-   verifies the Clerk session token on every request and is what decides. */
-var signedIn = false;
-
 /* Set only inside openPostFile, to the slug of the post that was opened.
    Comparing it to the current slug at publish time is how a retitled post
    correctly publishes as a create instead of overwriting the post it was
    opened from -- a new title means a new address. */
 var openedSlug = null;
-
-var $ = function (id) { return document.getElementById(id); };
 
 /* Field key -> the elements renderFields built for it, so a field can be
    re-validated when something other than its own input changed it. */
@@ -78,17 +75,6 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(function () { el.classList.remove('show'); }, 1800);
-}
-
-/* Status text alone cannot tell you whether something worked: 'Published.'
-   and 'Publishing failed.' render identically as grey copy. Every status goes
-   through here so the tone — busy, ok, error — carries a colour and a glyph
-   from .status-line as well as the wording. */
-function setStatus(el, text, tone) {
-  var node = typeof el === 'string' ? $(el) : el;
-  if (!node) return;
-  node.textContent = text;
-  node.className = 'status-line' + (tone ? ' is-' + tone : '');
 }
 
 function autoGrow(el) {
@@ -711,163 +697,15 @@ function downloadRenamedImage() {
 
 /* ------------------------------------------------------------------- auth */
 
-var clerk = null;
-
-/* A Clerk session token lives 60 SECONDS. Fetching one at sign-in and
-   reusing it would produce an editor that publishes successfully for about a
-   minute and then returns 401 forever -- indistinguishable, to an author,
-   from a revoked account. getToken() is therefore called per request, and
-   never stored. */
-async function authHeaders() {
-  var headers = { 'content-type': 'application/json' };
-  if (clerk && clerk.session) {
-    var token = await clerk.session.getToken();
-    if (token) headers.authorization = 'Bearer ' + token;
-  }
-  return headers;
-}
-
-/* With 60-second tokens, a 401 usually means the token aged out mid-request,
-   not that the author signed out. Only drop the signed-in state when Clerk
-   itself says there is no session; otherwise leave Publish enabled so the
-   author can simply retry with a fresh token. */
-function handleUnauthorized() {
-  if (!clerk || !clerk.isSignedIn) {
-    signedIn = false;
-    updatePublishAvailability();
-  }
-}
-
-/* clerk-config.js inserts Clerk's two bundles dynamically, so they run async
-   and in no guaranteed order, and neither exists yet when this module runs.
-   Waiting for window.Clerk alone could reach load() before the UI bundle has
-   set its constructor. Polling briefly is cheaper than a load event on tags
-   this file did not create. */
-function waitForClerk(timeoutMs) {
-  var deadline = Date.now() + timeoutMs;
-  return new Promise(function (resolve) {
-    (function poll() {
-      if (window.Clerk && window.__internal_ClerkUICtor) return resolve(window.Clerk);
-      if (Date.now() > deadline) return resolve(null);
-      setTimeout(poll, 50);
-    }());
-  });
-}
-
-async function initClerk() {
-  var status = $('signin-status');
-  var mount = $('clerk-auth');
-  var rendered = null;
-  setStatus(status, 'Loading sign-in…', 'busy');
-  clerk = await waitForClerk(10000);
-  if (!clerk) {
-    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
-    return;
-  }
-  try {
-    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor } });
-  } catch (error) {
-    setStatus(status, 'Could not load the sign-in form. Check your connection and reload.', 'error');
-    return;
-  }
-  render();
-
-  /* Clerk notifies listeners as a sign-in attempt progresses, not only when
-     the signed-in state flips. Remounting on each event would reset a
-     half-finished password or emailed-code step, so act only on a change. */
-  function render() {
-    var nowSignedIn = !!clerk.isSignedIn;
-    if (rendered === nowSignedIn) return;
-    if (rendered === true) clerk.unmountUserButton(mount);
-    if (rendered === false) clerk.unmountSignIn(mount);
-    rendered = nowSignedIn;
-    if (nowSignedIn) {
-      signedIn = true;
-      var email = clerk.user && clerk.user.primaryEmailAddress
-        ? clerk.user.primaryEmailAddress.emailAddress : '';
-      setStatus(status, 'Signed in as ' + email + '.', 'ok');
-      updateAccountButton(email);
-      clerk.mountUserButton(mount);
-      renderAdminTools(isAdminUser());
-    } else {
-      signedIn = false;
-      setStatus(status, '');
-      updateAccountButton('');
-      clerk.mountSignIn(mount);
-      renderAdminTools(false);
-    }
-    updatePublishAvailability();
-  }
-
-  clerk.addListener(function () { render(); });
-}
-
-/* A throw inside initClerk would otherwise be an unhandled rejection and
-   leave the author a blank panel with no explanation. */
-/* The account drawer. Sign-in and author management live here rather than at
-   the top of the writing column, where an author scrolled past them on every
-   post and an admin saw invite controls while drafting. */
-function drawerIsOpen() {
-  return !!openDrawerId;
-}
-
-/* Which drawer is open, and what opened it -- closing returns focus to the
-   control the author came from rather than always to the account button. */
-var openDrawerId = null;
-var drawerTriggerId = null;
-
-function openDrawer(id, triggerId) {
-  if (openDrawerId && openDrawerId !== id) closeDrawer();
-  var drawer = $(id);
-  $('drawer-backdrop').hidden = false;
-  drawer.hidden = false;
-  /* Unhiding and transforming in the same frame skips the transition, so the
-     panel would snap rather than slide. */
-  requestAnimationFrame(function () { drawer.classList.add('open'); });
-  openDrawerId = id;
-  drawerTriggerId = triggerId;
-  var close = drawer.querySelector('.drawer-head .btn-icon');
-  if (close) close.focus();
-}
-
-function closeDrawer() {
-  if (!openDrawerId) return;
-  var drawer = $(openDrawerId);
-  var trigger = drawerTriggerId;
-  drawer.classList.remove('open');
-  $('drawer-backdrop').hidden = true;
-  /* Hide only once the slide-out has run; hiding immediately would make the
-     panel disappear instead of leaving. */
-  setTimeout(function () {
-    if (!drawer.classList.contains('open')) drawer.hidden = true;
-  }, 200);
-  openDrawerId = null;
-  drawerTriggerId = null;
-  if (trigger && $(trigger)) $(trigger).focus();
-}
-
-/* Signing in is the one thing a new author must find, and the drawer hides it
-   behind a button -- so the trigger says so, and wears the primary style until
-   they are signed in. */
-function updateAccountButton(email) {
-  var button = $('btn-account');
-  button.textContent = signedIn ? (email || 'Account') : 'Sign in';
-  if (signedIn) button.classList.remove('btn-pink');
-  else button.classList.add('btn-pink');
-}
-
-function startClerk() {
-  initClerk().catch(function () {
-    setStatus('signin-status', 'Could not load the sign-in form. Check your connection and reload.', 'error');
-  });
-}
-
 function isAdminUser() {
-  return !!(clerk && clerk.user && clerk.user.publicMetadata && clerk.user.publicMetadata.role === 'admin');
+  var user = currentUser();
+  return !!(user && user.publicMetadata && user.publicMetadata.role === 'admin');
 }
 
-/* Runs only when the signed-in state flips (see render() above), so someone
-   promoted to admin mid-session sees nothing until they sign out and in. */
+/* Runs only when the signed-in state flips -- admin-session.js calls this
+   through onSignedInChange, and only after its own render() guard -- so
+   someone promoted to admin mid-session sees nothing until they sign out and
+   back in. */
 function renderAdminTools(isAdmin) {
   $('admin-tools').hidden = !isAdmin;
   if (isAdmin) loadAuthors();
@@ -1018,15 +856,15 @@ async function sendInvite() {
 function updatePublishAvailability() {
   var publishButton = $('btn-publish');
   if (publishButton) {
-    publishButton.disabled = !signedIn;
-    publishButton.title = signedIn ? '' : 'Sign in to publish';
+    publishButton.disabled = !isSignedIn();
+    publishButton.title = isSignedIn() ? '' : 'Sign in to publish';
   }
   var unpublishButton = $('btn-unpublish');
   if (unpublishButton) {
-    var canUnpublish = signedIn && !!openedSlug;
+    var canUnpublish = isSignedIn() && !!openedSlug;
     unpublishButton.disabled = !canUnpublish;
     unpublishButton.title = canUnpublish ? '' :
-      (!signedIn ? 'Sign in to unpublish' : 'Open or publish a post first — nothing here is known to be published');
+      (!isSignedIn() ? 'Sign in to unpublish' : 'Open or publish a post first — nothing here is known to be published');
   }
 }
 
@@ -1114,8 +952,8 @@ function postRow(post) {
   remove.type = 'button';
   remove.className = 'btn btn-sm btn-danger';
   remove.textContent = 'Unpublish';
-  remove.disabled = !signedIn;
-  if (!signedIn) remove.title = 'Sign in to unpublish';
+  remove.disabled = !isSignedIn();
+  if (!isSignedIn()) remove.title = 'Sign in to unpublish';
   remove.setAttribute('aria-label', 'Unpublish ' + (post.name || post.slug));
   remove.addEventListener('click', function () { unpublishFromList(post, row, remove); });
   row.appendChild(remove);
@@ -1124,7 +962,7 @@ function postRow(post) {
 }
 
 async function openPublishedPost(post) {
-  if (!signedIn) { setStatus('posts-status', 'Sign in to open a published post.', 'error'); return; }
+  if (!isSignedIn()) { setStatus('posts-status', 'Sign in to open a published post.', 'error'); return; }
   setStatus('posts-status', 'Opening ' + (post.name || post.slug) + '\u2026', 'busy');
   try {
     var url = '/api/post?type=' + encodeURIComponent(post.type) +
@@ -1365,7 +1203,7 @@ async function publishPost() {
   } catch (error) {
     setStatus(status, error.message || 'Publishing failed. Nothing was changed.', 'error');
   } finally {
-    button.disabled = !signedIn;
+    button.disabled = !isSignedIn();
   }
 }
 
@@ -1523,7 +1361,10 @@ function init() {
   var draft = loadDraft();
   if (draft && draft.model) showRestoreBanner(draft);
 
-  startClerk();
+  startClerk({
+    onAvailabilityChange: updatePublishAvailability,
+    onSignedInChange: function (nowSignedIn) { renderAdminTools(nowSignedIn && isAdminUser()); }
+  });
   $('btn-download').addEventListener('click', downloadPost);
   $('btn-publish').addEventListener('click', publishPost);
   $('btn-open-post').addEventListener('click', openPostsDrawer);

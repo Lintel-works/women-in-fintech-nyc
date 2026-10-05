@@ -2,11 +2,9 @@
 
 Every event on the site normally comes from the Luma calendar. An event that
 was never created there — a partner's event, a conference panel, a chapter
-meetup organised somewhere else — needs an entry in
-`src/_data/manual-events.json`.
-
-That file is committed to the repository, so adding an event is a commit like
-any other change. There is no admin screen for it.
+meetup organised somewhere else — is added at `/admin/events/` by any signed-in
+author. That page writes the file described below; nothing here has to be
+edited by hand.
 
 Manual events are merged into the Luma list by `api/events.js`, on the server.
 That matters for two reasons:
@@ -21,20 +19,22 @@ That matters for two reasons:
 
 ## The shape of an entry
 
-`src/_data/manual-events.json` holds a JSON array. An empty file is `[]`.
+Each event is its own file at `src/_data/manual-events/<slug>.json`, holding a
+single JSON object. One file per event rather than one shared array, because
+two authors appending to an array can each commit over the other's entry with
+no error anywhere.
 
 ```json
-[
-  {
-    "name": "Fintech Women at Money20/20",
-    "startAt": "2026-10-26T18:00:00-04:00",
-    "url": "https://example.com/rsvp",
-    "city": "nyc",
-    "place": "Las Vegas, NV",
-    "coverUrl": "https://example.com/cover.jpg",
-    "tags": ["Panel", "In person"]
-  }
-]
+{
+  "name": "Fintech Women at Money20/20",
+  "slug": "fintech-women-at-money2020",
+  "startAt": "2026-10-26T18:00:00-04:00",
+  "url": "https://example.com/rsvp",
+  "city": "nyc",
+  "place": "Las Vegas, NV",
+  "coverPath": "images/event-fintech-women-at-money2020.jpg",
+  "tags": ["Panel", "In person"]
+}
 ```
 
 ### Required
@@ -56,6 +56,7 @@ naming it. The rest of the calendar still renders.
 | `city` | `"other"` | One of `nyc`, `sf`, `chi`, `other`. This is the filter chip key, not free text: anything else becomes `other`, which shows under "All cities" only. |
 | `place` | `""` | Free text, e.g. `"Soho, NYC"`. An online event with no `place` reads "Online". |
 | `coverUrl` | `null` | An `https://` image. See sizing below. Without one the card uses its gradient. |
+| `coverPath` | `null` | A cover this site serves, as `images/<name>.jpg` or `.png`. Set by `/admin/events/` when an author uploads one. Wins over `coverUrl` if both are set. |
 | `locationType` | `"offline"` | `offline` or `zoom`. |
 | `membersOnly` | `false` | Shows the members-only badge. |
 | `tags` | `[]` | Up to three short labels. Anything past the third is dropped. |
@@ -97,5 +98,6 @@ Two things to watch:
   halfway down, so the date chip in the top-left stays readable. Avoid putting
   anything light or important in the upper-left corner.
 
-The image has to be hosted somewhere public over `https` — this repository
-does not store event covers.
+A cover uploaded at `/admin/events/` is committed to `src/images/` and
+referenced with `coverPath`. A partner who supplies an image URL can be
+pointed at directly with `coverUrl` instead, which must be `https`.
