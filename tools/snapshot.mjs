@@ -22,7 +22,7 @@ const flag = (name, fallback) => {
   return i === -1 ? fallback : args[i + 1];
 };
 
-const TAG = flag('tag', 'baseline-2026-10-05b');
+const TAG = flag('tag', 'baseline-2026-10-05c');
 const SELF_TEST = args.includes('--self-test');
 
 function baselineFiles(tag) {

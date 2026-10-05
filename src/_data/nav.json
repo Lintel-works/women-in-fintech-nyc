@@ -1,50 +1,99 @@
 {
   "logos": {
-    "nyc": { "src": "images/nyc-fintech-women-logo.png", "alt": "NYC Fintech Women" },
-    "chi": { "src": "images/chi-fintech-women-logo.png", "alt": "CHI Fintech Women" },
-    "sfo": { "src": "images/sfo-fintech-women-logo.png", "alt": "SFO Fintech Women" }
+    "nyc": {
+      "src": "images/nyc-fintech-women-logo.png",
+      "alt": "NYC Fintech Women"
+    },
+    "chi": {
+      "src": "images/chi-fintech-women-logo.png",
+      "alt": "CHI Fintech Women"
+    },
+    "sfo": {
+      "src": "images/sfo-fintech-women-logo.png",
+      "alt": "SFO Fintech Women"
+    }
   },
-
   "primary": [
     {
       "label": "Events",
       "href": "events.html",
       "children": [
-        { "label": "Upcoming Events", "href": "events.html#upcoming" },
-        { "label": "Past Events", "href": "events.html#past" }
+        {
+          "label": "Upcoming Events",
+          "href": "events.html#upcoming"
+        },
+        {
+          "label": "Past Events",
+          "href": "events.html#past"
+        }
       ]
     },
     {
       "label": "Our Programs",
       "href": "fintech-female-fridays.html",
       "children": [
-        { "label": "Fintech Female Fridays", "href": "fintech-female-fridays.html" },
-        { "label": "Co-founder Matching", "href": "co-founder-matching.html" },
-        { "label": "Inspiring Fintech Females", "href": "inspiring-fintech-females.html" }
+        {
+          "label": "Fintech Female Fridays",
+          "href": "fintech-female-fridays.html"
+        },
+        {
+          "label": "Co-founder Matching",
+          "href": "co-founder-matching.html"
+        },
+        {
+          "label": "Inspiring Fintech Females",
+          "href": "inspiring-fintech-females.html"
+        }
       ]
     },
     {
       "label": "About",
       "href": "meet-the-team.html",
       "children": [
-        { "label": "Meet the Team", "href": "meet-the-team.html" },
-        { "label": "Become a Member", "href": "{membershipUrl}" },
-        { "label": "Sponsor", "href": "#" }
+        {
+          "label": "Meet the Team",
+          "href": "meet-the-team.html"
+        },
+        {
+          "label": "Become a Member",
+          "href": "{membershipUrl}"
+        },
+        {
+          "label": "Sponsor",
+          "href": "index.html#partner"
+        }
       ]
     },
-    { "label": "New York", "href": "new-york.html" },
-    { "label": "Chicago", "href": "chicago.html" },
-    { "label": "San Francisco", "href": "san-francisco.html" }
+    {
+      "label": "New York",
+      "href": "new-york.html"
+    },
+    {
+      "label": "Chicago",
+      "href": "chicago.html"
+    },
+    {
+      "label": "San Francisco",
+      "href": "san-francisco.html"
+    }
   ],
-
   "mobile": [
     {
       "label": "Chapters",
       "inline": false,
       "children": [
-        { "label": "New York", "href": "new-york.html" },
-        { "label": "San Francisco", "href": "san-francisco.html" },
-        { "label": "Chicago", "href": "chicago.html" }
+        {
+          "label": "New York",
+          "href": "new-york.html"
+        },
+        {
+          "label": "San Francisco",
+          "href": "san-francisco.html"
+        },
+        {
+          "label": "Chicago",
+          "href": "chicago.html"
+        }
       ]
     },
     {
@@ -52,60 +101,121 @@
       "inline": true,
       "match": "events.html",
       "children": [
-        { "label": "Upcoming Events", "href": "events.html#upcoming" },
-        { "label": "Past Events", "href": "events.html#past" }
+        {
+          "label": "Upcoming Events",
+          "href": "events.html#upcoming"
+        },
+        {
+          "label": "Past Events",
+          "href": "events.html#past"
+        }
       ]
     },
     {
       "label": "Our Programs",
       "inline": false,
       "children": [
-        { "label": "Fintech Female Fridays", "href": "fintech-female-fridays.html" },
-        { "label": "Co-founder Matching", "href": "co-founder-matching.html" },
-        { "label": "Inspiring Fintech Females", "href": "inspiring-fintech-females.html" }
+        {
+          "label": "Fintech Female Fridays",
+          "href": "fintech-female-fridays.html"
+        },
+        {
+          "label": "Co-founder Matching",
+          "href": "co-founder-matching.html"
+        },
+        {
+          "label": "Inspiring Fintech Females",
+          "href": "inspiring-fintech-females.html"
+        }
       ]
     },
     {
       "label": "About",
       "inline": false,
       "children": [
-        { "label": "Meet the Team", "href": "meet-the-team.html" },
-        { "label": "Become a Member", "href": "{membershipUrl}" },
-        { "label": "Sponsor", "href": "#" }
+        {
+          "label": "Meet the Team",
+          "href": "meet-the-team.html"
+        },
+        {
+          "label": "Become a Member",
+          "href": "{membershipUrl}"
+        },
+        {
+          "label": "Sponsor",
+          "href": "index.html#partner"
+        }
       ]
     }
   ],
-
   "footer": {
     "tagline": "A community of {memberCount} women shaping the future of financial services across NYC, San Francisco, and Chicago.",
     "columns": [
       {
         "heading": "Events",
         "links": [
-          { "label": "Events", "href": "events.html" },
-          { "label": "Past Events", "href": "events.html#past" },
-          { "label": "Inspiring Fintech Females", "href": "inspiring-fintech-females.html" },
-          { "label": "Fintech Female Fridays", "href": "fintech-female-fridays.html" }
+          {
+            "label": "Events",
+            "href": "events.html"
+          },
+          {
+            "label": "Past Events",
+            "href": "events.html#past"
+          },
+          {
+            "label": "Inspiring Fintech Females",
+            "href": "inspiring-fintech-females.html"
+          },
+          {
+            "label": "Fintech Female Fridays",
+            "href": "fintech-female-fridays.html"
+          }
         ]
       },
       {
         "heading": "Community",
         "links": [
-          { "label": "Co-founder Matching", "href": "co-founder-matching.html" },
-          { "label": "Meet the Team", "href": "meet-the-team.html" },
-          { "label": "Inspiring Fintech Females", "href": "inspiring-fintech-females.html" },
-          { "label": "New York", "href": "new-york.html" },
-          { "label": "San Francisco", "href": "san-francisco.html" },
-          { "label": "Chicago", "href": "chicago.html" }
+          {
+            "label": "Co-founder Matching",
+            "href": "co-founder-matching.html"
+          },
+          {
+            "label": "Meet the Team",
+            "href": "meet-the-team.html"
+          },
+          {
+            "label": "New York",
+            "href": "new-york.html"
+          },
+          {
+            "label": "San Francisco",
+            "href": "san-francisco.html"
+          },
+          {
+            "label": "Chicago",
+            "href": "chicago.html"
+          }
         ]
       },
       {
         "heading": "Get involved",
         "links": [
-          { "label": "Become a Member", "href": "{membershipUrl}" },
-          { "label": "Sponsor", "href": "#" },
-          { "label": "Contact", "href": "#" },
-          { "label": "LinkedIn", "href": "#" }
+          {
+            "label": "Become a Member",
+            "href": "{membershipUrl}"
+          },
+          {
+            "label": "Sponsor",
+            "href": "index.html#partner"
+          },
+          {
+            "label": "Contact",
+            "href": "mailto:info@nycfintechwomen.com"
+          },
+          {
+            "label": "LinkedIn",
+            "href": "https://www.linkedin.com/company/nyc-fintech-women/"
+          }
         ]
       }
     ],
