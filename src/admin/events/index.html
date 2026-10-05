@@ -10,7 +10,10 @@
   /* This page's own. One column, because an event is a flat form: the
      editor's preview and output panes would both have nothing to show. */
   .column { width: min(680px, 100%); margin: 0 auto; padding: 0 0 48px; }
-  .row { display: flex; gap: 12px; }
+  /* Bottom-aligned because the time field's label is visually hidden and so
+     adds no height: top-aligned, its input would float above the date beside
+     it. Aligning the bottoms keeps the pair level however labels render. */
+  .row { display: flex; gap: 12px; align-items: flex-end; }
   .row > .field { flex: 1; min-width: 0; }
   .img-row { display: flex; gap: 14px; align-items: flex-start; }
   .img-thumb {
