@@ -151,3 +151,42 @@ test('publishing a jpg cover with "keep original" unchecked is not refused by th
   // i.e. never show the "keep original" refusal message.
   assert.ok(!/keep original/i.test(doc.getElementById('publish-status').textContent));
 });
+
+/* A post with no isoDate still publishes and still appears on its own listing
+   page, so the omission is invisible -- it only shows up as a post missing
+   from the homepage, which renders collections.fff.slice(0, 3) and sorts on
+   isoDate descending. A blank one sorts last and never makes that slice.
+   Caught in production on 2026-10-04, when the FFF field's help text still
+   described it as "for SEO only. Not displayed." */
+test('a new post defaults both dates to today', async () => {
+  const doc = await loadEditor('fff');
+  const now = new Date();
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  const expected = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+  assert.equal(doc.getElementById('f-isoDate').value, expected,
+    'a new post must carry today as its ISO date, or it cannot reach the homepage');
+  assert.ok(doc.getElementById('f-date').value,
+    'the displayed date must be filled in too, so the card is not dateless');
+});
+
+test('publishing with the ISO date cleared is refused, no network call', async () => {
+  const doc = await loadEditor('fff');
+
+  const nameInput = doc.getElementById('f-name');
+  nameInput.value = 'Guard Test';
+  nameInput.fire('input');
+
+  const iso = doc.getElementById('f-isoDate');
+  iso.value = '';
+  iso.fire('input');
+
+  let fetchCalled = false;
+  globalThis.fetch = async () => { fetchCalled = true; return { ok: true, json: async () => ({}) }; };
+
+  doc.getElementById('btn-publish').fire('click');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(fetchCalled, false, 'a post with no ISO date must never reach the network');
+});

@@ -40,11 +40,33 @@ var $ = function (id) { return document.getElementById(id); };
    re-validated when something other than its own input changed it. */
 var fieldEls = {};
 
+/* Local date, not UTC: "today" has to mean the author's today, or a post
+   written in the evening in New York is dated tomorrow. The month names live
+   inside the function because emptyModel() runs during module init, before a
+   module-level `var` would have been assigned. */
+function todayParts() {
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var d = new Date();
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  return {
+    iso: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()),
+    display: months[d.getMonth()] + ' ' + d.getDate()
+  };
+}
+
 function emptyModel() {
   var m = { type: typeKey, blocks: [] };
   def.fields.forEach(function (f) { m[f.key] = ''; });
   m.coverPath = '';
   m.gradient = 'g1';
+  /* isoDate orders the collection and the homepage renders only the first
+     three, so a post published without one sorts last and never appears there
+     -- with nothing on screen to say so. Both dates default to today; the
+     author can change them, and buildPostObject refuses a blank ISO date. */
+  var today = todayParts();
+  if (Object.prototype.hasOwnProperty.call(m, 'isoDate')) m.isoDate = today.iso;
+  if (Object.prototype.hasOwnProperty.call(m, 'date')) m.date = today.display;
   return m;
 }
 
@@ -1051,6 +1073,10 @@ function buildPostObject() {
      would publish as an empty headline and an empty card. Refuse it here,
      where the author can see the field, rather than letting the file out. */
   if (!postTitle(m)) { toast('Add a post title — this post type has no default title.'); return null; }
+  /* Without this the post still publishes and still appears on its listing,
+     so the omission is invisible until someone notices it is missing from the
+     homepage. Catch it here, where the field is on screen. */
+  if (!m.isoDate) { toast('Add the ISO date — without it the post never reaches the homepage.'); return null; }
   var bad = badSlugChars(m.slug);
   if (bad.length) { toast(SLUG_MESSAGE + bad.join(' ')); return null; }
   var post = Object.assign({}, m, { type: typeKey, displayDate: m.date });
