@@ -36,24 +36,31 @@ logo: "chi"
   @media (max-width: 560px) { .leader-grid { grid-template-columns: 1fr; } }
   .leader-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; transition: transform .25s, box-shadow .25s; }
   .leader-card:hover { transform: translateY(-4px); box-shadow: 0 16px 44px rgba(59,13,58,0.10); }
+  .leader-card:hover .leader-photo img { filter: none; }
+  .leader-card:hover .leader-photo::after { opacity: 0; }
   .leader-photo { aspect-ratio: 1/1; position: relative; display: flex; align-items: flex-end; padding: 14px; }
   .leader-photo::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.18) 100%); }
+  /* The duotone wash the team page gives every portrait, so a chapter lead is
+     not the one full-colour face on the site. The gradient comes from the card's
+     own .gN class, which also paints this ::after; it clears on hover, as there. */
+  .leader-photo::after { content: ""; position: absolute; inset: 0; mix-blend-mode: multiply; opacity: 0.7; transition: opacity .35s ease; pointer-events: none; }
   .leader-photo .ph-note { position: relative; z-index: 1; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.85); opacity: 0.7; }
   /* Real headshot where we have one. It sits under ::before so the existing
      bottom gradient still darkens the foot of the card. */
-  .leader-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .leader-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1) contrast(1.05); transition: filter .35s ease; }
   /* and initials where we do not -- a card reading "PHOTO" looks unfinished,
      which is exactly what a launch should not look like. */
-  .leader-initials { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 44px; color: #fff; letter-spacing: 0.04em; }
+  .leader-initials { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 600; font-size: 44px; color: #fff; letter-spacing: 0.04em; }
   .leader-info { padding: 18px 20px 20px; }
   .leader-info .nm { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--plum); margin: 0 0 4px; }
   .leader-info .rl { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 12px; }
   .leader-info .li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--pink-deep); transition: color .2s; }
   .leader-info .li:hover { color: var(--pink); }
   .leader-info .li svg { width: 14px; height: 14px; }
-  .g1 { background: linear-gradient(160deg, #ff7eb9 0%, #e0257b 100%); }
-  .g3 { background: linear-gradient(160deg, #c084fc 0%, #7e22ce 100%); }
-  .g7 { background: linear-gradient(160deg, #5b1e5c 0%, #3b0d3a 100%); }
+  .g5, .g5::after { background: linear-gradient(160deg, #fda4af 0%, #be123c 100%); }
+  .g1, .g1::after { background: linear-gradient(160deg, #ff7eb9 0%, #e0257b 100%); }
+  .g3, .g3::after { background: linear-gradient(160deg, #c084fc 0%, #7e22ce 100%); }
+  .g7, .g7::after { background: linear-gradient(160deg, #5b1e5c 0%, #3b0d3a 100%); }
   .archive-section { padding: 88px 0; }
   .archive-list { background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
   .archive-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--line); transition: background .2s; }
@@ -145,7 +152,7 @@ logo: "chi"
     </div>
     <div class="leader-grid">
       <article class="leader-card">
-        <div class="leader-photo g7"><img src="images/team/shana-leyva.jpg" alt="Shana Leyva" loading="lazy"></div>
+        <div class="leader-photo g5"><img src="images/team/shana-leyva.jpg" alt="Shana Leyva" loading="lazy"></div>
         <div class="leader-info">
           <h3 class="nm">Shana Leyva</h3>
           <div class="rl">Chicago Chapter Chair</div>
@@ -156,7 +163,7 @@ logo: "chi"
         </div>
       </article>
       <article class="leader-card">
-        <div class="leader-photo g3"><img src="images/team/andrew-harrison.jpg" alt="Andrew Harrison" loading="lazy"></div>
+        <div class="leader-photo g1"><img src="images/team/andrew-harrison.jpg" alt="Andrew Harrison" loading="lazy"></div>
         <div class="leader-info">
           <h3 class="nm">Andrew Harrison</h3>
           <div class="rl">Chicago Chapter Chair</div>
