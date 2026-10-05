@@ -13,19 +13,11 @@ import { normalizeEntry } from '/lib/event-entry.mjs';
 import { slugify } from '/lib/slug.mjs';
 import { authHeaders, handleUnauthorized, isSignedIn, startClerk } from '../admin-session.js';
 import { openDrawer, closeDrawer, drawerIsOpen } from '../admin-drawer.js';
+import { $, setStatus } from '../dom.js';
 
 window.WIF_EVENTS = true;
 
 var MAX_IMAGE_BYTES = 3000000;
-
-function $(id) { return document.getElementById(id); }
-
-function setStatus(target, message, tone) {
-  var el = typeof target === 'string' ? $(target) : target;
-  if (!el) return;
-  el.textContent = message || '';
-  el.className = 'status-line' + (message && tone ? ' is-' + tone : '');
-}
 
 /* ------------------------------------------------------------------ dates */
 

@@ -2,14 +2,7 @@
    token on every request and is what decides; the signed-in flag here only
    drives what each page's UI offers. */
 
-function $(id) { return document.getElementById(id); }
-
-function setStatus(target, message, tone) {
-  var el = typeof target === 'string' ? $(target) : target;
-  if (!el) return;
-  el.textContent = message || '';
-  el.className = 'status-line' + (message && tone ? ' is-' + tone : '');
-}
+import { $, setStatus } from './dom.js';
 
 var clerk = null;
 var signedIn = false;

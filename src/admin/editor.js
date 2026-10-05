@@ -10,6 +10,7 @@ import { slugify, isUrlSafe, badSlugChars } from './text.js';
 import { TYPES, BLOCK_LABELS, BLOCK_FIELDS, blankBlock } from './types.js';
 import { authHeaders, handleUnauthorized, isSignedIn, startClerk, currentUser } from './admin-session.js';
 import { openDrawer, closeDrawer, drawerIsOpen } from './admin-drawer.js';
+import { $, setStatus } from './dom.js';
 
 var typeKey = (new URLSearchParams(location.search).get('type')) || 'fff';
 if (!TYPES[typeKey] || !POST_TYPES[typeKey]) typeKey = 'fff';
@@ -31,8 +32,6 @@ var previewTimer = null;
    correctly publishes as a create instead of overwriting the post it was
    opened from -- a new title means a new address. */
 var openedSlug = null;
-
-var $ = function (id) { return document.getElementById(id); };
 
 /* Field key -> the elements renderFields built for it, so a field can be
    re-validated when something other than its own input changed it. */
@@ -76,17 +75,6 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(function () { el.classList.remove('show'); }, 1800);
-}
-
-/* Status text alone cannot tell you whether something worked: 'Published.'
-   and 'Publishing failed.' render identically as grey copy. Every status goes
-   through here so the tone — busy, ok, error — carries a colour and a glyph
-   from .status-line as well as the wording. */
-function setStatus(el, text, tone) {
-  var node = typeof el === 'string' ? $(el) : el;
-  if (!node) return;
-  node.textContent = text;
-  node.className = 'status-line' + (tone ? ' is-' + tone : '');
 }
 
 function autoGrow(el) {
@@ -714,8 +702,10 @@ function isAdminUser() {
   return !!(user && user.publicMetadata && user.publicMetadata.role === 'admin');
 }
 
-/* Runs only when the signed-in state flips (see render() above), so someone
-   promoted to admin mid-session sees nothing until they sign out and in. */
+/* Runs only when the signed-in state flips -- admin-session.js calls this
+   through onSignedInChange, and only after its own render() guard -- so
+   someone promoted to admin mid-session sees nothing until they sign out and
+   back in. */
 function renderAdminTools(isAdmin) {
   $('admin-tools').hidden = !isAdmin;
   if (isAdmin) loadAuthors();

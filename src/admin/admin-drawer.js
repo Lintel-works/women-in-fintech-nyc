@@ -1,7 +1,7 @@
 /* Slide-in drawers shared by the admin pages. Nothing here knows about Clerk:
    each page opens its account drawer and its own list drawer through this. */
 
-function $(id) { return document.getElementById(id); }
+import { $ } from './dom.js';
 
 /* Which drawer is open, and what opened it -- closing returns focus to the
    control the author came from rather than always to the account button. */
