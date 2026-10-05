@@ -142,3 +142,86 @@ test('the co-founder schema matches the fields the page actually posts', () => {
     ['name', 'email', 'role', 'chapter', 'vision', 'skills', 'looking', 'stage', 'commitment']
   );
 });
+
+/* ---------------------------------------------------------- membership form */
+
+const member = () => ({
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+  email: 'ada@example.com',
+  jobTitle: 'Engineer',
+  experience: '10 - 15 years',
+  company: 'Analytical Engines',
+  companyType: 'Early Stage Startup',
+  status: 'Employed',
+  role: 'Engineering',
+  city: 'New York City',
+  madeHire: 'Yes (Wonderful!)',
+  foundJob: 'No (If you\'re looking for talent, we know some amazing women)',
+  heardFrom: 'Word of mouth',
+  support: ['Networking Opportunities', 'Job Search'],
+  speaking: 'Happy to speak on engineering panels.',
+  testimonial: 'The best room in fintech.',
+  subscribe: 'Yes',
+  comments: 'See you at the next one.'
+});
+
+test('a complete membership submission is accepted', () => {
+  const r = validateSubmission('membership', member());
+  assert.equal(r.ok, true);
+  assert.equal(r.replyTo, 'ada@example.com');
+});
+
+test('the membership subject carries both name fields, not "undefined"', () => {
+  const r = validateSubmission('membership', member());
+  assert.equal(r.subject, 'Membership — Ada Lovelace');
+  assert.ok(!r.subject.includes('undefined'));
+});
+
+test('membership requires first name, last name and email', () => {
+  for (const key of ['firstName', 'lastName', 'email']) {
+    const body = member();
+    delete body[key];
+    const r = validateSubmission('membership', body);
+    assert.equal(r.ok, false, `${key} should be required`);
+  }
+});
+
+test('membership requires at least one support option', () => {
+  const body = member();
+  body.support = [];
+  const r = validateSubmission('membership', body);
+  assert.equal(r.ok, false);
+  assert.match(r.message, /at least one/i);
+});
+
+test('an absent support list is refused the same way an empty one is', () => {
+  const body = member();
+  delete body.support;
+  assert.equal(validateSubmission('membership', body).ok, false);
+});
+
+test('the optional membership fields may all be absent', () => {
+  const r = validateSubmission('membership', {
+    firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com',
+    support: ['Mentorship Support']
+  });
+  assert.equal(r.ok, true);
+});
+
+test('every membership answer reaches the email body', () => {
+  const body = member();
+  const text = renderText('membership', validateSubmission('membership', body).fields);
+  for (const label of ['First name', 'Last name', 'Email', 'Job title', 'Testimonial', 'Comments']) {
+    assert.ok(text.includes(label + ':'), `${label} missing from the email`);
+  }
+  assert.ok(text.includes('Networking Opportunities, Job Search'), 'support list not joined');
+});
+
+test('the co-founder subject is unchanged by the subjectFields default', () => {
+  assert.equal(validateSubmission('co-founder', good()).subject, 'Co-founder matching — Jane Doe');
+});
+
+test('both form kinds are registered', () => {
+  assert.deepEqual(Object.keys(FORM_KINDS).sort(), ['co-founder', 'membership']);
+});
