@@ -48,6 +48,21 @@ active: "meet-the-team.html"
   .g5, .g5::after { background: linear-gradient(160deg, #fda4af 0%, #be123c 100%); }
   .g6, .g6::after { background: linear-gradient(160deg, #93c5fd 0%, #4f46e5 100%); }
   .g7, .g7::after { background: linear-gradient(160deg, #5b1e5c 0%, #3b0d3a 100%); }
+  /* Past volunteers: name and title only, no headshot. The list runs long and
+     is read as a record rather than browsed as faces, so a compact row beats a
+     portrait grid -- and a former volunteer's photo is the one most likely to
+     be years out of date. */
+  .team-roster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .team-roster { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .team-roster { grid-template-columns: 1fr; } }
+  .roster-item { display: flex; align-items: baseline; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; text-decoration: none; color: inherit; transition: border-color .2s, box-shadow .2s; }
+  /* Scoped to the anchor, as with .team-card above: an entry with no LinkedIn
+     is not a link and must not offer the affordance of one. */
+  a.roster-item:hover { border-color: var(--pink); box-shadow: 0 8px 24px rgba(59,13,58,0.07); }
+  .roster-item .who { min-width: 0; }
+  .roster-item .nm { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--plum); margin: 0 0 2px; }
+  .roster-item .rl { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .roster-li { margin-left: auto; flex: none; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pink-deep); }
   .join-team { background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); border-radius: 28px; padding: 56px; text-align: center; margin-top: 72px; }
   .join-team h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -0.02em; color: var(--plum); margin: 0 0 14px; }
   .join-team p { color: var(--muted); font-size: 17px; max-width: 540px; margin: 0 auto 26px; line-height: 1.6; }
@@ -78,16 +93,30 @@ active: "meet-the-team.html"
 <div class="team-photo {{ member.gradient }}">{% if member.linkedin %}<span class="tag-li">in</span>{% endif %}{% if member.photo %}<img src="{{ member.photo }}" alt="{{ member.name }}" loading="lazy">{% else %}<span class="team-initials" aria-hidden="true">{{ member.name | initials }}</span>{% endif %}</div><div class="team-info"><h3 class="nm">{{ member.name }}</h3><div class="rl">{{ member.role }}</div></div>
 {%- endmacro -%}
 
+{#- The photo-less form, for a group whose layout is "list". Same anchor-vs-div
+    rule as card() above. -#}
+{%- macro rosterRow(member) -%}
+<div class="who"><h3 class="nm">{{ member.name }}</h3><div class="rl">{{ member.role }}</div></div>{% if member.linkedin %}<span class="roster-li">in</span>{% endif %}
+{%- endmacro -%}
+
 <section class="section" style="padding-top: 8px;">
   <div class="wrap">
     {%- for group in team.groups %}
     <div class="team-block">
       <div class="block-head"><h2>{{ group.heading | safe }}</h2><span class="count">{{ group.subtitle }}</span></div>
+      {%- if group.layout == "list" %}
+      <div class="team-roster">
+        {%- for member in team.members %}{% if member.group == group.id %}
+        {% if member.linkedin %}<a class="roster-item" href="{{ member.linkedin }}" target="_blank" rel="noopener">{{ rosterRow(member) }}</a>{% else %}<div class="roster-item">{{ rosterRow(member) }}</div>{% endif %}
+        {%- endif %}{% endfor %}
+      </div>
+      {%- else %}
       <div class="team-grid{{ group.gridModifier }}">
         {%- for member in team.members %}{% if member.group == group.id %}
         {% if member.linkedin %}<a class="team-card" href="{{ member.linkedin }}" target="_blank" rel="noopener">{{ card(member) }}</a>{% else %}<div class="team-card">{{ card(member) }}</div>{% endif %}
         {%- endif %}{% endfor %}
       </div>
+      {%- endif %}
     </div>
 
     {%- endfor %}
