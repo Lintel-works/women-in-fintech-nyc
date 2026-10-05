@@ -279,3 +279,36 @@ details[open] > summary { margin-bottom: 16px; }
   border-radius: 999px; padding: 2px 8px;
 }
 .pill-muted { color: var(--muted); background: transparent; }
+
+/* The destructive section is tinted so it cannot be mistaken for the
+   neighbouring informational ones when it is open. */
+details.sec-danger > summary { color: var(--danger); }
+details.sec-danger > summary:hover { color: var(--danger); opacity: .8; }
+details.sec-danger[open] {
+  background: var(--danger-soft); border-bottom-color: var(--danger-line);
+}
+
+/* A row in a list drawer: published posts in the editor, added events on the
+   events page. The row itself opens the thing, so the target is the whole row
+   rather than a small control, and a destructive action sits apart from it. */
+.post-row {
+  display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid var(--line);
+}
+.post-row:first-child { border-top: 0; }
+.post-open {
+  flex: 1; min-width: 0; display: block; text-align: left;
+  font: inherit; background: none; border: 0; cursor: pointer;
+  padding: 10px 8px; margin: 0 -8px; border-radius: 8px;
+  transition: background .15s;
+}
+.post-open:hover { background: var(--soft); }
+.post-open:focus-visible { outline: 2px solid var(--pink); outline-offset: -2px; }
+.post-open strong {
+  display: block; font-size: 13.5px; font-weight: 600; color: var(--plum);
+  overflow-wrap: anywhere;
+}
+.post-meta {
+  display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted);
+  font-family: var(--font-mono); overflow-wrap: anywhere;
+}

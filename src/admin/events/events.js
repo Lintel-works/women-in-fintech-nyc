@@ -63,6 +63,23 @@ function isoWithOffset(dateValue, timeValue, zone) {
   return dateValue + 'T' + time + ':00' + offsetFor(zone, settled);
 }
 
+/* The stored ISO carries an offset, so the instant is unambiguous -- but the
+   form edits a WALL-CLOCK time in the event's own zone. Reading it back with
+   getHours() would give the viewer's zone, so an author in London editing a
+   New York event would see 11pm, "correct" it, and move the event. */
+function partsInZone(iso, zone) {
+  var fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  });
+  var p = {};
+  fmt.formatToParts(new Date(iso)).forEach(function (part) { p[part.type] = part.value; });
+  /* en-CA gives hour "24" for midnight in some engines; the form wants "00". */
+  var hour = p.hour === '24' ? '00' : p.hour;
+  return { date: p.year + '-' + p.month + '-' + p.day, time: hour + ':' + p.minute };
+}
+
 /* ------------------------------------------------------------------- form */
 
 var cover = { file: null, base64: '', ext: '', blobUrl: '' };
@@ -179,13 +196,16 @@ function onCoverChosen() {
 
 async function addEvent() {
   var entry = readForm();
+  /* The slug field is disabled while editing, but the filename is what the
+     endpoint keys on, so it comes from the opened event, not the field. */
+  if (openedSlug) entry.slug = openedSlug;
   var problem = validate(entry);
   if (problem) { setStatus('add-status', problem, 'error'); return; }
 
   $('btn-add').disabled = true;
-  setStatus('add-status', 'Adding the event…', 'busy');
+  setStatus('add-status', openedSlug ? 'Saving…' : 'Adding the event…', 'busy');
 
-  var payload = { mode: 'create', event: entry };
+  var payload = { mode: openedSlug ? 'update' : 'create', event: entry };
   if (cover.base64) payload.image = { base64: cover.base64, ext: cover.ext };
 
   try {
@@ -197,15 +217,27 @@ async function addEvent() {
     var result = await response.json().catch(function () { return {}; });
     if (!response.ok) {
       if (response.status === 401) handleUnauthorized();
-      setStatus('add-status', result.message || 'Adding the event failed. Nothing was changed.', 'error');
+      setStatus('add-status', result.message ||
+        (openedSlug ? 'Saving failed. Nothing was changed.' : 'Adding the event failed. Nothing was changed.'), 'error');
       updateAvailability();
       return;
     }
-    setStatus('add-status',
-      'Added. It appears on the site once the deploy finishes, a minute or two from now.', 'ok');
-    resetForm();
+    if (openedSlug) {
+      /* Kept populated: the author is mid-edit, and the cover they just
+         chose is now committed, so the file input is cleared rather than
+         re-sent on the next save. */
+      setStatus('add-status', 'Saved. The change is live once the deploy finishes.', 'ok');
+      $('img-file').value = '';
+      onCoverChosen();
+    } else {
+      setStatus('add-status',
+        'Added. It appears on the site once the deploy finishes, a minute or two from now.', 'ok');
+      resetForm();
+      setOpened('');
+    }
+    loadEvents();
   } catch (error) {
-    setStatus('add-status', 'Adding the event failed. Check your connection and try again.', 'error');
+    setStatus('add-status', 'The request failed. Check your connection and try again.', 'error');
   }
   updateAvailability();
 }
@@ -216,9 +248,175 @@ function resetForm() {
     $(id).value = '';
   });
   $('f-membersOnly').checked = false;
+  /* An opened event may have left these on a non-default value. */
+  ['f-city', 'f-locationType', 'f-timezone'].forEach(function (id) {
+    $(id).selectedIndex = 0;
+  });
   $('img-file').value = '';
   onCoverChosen();
   refresh();
+}
+
+/* ---------------------------------------------------------- open and remove */
+
+/* The event this session has actually opened, or '' for a new one.
+ *
+ * This is what decides mode, and it is set ONLY by opening an event from the
+ * drawer or cleared by setOpened('') -- never by what is typed in the address
+ * field. An author who types an existing address into a new event gets the
+ * 409 from api/add-event.js, which is the correct answer: it is a different
+ * event that happens to want a taken name.
+ */
+var openedSlug = '';
+var loadedEvents = [];
+
+function setOpened(slug) {
+  openedSlug = slug || '';
+  $('edit-status').textContent = openedSlug ? 'Editing ' + openedSlug : 'New event';
+  /* The slug is the filename, so changing it on an existing event would write
+     a second file and leave the first -- one event silently becoming two.
+     Renaming is remove-then-add, which is honest: a renamed event is a new
+     address. */
+  $('f-slug').disabled = !!openedSlug;
+  $('f-slug').title = openedSlug
+    ? 'An event\'s address cannot change. Remove it and add it again under the new name.' : '';
+  $('remove-panel').hidden = !openedSlug;
+  $('remove-panel').open = false;
+  $('remove-confirm').value = '';
+  $('btn-remove').disabled = true;
+  setStatus('remove-status', '');
+  $('btn-add').textContent = openedSlug ? 'Save changes' : 'Add this event';
+}
+
+async function loadEvents() {
+  setStatus('events-status', 'Loading…', 'busy');
+  $('events-list').innerHTML = '';
+  try {
+    var response = await fetch('/api/manual-events', { headers: await authHeaders() });
+    var result = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      if (response.status === 401) handleUnauthorized();
+      setStatus('events-status', response.status === 401
+        ? 'Sign in to see the events you have added.'
+        : (result.message || 'The list could not be loaded.'), 'error');
+      return;
+    }
+    setStatus('events-status', '');
+    loadedEvents = result.events || [];
+    renderEvents(loadedEvents);
+  } catch (error) {
+    setStatus('events-status', 'The list could not be loaded. Check your connection.', 'error');
+  }
+}
+
+function renderEvents(events) {
+  var list = $('events-list');
+  list.innerHTML = '';
+  if (!events.length) {
+    list.innerHTML = '<p class="empty-note">No events added yet.</p>';
+    return;
+  }
+  events.forEach(function (event) {
+    var row = document.createElement('div');
+    row.className = 'post-row';
+    var open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'post-open';
+    open.innerHTML = '<strong></strong><span class="post-meta"></span>';
+    open.querySelector('strong').textContent = event.name || event.slug;
+    var when = event.startAt ? new Date(event.startAt).toLocaleString() : 'no date';
+    open.querySelector('.post-meta').textContent = event.slug + ' · ' + when +
+      (event.over ? ' · over' : '') + (event.broken ? ' · invalid' : '');
+    open.addEventListener('click', function () { openEvent(event.slug); });
+    row.appendChild(open);
+    list.appendChild(row);
+  });
+}
+
+function selectHas(id, value) {
+  return Array.prototype.some.call($(id).options, function (option) {
+    return option.value === value;
+  });
+}
+
+/* Opened from the LIST's own data rather than re-fetching the file: the list
+   came from the branch a moment ago, and each row carries its whole entry. */
+function openEvent(slug) {
+  var row = loadedEvents.filter(function (item) { return item.slug === slug; })[0];
+  if (!row) return;
+  var entry = row.entry || {};
+  var notes = [];
+
+  $('f-name').value = entry.name || '';
+  /* The filename is authoritative; a hand-written file may have no slug. */
+  $('f-slug').value = row.slug;
+  $('f-url').value = entry.url || '';
+  $('f-place').value = entry.place || '';
+  $('f-city').value = selectHas('f-city', entry.city) ? entry.city : 'other';
+  $('f-locationType').value =
+    entry.locationType === 'offline' || entry.locationType === 'zoom' ? entry.locationType : 'offline';
+  $('f-membersOnly').checked = entry.membersOnly === true;
+  $('f-tags').value = (entry.tags || []).join(', ');
+  $('f-coverUrl').value = entry.coverUrl || '';
+  /* The file input is left alone: a cover already committed is not
+     re-uploaded, and the endpoint carries coverPath forward on its own. */
+
+  var zone = selectHas('f-timezone', entry.timezone) ? entry.timezone : 'America/New_York';
+  if (zone !== entry.timezone) {
+    notes.push('This event\'s time zone (' + (entry.timezone || 'none') +
+      ') is not one this form offers, so it is shown in New York time. Check the times before saving.');
+  }
+  $('f-timezone').value = zone;
+
+  var start = entry.startAt ? partsInZone(entry.startAt, zone) : { date: '', time: '' };
+  var end = entry.endAt ? partsInZone(entry.endAt, zone) : { date: '', time: '' };
+  $('f-start-date').value = start.date;
+  $('f-start-time').value = start.time;
+  $('f-end-date').value = end.date;
+  $('f-end-time').value = end.time;
+
+  if (row.broken) {
+    notes.push('The stored event is invalid. Saving will correct it.');
+  }
+
+  setOpened(slug);
+  refresh();
+  setStatus('add-status', notes.join(' '), notes.length ? 'error' : '');
+  closeDrawer();
+}
+
+/* The confirm field matches against the slug this session actually opened,
+   not against anything typed elsewhere -- the editor's rule, for the same
+   reason: the point is to make the author name what they are destroying. */
+function onConfirmInput() {
+  $('btn-remove').disabled = !openedSlug || slugify($('remove-confirm').value) !== openedSlug;
+}
+
+async function removeEvent() {
+  if (!openedSlug || slugify($('remove-confirm').value) !== openedSlug) return;
+  $('btn-remove').disabled = true;
+  setStatus('remove-status', 'Removing…', 'busy');
+  try {
+    var response = await fetch('/api/remove-event', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ slug: openedSlug })
+    });
+    var result = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      if (response.status === 401) handleUnauthorized();
+      setStatus('remove-status', result.message || 'Removing the event failed. Nothing was changed.', 'error');
+      onConfirmInput();
+      return;
+    }
+    resetForm();
+    setOpened('');
+    setStatus('add-status', 'Removed. It comes off the site once the deploy finishes.', 'ok');
+    loadEvents();
+  } catch (error) {
+    setStatus('remove-status', 'Removing the event failed. Check your connection.', 'error');
+    onConfirmInput();
+  }
 }
 
 /* ------------------------------------------------------------------- auth */
@@ -378,6 +576,18 @@ window.addEventListener('DOMContentLoaded', function () {
   });
   $('img-file').addEventListener('change', onCoverChosen);
   $('btn-add').addEventListener('click', addEvent);
+  $('btn-new').addEventListener('click', function () {
+    resetForm();
+    setOpened('');
+    setStatus('add-status', '');
+  });
+  $('btn-open-event').addEventListener('click', function () {
+    openDrawer('events-drawer', 'btn-open-event');
+    loadEvents();
+  });
+  $('btn-events-close').addEventListener('click', closeDrawer);
+  $('remove-confirm').addEventListener('input', onConfirmInput);
+  $('btn-remove').addEventListener('click', removeEvent);
   $('btn-account').addEventListener('click', function () {
     openDrawer('account-drawer', 'btn-account');
   });
@@ -386,5 +596,6 @@ window.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && drawerIsOpen()) closeDrawer();
   });
+  setOpened('');
   refresh();
 });

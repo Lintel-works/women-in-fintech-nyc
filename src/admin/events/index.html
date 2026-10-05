@@ -37,6 +37,11 @@
   <div class="bar-group">
     <a class="btn btn-sm" href="../">Post editor</a>
   </div>
+  <div class="bar-group" role="group" aria-label="Events">
+    <span class="status" id="edit-status">New event</span>
+    <button type="button" class="btn btn-sm" id="btn-new">New event</button>
+    <button type="button" class="btn btn-sm" id="btn-open-event">Open event</button>
+  </div>
   <div class="bar-group">
     <button type="button" class="btn btn-sm" id="btn-account">Sign in</button>
   </div>
@@ -55,6 +60,24 @@
       <div id="clerk-auth"></div>
       <p id="signin-status" class="status-line" role="status"></p>
     </section>
+  </div>
+</aside>
+
+<!-- The events already added. "Open event" opens this rather than a file
+     picker: an author signed in here has no clone of the repository. The list
+     is read from the branch, not from the last deploy, so an event added a
+     moment ago is already in it. -->
+<aside id="events-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="events-drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="events-drawer-title">Events you have added</h2>
+    <button type="button" class="btn-icon" id="btn-events-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sticky">
+      <p id="events-status" class="status-line" role="status"></p>
+      <p class="hint">Events that have finished are still listed &mdash; the site hides them, but the file stays until it is removed.</p>
+    </div>
+    <div id="events-list"></div>
   </div>
 </aside>
 
@@ -188,6 +211,17 @@
     <button type="button" class="btn btn-pink" id="btn-add" disabled title="Sign in to add an event">Add this event</button>
     <span class="hint">It appears on the site once the deploy finishes, a minute or two later.</span>
   </section>
+
+  <details id="remove-panel" class="sec sec-danger" hidden>
+    <summary>Remove this event</summary>
+    <p class="hint">This takes the event off the site, along with a cover uploaded here. It cannot be undone. Type the event's address to confirm.</p>
+    <div class="field field-spaced">
+      <label for="remove-confirm">Event address <span class="req">*</span></label>
+      <input id="remove-confirm" type="text" class="mono" autocomplete="off" placeholder="the-event-address" />
+    </div>
+    <button id="btn-remove" type="button" class="btn btn-sm btn-danger" disabled>Remove</button>
+    <p id="remove-status" class="status-line" role="status"></p>
+  </details>
 
 </div>
 
