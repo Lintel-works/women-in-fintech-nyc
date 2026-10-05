@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -22,6 +22,20 @@ import { normalizeManualEvents } from '../lib/manual-events.mjs';
 
 const REAL_DIR = new URL('../src/_data/manual-events/', import.meta.url);
 const REAL_BEFORE = fs.readdirSync(REAL_DIR).sort();
+
+/* Every test in this file runs against an empty directory unless withManual()
+   says otherwise. Without this, a test that calls the handler with no
+   fixtures falls through to the real directory and starts failing the moment
+   a real event is committed. Only the two tests that name REAL_DIR read it. */
+const EMPTY_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'events-handler-empty-'));
+const ENV_BEFORE = process.env.MANUAL_EVENTS_DIR;
+process.env.MANUAL_EVENTS_DIR = EMPTY_DIR;
+
+after(() => {
+  if (ENV_BEFORE === undefined) delete process.env.MANUAL_EVENTS_DIR;
+  else process.env.MANUAL_EVENTS_DIR = ENV_BEFORE;
+  fs.rmSync(EMPTY_DIR, { recursive: true, force: true });
+});
 
 /* Far enough out that they never expire, and listed out of order so the
    merge has something real to sort. */
