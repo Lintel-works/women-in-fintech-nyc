@@ -359,14 +359,19 @@ function fieldsFromRow(row) {
   var entry = row.entry && typeof row.entry === 'object' ? row.entry : {};
   var notes = [];
   var zone = selectHas('f-timezone', entry.timezone) ? entry.timezone : 'America/New_York';
-  if (zone !== entry.timezone) {
-    notes.push('This event\'s time zone (' + (text(entry.timezone) || 'none') +
-      ') is not one this form offers, so it is shown in New York time. Check the times before saving.');
-  }
   var start = safeParts(entry.startAt, zone);
   var end = safeParts(entry.endAt, zone);
+  /* Collected in the order the author would act on them and shown together;
+     an event can have several problems at once. */
   if (!start.date) {
     notes.push('The stored start time is unreadable, so it is blank here. Choose one; saving will correct it.');
+  }
+  /* An absent time zone is normal -- lib/event-entry.mjs defaults it to New
+     York -- so only one that is PRESENT and unrepresentable is worth saying:
+     showing New York time for it could really mislead. */
+  if (text(entry.timezone) && zone !== entry.timezone) {
+    notes.push('This event\'s time zone (' + text(entry.timezone) +
+      ') is not one this form offers, so it is shown in New York time. Check the times before saving.');
   }
   if (row.broken) {
     notes.push('The stored event is invalid. Saving will correct it.');
