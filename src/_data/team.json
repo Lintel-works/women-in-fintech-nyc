@@ -2,9 +2,15 @@
   "groups": [
     {
       "id": "founders",
-      "heading": "Founders &amp; chairs",
+      "heading": "Co-founders",
       "subtitle": "The core team",
-      "gridModifier": " five"
+      "gridModifier": ""
+    },
+    {
+      "id": "chairs",
+      "heading": "Chairs",
+      "subtitle": "Leading each area",
+      "gridModifier": ""
     },
     {
       "id": "committee",
@@ -37,25 +43,26 @@
       "gradient": "g2"
     },
     {
-      "name": "Ratika Gandhi",
-      "role": "Professional Development Chair",
-      "group": "founders",
-      "photo": "images/team/ratika-gandhi.jpg",
-      "linkedin": "https://www.linkedin.com/in/ratikagandhi",
+      "name": "Filippa Noghani",
+      "role": "Marketing Chair",
+      "group": "chairs",
+      "photo": "images/team/filippa-noghani.jpg",
+      "linkedin": "https://www.linkedin.com/in/fnoghani",
       "gradient": "g3"
     },
     {
-      "name": "Filippa Noghani",
-      "role": "Marketing Chair",
-      "group": "founders",
-      "photo": "images/team/filippa-noghani.jpg",
-      "linkedin": "https://www.linkedin.com/in/fnoghani",
+      "name": "Ratika Gandhi",
+      "role": "Professional Development Chair",
+      "group": "chairs",
+      "photo": "images/team/ratika-gandhi.jpg",
+      "linkedin": "https://www.linkedin.com/in/ratikagandhi",
       "gradient": "g4"
     },
     {
       "name": "Shana Leyva",
       "role": "Chicago Chapter Chair",
-      "group": "founders",
+      "group": "chairs",
+      "linkedin": "https://www.linkedin.com/in/shanaleyva",
       "gradient": "g5"
     },
     {
@@ -70,12 +77,14 @@
       "name": "Hanane Bouchareb",
       "role": "Committee Member",
       "group": "committee",
+      "linkedin": "https://www.linkedin.com/in/hanane-bouchareb-15512235",
       "gradient": "g7"
     },
     {
       "name": "Andrew Harrison",
       "role": "Committee Member",
       "group": "committee",
+      "linkedin": "https://www.linkedin.com/in/harrisonandrewr",
       "gradient": "g1"
     },
     {
@@ -89,12 +98,14 @@
       "name": "Manvir Singh",
       "role": "FFF Committee Member",
       "group": "committee",
+      "linkedin": "https://www.linkedin.com/in/manvir-singh",
       "gradient": "g3"
     },
     {
       "name": "Simran Deshpande",
       "role": "Marketing and Design Committee Member",
       "group": "committee",
+      "linkedin": "https://www.linkedin.com/in/simran-deshpande-9709b6264",
       "gradient": "g4"
     },
     {
@@ -131,7 +142,7 @@
     },
     {
       "name": "Jacqueline Tran",
-      "role": "Co-Founder Matching · Marketing Committee",
+      "role": "Co-Founder Matching · Marketing Committee Member",
       "group": "alumni",
       "photo": "images/team/jacqueline-tran.jpg",
       "linkedin": "https://www.linkedin.com/in/jacqueline--tran",
