@@ -25,17 +25,19 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
+  /* Before the configuration check: a refusal there would tell an
+     unauthenticated caller whether the site is misconfigured. */
+  const { refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
+  }
+
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
   if (!owner || !repo) {
     console.error('Listing events is not configured: missing GITHUB_OWNER/GITHUB_REPO');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
-  }
-
-  const { refusal } = authenticateClerkRequest(request);
-  if (refusal) {
-    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   try {
@@ -45,26 +47,30 @@ export default async function handler(request, response) {
       .sort();
 
     const now = new Date();
-    const events = [];
-    for (const name of names) {
+    /* Concurrent: the latency is all round trips, and this is a function with
+       a timeout. Promise.all keeps the sorted order of `names`. */
+    const rows = await Promise.all(names.map(async (name) => {
       let entry;
       try {
         entry = JSON.parse(await getFileContent({ token, owner, repo, branch, path: `${DIR}/${name}` }));
       } catch (error) {
-        /* One unreadable file must not cost the whole list -- the same
-           guarantee lib/manual-events.mjs holds for the calendar. */
+        /* Only a file somebody hand-edited into nonsense is skipped. A
+           transport failure (revoked credential, GitHub 5xx, rate limit) must
+           reach the handler below, or the author gets a 200 with a silently
+           short list -- worse than an error in an edit flow. */
+        if (error && (error.code === 'auth' || error.code === 'github')) throw error;
         console.warn(`manual events: skipping ${name} -- ${error && error.message}`);
-        continue;
+        return null;
       }
       if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
         console.warn(`manual events: skipping ${name} -- it does not hold a single event object`);
-        continue;
+        return null;
       }
       /* `over` is computed here rather than in the browser so the page and the
          site agree on when an event retires: normalizeEntry() is the only
          thing that decides that, and it says so by returning `expired`. */
       const verdict = normalizeEntry(entry, now, 1);
-      events.push({
+      return {
         slug: name.replace(/\.json$/, ''),
         name: typeof entry.name === 'string' ? entry.name : '(unnamed)',
         startAt: entry.startAt || null,
@@ -80,8 +86,9 @@ export default async function handler(request, response) {
            already authenticated. It also carries the fields the form does not
            show, so a save cannot silently drop them. */
         entry
-      });
-    }
+      };
+    }));
+    const events = rows.filter(Boolean);
     return response.status(200).json({ events });
   } catch (error) {
     if (error.code === 'auth') {

@@ -33,7 +33,7 @@ const DIR = 'src/_data/manual-events';
 
 /* `files` are committed objects, `rawFiles` are literal text; the directory
    listing also carries a .gitkeep and a sub-directory, as the real one does. */
-function fakeGithub({ files = {}, rawFiles = {}, failWith = null, listing = null }) {
+function fakeGithub({ files = {}, rawFiles = {}, failWith = null, listing = null, failFileWith = null, failFile = null }) {
   const texts = { ...rawFiles };
   for (const [name, entry] of Object.entries(files)) texts[name] = JSON.stringify(entry);
   const reply = (status, body) => ({ ok: status < 400, status, json: async () => body });
@@ -48,15 +48,17 @@ function fakeGithub({ files = {}, rawFiles = {}, failWith = null, listing = null
       ]);
     }
     const name = path.slice(DIR.length + 1);
+    if (failFileWith && name === failFile) return reply(failFileWith, {});
     if (name in texts) return reply(200, { content: Buffer.from(texts[name]).toString('base64') });
     return reply(404, {});
   };
 }
 
-async function get({ token = true, method = 'GET', ...github } = {}) {
+async function get({ token = true, method = 'GET', env = {}, ...github } = {}) {
   const savedFetch = globalThis.fetch;
   const savedEnv = {};
   for (const key of Object.keys(ENV)) { savedEnv[key] = process.env[key]; process.env[key] = ENV[key]; }
+  for (const [key, value] of Object.entries(env)) process.env[key] = value;
   globalThis.fetch = fakeGithub(github);
   const res = {
     statusCode: null, body: null, headers: {},
@@ -152,4 +154,43 @@ test('a GitHub failure costs the list, not the page, and leaks nothing', async (
 test('a POST is refused', async () => {
   const response = await get({ method: 'POST' });
   assert.equal(response.status, 405);
+});
+
+const GOOD = (slug) => ({ name: slug, slug, startAt: '2099-12-01T18:00:00-05:00', url: 'https://example.com/g' });
+
+test('a revoked credential on the listing is a 503, not a 502', async () => {
+  const response = await get({ failWith: 403 });
+  assert.equal(response.status, 503);
+  assert.match(response.json.message, /GitHub access is not working/);
+});
+
+test('a credential that fails part-way through the files is a 503, not a short list', async () => {
+  const response = await get({
+    files: { 'a.json': GOOD('a'), 'b.json': GOOD('b') },
+    failFile: 'b.json', failFileWith: 403
+  });
+  assert.equal(response.status, 503);
+  assert.match(response.json.message, /GitHub access is not working/);
+  assert.equal(response.json.events, undefined);
+});
+
+test('a GitHub 500 part-way through the files is a 502, not a short list', async () => {
+  const response = await get({
+    files: { 'a.json': GOOD('a'), 'b.json': GOOD('b') },
+    failFile: 'b.json', failFileWith: 500
+  });
+  assert.equal(response.status, 502);
+  assert.equal(response.json.events, undefined);
+});
+
+test('events keep their sorted order however the fetches finish', async () => {
+  const response = await get({ files: { 'c.json': GOOD('c'), 'a.json': GOOD('a'), 'b.json': GOOD('b') } });
+  assert.deepEqual(response.json.events.map((e) => e.slug), ['a', 'b', 'c']);
+});
+
+test('an unauthenticated caller learns nothing about configuration', async () => {
+  const saved = process.env.GITHUB_OWNER;
+  const response = await get({ token: false, env: { GITHUB_OWNER: '' } });
+  assert.equal(response.status, 401);
+  assert.equal(process.env.GITHUB_OWNER, saved);
 });
