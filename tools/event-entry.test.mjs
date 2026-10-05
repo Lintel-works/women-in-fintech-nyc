@@ -90,3 +90,64 @@ test('a manual event still has exactly the fields it had before', () => {
     'name', 'place', 'startAt', 'tags', 'timezone', 'url'
   ]);
 });
+
+/* The COVER_PATH regex is the only control between a submitted string and a
+   repository path, so what it refuses is pinned case by case. */
+const coverError = (coverPath) => normalizeEntry(valid({ coverPath }), NOW, 1).error;
+
+test('a coverPath with a backslash is refused', () => {
+  assert.match(coverError('images\\a.jpg'), /coverPath/);
+  assert.match(coverError('images/a\\b.jpg'), /coverPath/);
+});
+
+test('a control character anywhere in a coverPath is refused', () => {
+  for (const bad of ['images/a\0.jpg', 'images/a\t.jpg', 'images/a\r.jpg', 'images/a\0b.jpg', 'images/a.jpg\0']) {
+    assert.match(coverError(bad), /coverPath/, JSON.stringify(bad));
+  }
+});
+
+test('a trailing newline is trimmed away, and the trimmed value is what is emitted', () => {
+  const { event } = normalizeEntry(valid({ coverPath: 'images/a.jpg\n' }), NOW, 1);
+  assert.equal(event.coverUrl, 'images/a.jpg');
+});
+
+test('a whitespace-only coverPath is refused', () => {
+  assert.match(coverError('   '), /coverPath/);
+});
+
+test('an empty or absent coverPath is not an error', () => {
+  for (const extra of [{ coverPath: '' }, { coverPath: null }, {}]) {
+    const result = normalizeEntry(valid(extra), NOW, 1);
+    assert.equal(result.error, undefined);
+    assert.equal(result.event.coverUrl, null);
+  }
+});
+
+test('a .jpeg coverPath is accepted', () => {
+  const { event } = normalizeEntry(valid({ coverPath: 'images/event-a.jpeg' }), NOW, 1);
+  assert.equal(event.coverUrl, 'images/event-a.jpeg');
+});
+
+/* An end before the start would retire the event at that earlier instant, so
+   it would vanish before it happened. */
+test('an endAt before the startAt is refused', () => {
+  const result = normalizeEntry(valid({ startAt: '2026-07-01T18:00:00Z', endAt: '2026-07-01T00:00:00Z' }), NOW, 1);
+  assert.match(result.error, /end time is before the start time/);
+  assert.equal(result.event, undefined);
+});
+
+test('an endAt equal to the startAt is accepted as a zero-length event', () => {
+  const { event, error } = normalizeEntry(valid({ startAt: future, endAt: future }), NOW, 1);
+  assert.equal(error, undefined);
+  assert.equal(event.endAt, new Date(future).toISOString());
+});
+
+test('an endAt after the startAt is accepted', () => {
+  const { event } = normalizeEntry(valid({ endAt: '2026-07-01T21:00:00Z' }), NOW, 1);
+  assert.equal(event.endAt, '2026-07-01T21:00:00.000Z');
+});
+
+test('no endAt is still accepted', () => {
+  const { event } = normalizeEntry(valid(), NOW, 1);
+  assert.equal(event.endAt, null);
+});

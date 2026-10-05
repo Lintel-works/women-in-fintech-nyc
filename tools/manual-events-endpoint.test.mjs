@@ -194,3 +194,24 @@ test('an unauthenticated caller learns nothing about configuration', async () =>
   assert.equal(response.status, 401);
   assert.equal(process.env.GITHUB_OWNER, saved);
 });
+
+test('no GitHub credential at all is a 503 "not set up", not a 502', async () => {
+  const response = await get({ env: { GITHUB_TOKEN: '' }, files: {} });
+  assert.equal(response.status, 503);
+  assert.match(response.json.message, /not set up/);
+});
+
+test('an unusable App private key is a 503 naming the key, not a 502', async () => {
+  const appEnv = { GITHUB_APP_ID: '1', GITHUB_INSTALLATION_ID: '2', GITHUB_APP_PRIVATE_KEY: 'not a real pem' };
+  const saved = {};
+  for (const key of Object.keys(appEnv)) saved[key] = process.env[key];
+  try {
+    const response = await get({ env: { GITHUB_TOKEN: '', ...appEnv }, files: {} });
+    assert.equal(response.status, 503);
+    assert.match(response.json.message, /key could not be read/);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});

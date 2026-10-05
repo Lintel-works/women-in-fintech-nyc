@@ -121,3 +121,16 @@ test('an expired event in a file is dropped without a warning', () => {
   assert.equal(result.length, 1);
   assert.equal(messages.length, 0, 'an event being over is not a mistake');
 });
+
+test('MANUAL_EVENTS_DIR being set is warned about on every load', () => {
+  const dir = dirWith({}).pathname;
+  const previous = process.env.MANUAL_EVENTS_DIR;
+  process.env.MANUAL_EVENTS_DIR = dir;
+  try {
+    const { messages } = quiet(() => loadManualEvents(NOW));
+    assert.ok(messages.some((m) => m.includes('MANUAL_EVENTS_DIR is set')), messages.join('\n'));
+  } finally {
+    if (previous === undefined) delete process.env.MANUAL_EVENTS_DIR;
+    else process.env.MANUAL_EVENTS_DIR = previous;
+  }
+});

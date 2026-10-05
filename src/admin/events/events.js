@@ -114,6 +114,19 @@ function readForm() {
   return entry;
 }
 
+/* An end the form would otherwise mangle or discard without saying so. A date
+   with no time must not become midnight, which precedes the start and would
+   retire the event before it happens; a time with no date is dropped by
+   isoWithOffset(), so the author is told rather than left to assume it was
+   kept. */
+function endProblem() {
+  var date = $('f-end-date').value;
+  var time = $('f-end-time').value;
+  if (date && !time) return 'Add an end time as well as the end date, or clear the end date.';
+  if (time && !date) return 'An end time needs an end date. Add the date, or clear the time; otherwise the end is ignored.';
+  return '';
+}
+
 /* What the build would say about this event, asked of the build's own code. */
 function validate(entry) {
   if (!entry.startAt) return 'Choose a start date.';
@@ -199,7 +212,7 @@ async function addEvent() {
   /* The slug field is disabled while editing, but the filename is what the
      endpoint keys on, so it comes from the opened event, not the field. */
   if (openedSlug) entry.slug = openedSlug;
-  var problem = validate(entry);
+  var problem = endProblem() || validate(entry);
   if (problem) { setStatus('add-status', problem, 'error'); return; }
 
   $('btn-add').disabled = true;
@@ -365,6 +378,9 @@ function fieldsFromRow(row) {
      an event can have several problems at once. */
   if (!start.date) {
     notes.push('The stored start time is unreadable, so it is blank here. Choose one; saving will correct it.');
+  }
+  if (text(entry.endAt) && !end.date) {
+    notes.push('The stored end time is unreadable, so it is blank here. Choose one, or leave it blank; saving will correct it.');
   }
   /* An absent time zone is normal -- lib/event-entry.mjs defaults it to New
      York -- so only one that is PRESENT and unrepresentable is worth saying:

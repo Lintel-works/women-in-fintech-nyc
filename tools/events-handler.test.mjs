@@ -31,7 +31,16 @@ const EMPTY_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'events-handler-empty-')
 const ENV_BEFORE = process.env.MANUAL_EVENTS_DIR;
 process.env.MANUAL_EVENTS_DIR = EMPTY_DIR;
 
+/* This file sets the override on purpose, and the loader warns about it on
+   every call. Only that warning is dropped, so any other warning still shows. */
+const realWarn = console.warn;
+console.warn = (...args) => {
+  if (String(args[0]).startsWith('MANUAL_EVENTS_DIR is set')) return;
+  realWarn(...args);
+};
+
 after(() => {
+  console.warn = realWarn;
   if (ENV_BEFORE === undefined) delete process.env.MANUAL_EVENTS_DIR;
   else process.env.MANUAL_EVENTS_DIR = ENV_BEFORE;
   fs.rmSync(EMPTY_DIR, { recursive: true, force: true });

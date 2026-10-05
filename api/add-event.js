@@ -56,6 +56,13 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'method_not_allowed' });
   }
 
+  /* Before the configuration check: a refusal there would tell an
+     unauthenticated caller whether the site is misconfigured. */
+  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
+  if (refusal) {
+    return response.status(refusal.status).json({ message: refusal.message });
+  }
+
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
@@ -64,11 +71,6 @@ export default async function handler(request, response) {
   if (!owner || !repo || !hasGithubCredential) {
     console.error('Publishing is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
-  }
-
-  const { email: authorEmail, refusal } = authenticateClerkRequest(request);
-  if (refusal) {
-    return response.status(refusal.status).json({ message: refusal.message });
   }
 
   const payload = typeof request.body === 'object' && request.body ? request.body : {};
@@ -217,7 +219,10 @@ export default async function handler(request, response) {
      cover, and losing it silently is worse than any error this file reports.
      Taken from the LIVE file rather than the client's copy, which may be a
      stale draft -- the rule api/unpublish.js follows for the same field. */
-  const liveCover = live && typeof live.coverPath === 'string' ? live.coverPath : '';
+  /* Trimmed, as api/remove-event.js and api/unpublish.js do: the normaliser's
+     sitePath() trims, so " images/x.jpg" is a valid cover to the renderer and
+     must be recognised as one here too. */
+  const liveCover = live && typeof live.coverPath === 'string' ? live.coverPath.trim() : '';
   if (!ext && !entry.coverUrl && liveCover) {
     entry.coverPath = liveCover;
     /* Re-validated rather than trusted: the live file may have been edited by

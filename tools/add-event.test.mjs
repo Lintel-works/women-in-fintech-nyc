@@ -443,13 +443,16 @@ const APP_ENV = { GITHUB_APP_ID: '1', GITHUB_INSTALLATION_ID: '999' };
 async function postWithAppCredentials(payload, privateKeyValue) {
   const saved = {};
   for (const key of [...Object.keys(APP_ENV), 'GITHUB_APP_PRIVATE_KEY', 'GITHUB_TOKEN']) saved[key] = process.env[key];
-  Object.assign(process.env, APP_ENV, { GITHUB_APP_PRIVATE_KEY: privateKeyValue });
   const fetches = [];
-  const result = await post(payload, { appCredentials: true, onFetch: (url) => fetches.push(url) });
-  for (const [key, value] of Object.entries(saved)) {
-    if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  try {
+    Object.assign(process.env, APP_ENV, { GITHUB_APP_PRIVATE_KEY: privateKeyValue });
+    const result = await post(payload, { appCredentials: true, onFetch: (url) => fetches.push(url) });
+    return { ...result, fetches };
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
   }
-  return { ...result, fetches };
 }
 
 test('a bad image never causes a credential to be minted', async () => {
@@ -478,4 +481,28 @@ test('an unusable App private key is a 503 naming the key, not a leak', async ()
   assert.equal(response.status, 503);
   assert.match(response.json.message, /key could not be read/);
   assertNoLeak(response);
+});
+
+test('an update recognises a live coverPath with stray whitespace as the conventional cover', async () => {
+  const path = 'src/_data/manual-events/fintech-forward-with-svb.json';
+  const { commits } = await post(
+    updateBody({ mode: 'update', image: { base64: Buffer.from('bytes').toString('base64'), ext: 'png' } }),
+    { existingPaths: [path], liveFiles: { [path]: JSON.stringify({
+      slug: 'fintech-forward-with-svb',
+      coverPath: ' images/event-fintech-forward-with-svb.jpg'
+    }) } });
+  assert.ok(commits[0].files.some((f) => f.path === 'src/images/event-fintech-forward-with-svb.jpg' && f.delete),
+    'an untrimmed live cover must not orphan the old image');
+});
+
+test('an update keeps a live coverPath that has a leading space', async () => {
+  const path = 'src/_data/manual-events/fintech-forward-with-svb.json';
+  const { commits } = await post(
+    updateBody({ mode: 'update' }),
+    { existingPaths: [path], liveFiles: { [path]: JSON.stringify({
+      slug: 'fintech-forward-with-svb',
+      coverPath: ' images/event-fintech-forward-with-svb.jpg'
+    }) } });
+  assert.equal(JSON.parse(commits[0].files[0].content).coverPath,
+    'images/event-fintech-forward-with-svb.jpg');
 });

@@ -35,8 +35,10 @@ export default async function handler(request, response) {
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const branch = process.env.GITHUB_BRANCH || 'main';
-  if (!owner || !repo) {
-    console.error('Listing events is not configured: missing GITHUB_OWNER/GITHUB_REPO');
+  const hasGithubCredential = !!process.env.GITHUB_TOKEN ||
+    !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY && process.env.GITHUB_INSTALLATION_ID);
+  if (!owner || !repo || !hasGithubCredential) {
+    console.error('Listing events is not configured: missing GITHUB_OWNER/GITHUB_REPO, or no usable GitHub credential');
     return response.status(503).json({ message: 'Publishing is not set up on this site yet.' });
   }
 
@@ -91,6 +93,10 @@ export default async function handler(request, response) {
     const events = rows.filter(Boolean);
     return response.status(200).json({ events });
   } catch (error) {
+    if (error.code === 'key') {
+      console.error("The site's GitHub private key could not be used", error);
+      return response.status(503).json({ message: error.message });
+    }
     if (error.code === 'auth') {
       console.error('GitHub rejected the credential');
       return response.status(503).json({ message: "The site's GitHub access is not working — contact the site owner." });
