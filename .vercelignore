@@ -1,2 +1,5 @@
 design/
 tools/
+.worktrees/
+.playwright-mcp/
+_site/
