@@ -57,7 +57,7 @@ harness still has teeth by injecting one character and requiring it to be
 caught.
 
 The baseline is a git tag, read with `git show <tag>:<file>`, so no copy of the
-built pages sits in the working tree. The current tag is `baseline-2026-10-05c`,
+built pages sits in the working tree. The current tag is `baseline-2026-10-05d`,
 a parentless commit holding only those 272 pages — the pages are generated into
 the gitignored `_site/` now, so there is no ordinary commit to compare against.
 The earlier `pre-eleventy` tag is kept for history; it pointed at a real commit

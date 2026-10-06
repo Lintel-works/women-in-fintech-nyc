@@ -263,7 +263,9 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
+      {%- if home.hero.pill %}
       <div class="pill"><span class="pulse"></span> {{ home.hero.pill }}</div>
+      {%- endif %}
       <h1>{{ home.hero.headline | safe }}</h1>
       <p>{{ home.hero.body | replace("{memberCount}", "" ~ site.memberCount.display ~ site.memberCount.plus) }}</p>
       <div class="hero-ctas">
