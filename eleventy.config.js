@@ -11,6 +11,7 @@
  */
 import { POST_TYPES, sortedPostsOfType } from './lib/post-types.mjs';
 import { buildPostsIndex } from './lib/posts-index.mjs';
+import { absoluteUrl } from './lib/render-blocks.mjs';
 
 export default function (eleventyConfig) {
   // The editor is a standalone app. Keep Eleventy out of it entirely, or its
@@ -112,6 +113,11 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter('selfLink', (href, selfPage) =>
     selfPage && href.startsWith(selfPage + '#') ? href.slice(selfPage.length) : href
   );
+
+  /* The sitemap needs absolute URLs, and the origin it prefixes already exists
+     in render-blocks.mjs for post canonicals and OG tags. Exposed as a filter
+     rather than copied into the template so there is one origin to change. */
+  eleventyConfig.addFilter('absoluteUrl', absoluteUrl);
 
   /* Initials for a team member with no headshot yet -- src/meet-the-team.html
      prints them over the card's gradient instead of an <img> pointing at a

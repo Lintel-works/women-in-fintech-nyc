@@ -1,0 +1,43 @@
+---
+permalink: "/sitemap.xml"
+eleventyExcludeFromCollections: true
+---
+{#- Every page the site wants crawled, built from collections.all rather than a
+    hand-kept list: a new post or page is in the sitemap the moment it builds,
+    and a page that stops building leaves on its own.
+
+    Three kinds of entry are filtered out, each for its own reason:
+      - `url` falsy -- `permalink: false` pages (happenings.html) are held back
+        deliberately and must not be advertised
+      - not ending in .html -- posts-index.json and admin/clerk-config.js are
+        machine endpoints, not pages
+      - /admin/ and /brand.html -- robots.txt already disallows both, and a
+        sitemap entry for a disallowed URL is a contradictory signal to Google
+
+    The homepage needs its own clause. Every other page's url ends in .html,
+    but Eleventy normalises index.html's url to "/", so an .endsWith(".html")
+    test alone drops the homepage from the sitemap without saying so. "/" is
+    also the right thing to publish: it is the address the domain resolves to
+    and the one Google will settle on as canonical, and the top-level pages
+    carry no <link rel="canonical"> of their own to say otherwise. Posts do,
+    and post.canonicalAttr agrees with what absoluteUrl produces here.
+
+    lastmod is printed only for posts, which carry a real isoDate. The
+    top-level pages have no trustworthy modification date -- Eleventy would
+    offer file mtime, which changes on an unrelated edit and would tell search
+    engines a page changed when its content did not. An absent lastmod is
+    treated as "unknown", which is accurate; a wrong one is worse than none. -#}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for item in collections.all %}
+{%- set url = item.url %}
+{%- if url and (url == "/" or url.endsWith(".html")) and not url.startsWith("/admin/") and url != "/brand.html" %}
+  <url>
+    <loc>{{ url | absoluteUrl }}</loc>
+{%- if item.data.isoDate %}
+    <lastmod>{{ item.data.isoDate }}</lastmod>
+{%- endif %}
+  </url>
+{%- endif %}
+{%- endfor %}
+</urlset>
