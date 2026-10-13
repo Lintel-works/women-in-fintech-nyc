@@ -17,12 +17,1507 @@
       "source": "/admin/events",
       "destination": "/admin/events/",
       "permanent": false
+    },
+    {
+      "source": "/2022-inspiring-fintech-females",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/2023-inspiring-fintech-females",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/2024-inspiring-fintech-females",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/2025-inspiring-fintech-females",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/becomeamember",
+      "destination": "/become-a-member.html",
+      "permanent": true
+    },
+    {
+      "source": "/book-online",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/cofounder-matching",
+      "destination": "/co-founder-matching.html",
+      "permanent": true
+    },
+    {
+      "source": "/contact",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/copy-of-inspiring-fintech-females-202",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/copy-of-inspiring-fintech-females-2021",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/copy-of-inspiring-fintech-females-2023",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/events",
+      "destination": "/events.html",
+      "permanent": true
+    },
+    {
+      "source": "/get-involved",
+      "destination": "/become-a-member.html",
+      "permanent": true
+    },
+    {
+      "source": "/iff2021",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiring-fintech-females",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiring-fintech-females-2020",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiring-fintech-females-2022",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiring-fintech-females/inspiring-fintech-females-2025",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiringfintechfemales2019",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiringfintechfemales2020",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/inspiringfintechfemales2024",
+      "destination": "/inspiring-fintech-females.html",
+      "permanent": true
+    },
+    {
+      "source": "/jobs-and-happenings",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/meet-the-team",
+      "destination": "/meet-the-team.html",
+      "permanent": true
+    },
+    {
+      "source": "/news",
+      "destination": "/fintech-female-fridays.html",
+      "permanent": true
+    },
+    {
+      "source": "/pastevents",
+      "destination": "/events.html#past",
+      "permanent": true
+    },
+    {
+      "source": "/s-projects-side-by-side",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/survey",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/talkofhertownpodcast",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/upcoming-events",
+      "destination": "/events.html#upcoming",
+      "permanent": true
+    },
+    {
+      "source": "/post/female-fridays-mareike-turner-director-of-client-service-payability",
+      "destination": "/fff-mareike-turner.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-adrienne-valencia-garcia-senior-blockchain-counsel-and-ibm-executive",
+      "destination": "/fff-adrienne-valencia-garcia.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-alice-cheng-ceo-of-taxdrop",
+      "destination": "/fff-alice-cheng.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-aliyah-schultz-global-merchant-strategy-manager-visa",
+      "destination": "/fff-aliyah-schultz.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-anastasia-s-tarpeh-ellis-special-projects-backstage-capital",
+      "destination": "/fff-anastasia-s-tarpeh-ellis.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-aneta-waberska-head-of-compliance-ocrolus",
+      "destination": "/fff-aneta-waberska.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-annelise-osborne-evp-factora",
+      "destination": "/fff-annelise-osborne.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-annie-destefano-vice-president-relationship-manager-silicon-valley-bank",
+      "destination": "/fff-annie-destefano.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-ashley-paston-investor-bain-capital-ventures",
+      "destination": "/fff-ashley-paston.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-ayesha-ofori-ceo-founder-at-propelle",
+      "destination": "/fff-ayesha-ofori.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-barbara-zhan-vice-president-quantitative-research-two-sigma",
+      "destination": "/fff-barbara-zhan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-benita-mordi-artificial-intelligence-and-edge-strategist-delltechnologies",
+      "destination": "/fff-benita-mordi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-candace-wanner-marketplace-director-equityzen",
+      "destination": "/fff-candace-wanner.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-cat-hernandez-operating-partner-primary-ventures",
+      "destination": "/fff-cat-hernandez.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-catherine-martin-u-s-head-of-legal-oaknorth",
+      "destination": "/fff-catherine-martin.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-charity-mhende-marketing-and-communications-anthemis-group",
+      "destination": "/fff-charity-mhende.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-charlotte-guy-product-manager-lukka-inc",
+      "destination": "/fff-charlotte-guy.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-cheryl-campos-director-of-growth-and-partnerships-republic",
+      "destination": "/fff-cheryl-campos.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-chloe-chong-software-engineer-handy-hq",
+      "destination": "/fff-chloe-chong.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-christen-chen-senior-manager-partnerships-credit-karma",
+      "destination": "/fff-christen-chen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-christina-mcgeorge-vp-solutions-d3-bank",
+      "destination": "/fff-christina-mcgeorge.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-christine-chang-ceo-6th-avenue-capital",
+      "destination": "/fff-christine-chang.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-cristina-pascalau-vp-software-developer-bank-of-america",
+      "destination": "/fff-cristina-pascalau.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-dale-laszig-managing-director-at-dsl-direct-llc",
+      "destination": "/fff-dale-laszig.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-deborah-peace-ceo-and-founder-of-ach-alert",
+      "destination": "/fff-deborah-peace.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-deepa-sathaye-engineer-airswap",
+      "destination": "/fff-deepa-sathaye.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-devika-tampi-senior-manager-innovation-ecosystem-fidelity-investments",
+      "destination": "/fff-devika-tampi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-donna-parisi-global-head-financial-services-fintech-shearman-sterling",
+      "destination": "/fff-donna-parisi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-eliane-tchikanda-director-of-banking-operations-stash",
+      "destination": "/fff-eliane-tchikanda.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-elizaveta-chistyakova-fintech-investor-at-centana-growth-partners",
+      "destination": "/fff-elizaveta-chistyakova.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-elle-carter-director-of-partner-success-jetty",
+      "destination": "/fff-elle-carter.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-elsa-chan-head-of-americas-complyadvantage",
+      "destination": "/fff-elsa-chan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-faye-sun-principal-investment-banking-at-broadhaven-capital-partners",
+      "destination": "/fff-faye-sun.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-gabrielle-haddad-co-founder-chief-operating-officer-sigma-ratings",
+      "destination": "/fff-gabrielle-haddad.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-genevieve-dozier-director-of-business-development-at-finova-capital",
+      "destination": "/fff-genevieve-dozier.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-head-of-communications-carolyn-vadino",
+      "destination": "/fff-carolyn-vadino.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-jackie-hyland-angel-investor-advisor-and-head-of-mexico-a55",
+      "destination": "/fff-jackie-hyland.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-jessica-schaefer-ceo-and-founder-of-bevel",
+      "destination": "/fff-jessica-schaefer.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-jillian-williams-investment-principal-anthemis-group",
+      "destination": "/fff-jillian-williams.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-julia-huang-managing-director-amex-ventures",
+      "destination": "/fff-julia-huang.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-karen-rios-co-founder-ceo-lifesaver-inc",
+      "destination": "/fff-karen-rios.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-katie-prentke-english-co-founder-cmo-harness-wealth",
+      "destination": "/fff-katie-prentke-english.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-kelly-hanson-senior-product-marketing-manager-keep-truckin",
+      "destination": "/fff-kelly-hanson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-kelsey-weaver-and-lindsay-lockhart-co-founders-neocova",
+      "destination": "/fff-kelsey-weaver-and-lindsay-lockhart.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-keren-goshen-co-founder-and-coo-metechi",
+      "destination": "/fff-keren-goshen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-kisha-allison-head-of-content-usa-money20-20",
+      "destination": "/fff-kisha-allison.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-krista-edmunds-director-of-business-innovation-barclays",
+      "destination": "/fff-krista-edmunds.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-latoya-joy-westbrook-founder-wealthly",
+      "destination": "/fff-latoya-joy-westbrook.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-lauren-crossett-enterprise-account-executive-plaid",
+      "destination": "/fff-lauren-crossett.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-leigh-blechman-full-stack-developer-alloy",
+      "destination": "/fff-leigh-blechman.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-lindsay-davis-senior-intelligence-analyst-cb-insights",
+      "destination": "/fff-lindsay-davis.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-lisa-mikkelsen-head-of-global-human-capital-flourish-ventures",
+      "destination": "/fff-lisa-mikkelsen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-lolita-taub-venture-partner-nextgen-venture-partners",
+      "destination": "/fff-lolita-taub.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-loretta-mccarthy-managing-partner-golden-seeds",
+      "destination": "/fff-loretta-mccarthy.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-marissa-kim-co-founder-and-partner-mab-capital-management",
+      "destination": "/fff-marissa-kim.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-marketaxess",
+      "destination": "/fff-marketaxess.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-maya-brooks-product-manager-ifundwomen",
+      "destination": "/fff-maya-brooks.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-adina-fischer-fractional-coo-cfo-at-182-west",
+      "destination": "/fff-adina-fischer.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-agnies-watson-co-founder-and-ceo-at-stockperks",
+      "destination": "/fff-agnies-watson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ajitha-ram-executive-director-of-product-at-j-p-morgan-payments",
+      "destination": "/fff-ajitha-ram.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-akita-somani-svp-bnpl-pos-lending-at-u-s-bank-elavon",
+      "destination": "/fff-akita-somani.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alessia-russo-technology-investor-at-insight-partners",
+      "destination": "/fff-alessia-russo.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alexa-catalano-vice-president-strategy-and-operations-at-venn-by-two",
+      "destination": "/fff-alexa-catalano.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alexandra-bono-founder-ceo-at-pelican",
+      "destination": "/fff-alexandra-bono.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alexis-anderson-accelerator-senior-program-manager-at-fis",
+      "destination": "/fff-alexis-anderson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ali-faivus-vp-of-revenue-at-turnkey",
+      "destination": "/fff-ali-faivus.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alice-nawfal-co-founder-coo-at-notabene",
+      "destination": "/fff-alice-nawfal.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alice-wyatt-vp-marketing-at-codat",
+      "destination": "/fff-alice-wyatt.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-alicia-c-tennell-venture-analyst-at-franklin-templeton",
+      "destination": "/fff-alicia-c-tennell.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-amanda-estiverne-colas-board-member-for-the-national-alliance-for-fina",
+      "destination": "/fff-amanda-estiverne-colas.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-amber-buker-founder-and-ceo-of-totem",
+      "destination": "/fff-amber-buker.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-amy-chou-chief-operating-officer-at-addition-wealth",
+      "destination": "/fff-amy-chou.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ana-mahony-founder-and-ceo-addition-wealth",
+      "destination": "/fff-ana-mahony.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-anna-raafat-co-founder-coo-of-inncivio",
+      "destination": "/fff-anna-raafat.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-anneika-patterson-director-of-product-smb-lending-at-ocrolus",
+      "destination": "/fff-anneika-patterson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-annie-bawa-senior-product-manager-at-visa",
+      "destination": "/fff-annie-bawa.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-arden-elizabeth-evenson-founder-strategist-at-firefly-advising",
+      "destination": "/fff-arden-elizabeth-evenson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ashlyn-lackey-director-of-emerging-technology-at-prudential",
+      "destination": "/fff-ashlyn-lackey.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-associate-at-plum-alley-investments-alicia-zheng",
+      "destination": "/fff-alicia-zheng.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-aya-somai-investor-at-new-enterprise-associates",
+      "destination": "/fff-aya-somai.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-brigid-beitel-vp-and-head-of-business-development-at-moneykit",
+      "destination": "/fff-brigid-beitel.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-budget-analyst-and-financial-literacy-consultant-jasmine-paul",
+      "destination": "/fff-jasmine-paul.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-cameron-rogers-financial-advisor-at-ellevest",
+      "destination": "/fff-cameron-rogers.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-and-founder-liang-zhao",
+      "destination": "/fff-liang-zhao.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-at-stellar-development-foundation-denelle-dixon",
+      "destination": "/fff-denelle-dixon.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-co-founder-at-clutch-wallet-rebecca-bec-jones",
+      "destination": "/fff-rebecca-bec-jones.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-co-founder-beatriz-acevedo",
+      "destination": "/fff-beatriz-acevedo.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-co-founder-ennie-lim",
+      "destination": "/fff-ennie-lim.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-founder-at-miren-gabriela-ariana-campoverde",
+      "destination": "/fff-gabriela-ariana-campoverde.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-ceo-juliette-marie-somerset",
+      "destination": "/fff-juliette-marie-somerset.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-cfo-sruthi-lanka",
+      "destination": "/fff-sruthi-lanka.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chair-ceo-founder-of-bm-technologies-inc-bmtx-luvleen-sidhu",
+      "destination": "/fff-luvleen-sidhu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chandrika-maheshwari-founder-and-ceo-at-pull",
+      "destination": "/fff-chandrika-maheshwari.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-executive-officer-at-cohen-circle-amanda-abrams",
+      "destination": "/fff-amanda-abrams.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-marketing-officer-karen-voci",
+      "destination": "/fff-karen-voci.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-operating-officer-at-neuroid-courtney-laabs",
+      "destination": "/fff-courtney-laabs.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-revenue-officer-at-pinwheel-lauren-crossett",
+      "destination": "/fff-lauren-crossett.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-revenue-officer-stacy-bjornstad",
+      "destination": "/fff-stacy-bjornstad.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-risk-officer-at-bluevine-mira-srinivasan",
+      "destination": "/fff-mira-srinivasan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-chief-technology-officer-and-co-founder-at-paysail-nicole-alonso",
+      "destination": "/fff-nicole-alonso.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-and-ceo-at-aura-kelsey-willock",
+      "destination": "/fff-kelsey-willock.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-and-coo-allie-fleder",
+      "destination": "/fff-allie-fleder.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-and-coo-at-vegax-holdings-natasha-bansgopaul",
+      "destination": "/fff-natasha-bansgopaul.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-and-coo-billie-simmons",
+      "destination": "/fff-billie-simmons.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-and-cto-at-leaf-global-fintech-tori-samples",
+      "destination": "/fff-tori-samples.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-at-aura-courtney-cardin",
+      "destination": "/fff-courtney-cardin.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-at-cover-natalie-eva-gray",
+      "destination": "/fff-natalie-eva-gray.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-at-the-gamechangers-tamara-obradov",
+      "destination": "/fff-tamara-obradov.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-coo-at-maiden-century-samrah-kazmi",
+      "destination": "/fff-samrah-kazmi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-head-of-marketing-maya-nijhawan",
+      "destination": "/fff-maya-nijhawan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-julie-verhage-greenberg",
+      "destination": "/fff-julie-verhage-greenberg.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-co-founder-managing-director-at-cap-table-coalition-elizabeth-grier",
+      "destination": "/fff-elizabeth-grier.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-cristina-chirica-partner-at-m-h-llp",
+      "destination": "/fff-cristina-chirica.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-danita-harris-managing-member-director-of-philanthropy",
+      "destination": "/fff-danita-harris.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-dina-ghobrial-co-founder-and-ceo-at-halo-ai",
+      "destination": "/fff-dina-ghobrial.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-dina-samra-director-of-business-development-at-new-york-life-ventures",
+      "destination": "/fff-dina-samra.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-director-of-abundance-at-summit-wealth-erin-colledge",
+      "destination": "/fff-erin-colledge.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-director-of-business-development-at-talos-hillary-conley",
+      "destination": "/fff-hillary-conley.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-dr-angela-murphy-vp-of-marketing-and-solutions-at-pidgin",
+      "destination": "/fff-dr-angela-murphy.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-dr-anwesha-bhattacharjee-director-hotel-pricing-strategy-at-hopper",
+      "destination": "/fff-dr-anwesha-bhattacharjee.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-elizabeth-conrad-executive-director-of-customer-experience-at-chase",
+      "destination": "/fff-elizabeth-conrad.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-erica-matz-vp-of-growth-and-customer-success-at-addition-wealth",
+      "destination": "/fff-erica-matz.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-executive-director-at-jpmorgan-payments-neha-wattas",
+      "destination": "/fff-neha-wattas.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-executive-director-at-msci-melissa-otto",
+      "destination": "/fff-melissa-otto.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-financial-partnerships-operation-manager-nadine-geagea",
+      "destination": "/fff-nadine-geagea.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-fintech-investor-founder-and-gp-at-mendoza-ventures-senofer-mendoza",
+      "destination": "/fff-senofer-mendoza.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-and-ceo-angela-ceresnie",
+      "destination": "/fff-angela-ceresnie.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-and-ceo-dana-l-wilson",
+      "destination": "/fff-dana-l-wilson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-at-kashable-coral-capital-einat-steklov",
+      "destination": "/fff-einat-steklov.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-at-hunter-labs-tech-lydia-ofori",
+      "destination": "/fff-lydia-ofori.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-at-orum-stephany-kirkpatrick",
+      "destination": "/fff-stephany-kirkpatrick.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-at-penelope-jean-kim-smart",
+      "destination": "/fff-jean-kim-smart.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-carmelle-cadet",
+      "destination": "/fff-carmelle-cadet.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-chengchen-li",
+      "destination": "/fff-chengchen-li.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-founder-ceo-tani-chambers",
+      "destination": "/fff-tani-chambers.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-frances-zelazny-ceo-of-anonybit",
+      "destination": "/fff-frances-zelazny.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-global-head-of-diversity-inclusion-and-belonging-supriya-jha",
+      "destination": "/fff-supriya-jha.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-gp-at-flucas-ventures-ashley-flucas",
+      "destination": "/fff-ashley-flucas.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-grace-hahn-senior-associate-at-edison-partners",
+      "destination": "/fff-grace-hahn.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-group-product-manager-at-remote-com-sophia-deng",
+      "destination": "/fff-sophia-deng.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-hannah-wolfberg-director-of-payment-partnerships-at-melio-payments",
+      "destination": "/fff-hannah-wolfberg.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-commercial-bank-products-and-innovation-at-td-bank-jo-jagadish",
+      "destination": "/fff-jo-jagadish.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-customer-success-tracey-hsu",
+      "destination": "/fff-tracey-hsu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-data-science-and-risk-christine-hurtubise",
+      "destination": "/fff-christine-hurtubise.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-product-marketing-at-vise-vered-frank",
+      "destination": "/fff-vered-frank.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-social-impact-lauryn-nwankpa",
+      "destination": "/fff-lauryn-nwankpa.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-solutions-jane-tran",
+      "destination": "/fff-jane-tran.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-head-of-underwriting-solutions-laura-mckiernan-boylan",
+      "destination": "/fff-laura-mckiernan-boylan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-investor-at-anthemis-bukie-adebo-umeano",
+      "destination": "/fff-bukie-adebo-umeano.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-irene-zhou-brush-transfers-gtm-lead-at-plaid",
+      "destination": "/fff-irene-zhou-brush.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-jelena-hoffart-investor-at-9yards-capital",
+      "destination": "/fff-jelena-hoffart.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-jennifer-arnold-co-founder-and-ceo-at-minerva",
+      "destination": "/fff-jennifer-arnold.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-jessie-lam-co-founder-and-managing-partner-at-alinea-ventures",
+      "destination": "/fff-jessie-lam.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-kathleen-peters-chief-innovation-officer-at-experian-decision-analytics",
+      "destination": "/fff-kathleen-peters.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-kathy-kmiotek-director-of-channel-marketing-at-fortis",
+      "destination": "/fff-kathy-kmiotek.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-katrin-kaurov-co-founder-ceo-of-frich",
+      "destination": "/fff-katrin-kaurov.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-kelsey-mcmahon-enterprise-account-executive-at-yext",
+      "destination": "/fff-kelsey-mcmahon.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-kim-snyder-ceo-of-klarivis",
+      "destination": "/fff-kim-snyder.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-klaudette-christensen-executive-vice-president-chief-product-officer",
+      "destination": "/fff-klaudette-christensen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-laura-lehr",
+      "destination": "/fff-laura-lehr.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-laura-lenz-partner-at-omers-ventures",
+      "destination": "/fff-laura-lenz.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-laura-tobak-product-manager-at-bloomberg",
+      "destination": "/fff-laura-tobak.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-laviva-mazhar-principal-at-luge-capital",
+      "destination": "/fff-laviva-mazhar.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-lead-product-manager-carolyn-n-spencer",
+      "destination": "/fff-carolyn-n-spencer.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-linda-kugblenu-vp-product-solutions-specialist-at-j-p-morgan-payment",
+      "destination": "/fff-linda-kugblenu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-luc%C3%ADa-s%C3%A1nchez-le%C3%B3n-chief-growth-officer-at-vangwe",
+      "destination": "/fff-lucia-sanchez-leon.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-luc\u00eda-s\u00e1nchez-le\u00f3n-chief-growth-officer-at-vangwe",
+      "destination": "/fff-lucia-sanchez-leon.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-managing-partner-amee-parbhoo",
+      "destination": "/fff-amee-parbhoo.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-managing-partner-ceo-lisa-feria",
+      "destination": "/fff-lisa-feria.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-marcia-tal-ceo-of-tal-solutions-llc-and-founder-of-positivitytech",
+      "destination": "/fff-marcia-tal.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-maria-anthony-vp-investor-at-vera-equity",
+      "destination": "/fff-maria-anthony.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-marketing-executive-filippa-noghani",
+      "destination": "/fff-filippa-noghani.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-marketing-vp-michelle-o-connor",
+      "destination": "/fff-michelle-oconnor.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-marla-sofer-founder-and-ceo-at-knomee",
+      "destination": "/fff-marla-sofer.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-meitar-landau-head-of-gtm-at-cymphony",
+      "destination": "/fff-meitar-landau.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-meredith-rowley-head-of-accounts-client-strategy-at-the-ricciardi-gro",
+      "destination": "/fff-meredith-rowley.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-mor-grisariu-vp-payments-at-fijoya",
+      "destination": "/fff-mor-grisariu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-mx-chief-advocacy-officer-jane-barratt",
+      "destination": "/fff-jane-barratt.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-partner-at-restive-ventures-cameron-peake",
+      "destination": "/fff-cameron-peake.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-patricia-yun-head-of-digital-commerce-at-td-bank",
+      "destination": "/fff-patricia-yun.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-paula-you-chief-operating-officer-at-gilgamesh-ventures",
+      "destination": "/fff-paula-you.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-perkins-coie-partner-kari-larsen",
+      "destination": "/fff-kari-larsen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-president-joy-schwartz",
+      "destination": "/fff-joy-schwartz.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-principal-at-craft-ventures-jenny-sui",
+      "destination": "/fff-jenny-sui.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-product-executive-at-bank-of-america-rina-bakhti",
+      "destination": "/fff-rina-bakhtiani.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-product-management-director-vesela-radeva",
+      "destination": "/fff-vesela-radeva.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-product-manager-komal-long",
+      "destination": "/fff-komal-long.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-puneet-thiara-co-founder-and-coo-at-peach",
+      "destination": "/fff-puneet-thiara.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-rebecca-saletta-director-of-strategic-partnerships-at-zeti",
+      "destination": "/fff-rebecca-saletta.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-regulatory-compliance-associate-berber-xue",
+      "destination": "/fff-berber-xue.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-rochelle-gorey-co-founder-ceo-at-springfour",
+      "destination": "/fff-rochelle-gorey.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-roxanne-leduc-founder-and-ceo-of-cap-inclusive",
+      "destination": "/fff-roxanne-leduc.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-saaya-nath-partner-at-jump-capital",
+      "destination": "/fff-saaya-nath.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-sam-molozanov-head-of-product-at-templum",
+      "destination": "/fff-sam-molozanov.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-samantha-lassoff-executive-coach-leadership-advisor",
+      "destination": "/fff-samantha-lassoff.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-sara-schmitt-coo-and-co-founder-of-adro",
+      "destination": "/fff-sara-schmitt.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-sarah-carrion-director-of-global-startup-venture-and-open-banking-pa",
+      "destination": "/fff-sarah-carrion.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-sarah-willson-associate-vc-at-panache-ventures",
+      "destination": "/fff-sarah-willson.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-senior-vice-president-at-citi-sarah-mogill",
+      "destination": "/fff-sarah-mogill.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-sharon-ko-chief-product-officer-at-armor-defense",
+      "destination": "/fff-sharon-ko.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-shirley-wu-investor-at-partnership-fund-for-nyc",
+      "destination": "/fff-shirley-wu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-software-engineer-rakhee-singh",
+      "destination": "/fff-rakhee-singh.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-stella-li-lead-product-manager-at-bill",
+      "destination": "/fff-stella-li.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-stephany-kirkpatrick-founder-and-ceo-at-orum",
+      "destination": "/fff-stephany-kirkpatrick.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-supreet-kaur-avp-at-morgan-stanley",
+      "destination": "/fff-supreet-kaur.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-svp-cloud-engineering-at-moodys-corporation-divya-elaty",
+      "destination": "/fff-divya-elaty.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-svp-of-lender-and-partner-strategy-denada-ramnishta",
+      "destination": "/fff-denada-ramnishta.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-team-lead-account-management-joanne-liu",
+      "destination": "/fff-joanne-liu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-tess-bloch-co-founder-operations-at-spade",
+      "destination": "/fff-tess-bloch.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-the-ceo-at-the-rudin-group-april-rudin",
+      "destination": "/fff-april-rudin.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-the-general-counsel-at-climb-credit-alecia-chen",
+      "destination": "/fff-alecia-chen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-the-nyc-fintech-women-team",
+      "destination": "/fff-the-nyc-fintech-women-team.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-the-senior-director-of-communications-at-ripple-chenni-xu",
+      "destination": "/fff-chenni-xu.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-the-svp-product-at-saavymoney-bhavna-guglani",
+      "destination": "/fff-bhavna-guglani.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-tina-zhang-m-a-and-investing-at-stripe",
+      "destination": "/fff-tina-zhang.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-trading-president-allison-bishop",
+      "destination": "/fff-allison-bishop.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-trisha-debdas-srivastava-head-of-operations-at-avantos-ai",
+      "destination": "/fff-trisha-debdas-srivastava.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-uiuc-student-drshika-asher",
+      "destination": "/fff-drshika-asher.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-veronica-genao-business-development-director-at-encompass-corporation",
+      "destination": "/fff-veronica-genao.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-violet-abtahi-founder-ceo-of-platonic",
+      "destination": "/fff-violet-abtahi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-engineering-at-stellar-development-foundation-karen-chang",
+      "destination": "/fff-karen-chang.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-marketing-communications-yasmin-moaven",
+      "destination": "/fff-yasmin-moaven.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-of-customer-experience-stephanie-bell",
+      "destination": "/fff-stephanie-bell.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-of-fintech-banking-ilana-fass",
+      "destination": "/fff-ilana-fass.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-of-investor-services-vittoria-reimers",
+      "destination": "/fff-vittoria-reimers.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-vp-of-marketing-shanna-leonard",
+      "destination": "/fff-shanna-leonard.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-meet-yasmine-el-gohary-product-lead-at-skipify",
+      "destination": "/fff-yasmine-el-gohary.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-merrin-trombka-director-of-sales-riskified",
+      "destination": "/fff-merrin-trombka.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-michelle-kim-vp-business-intelligence-and-analytics-trusted-media-brands",
+      "destination": "/fff-michelle-kim.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-michelle-tran-head-of-business-development-harness-wealth",
+      "destination": "/fff-michelle-tran.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-naimeesha-murthy-founder-at-products-by-women",
+      "destination": "/fff-naimeesha-murthy.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-najla-elmachtoub-engineering-manager-etsy",
+      "destination": "/fff-najla-elmachtoub.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-nami-baral-founder-ceo-harvest-platform",
+      "destination": "/fff-nami-baral.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-natalie-ledbetter-vp-of-operations",
+      "destination": "/fff-natalie-ledbetter.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-nicole-newlin-vp-of-solutions-ocrolus",
+      "destination": "/fff-nicole-newlin.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-nikki-cross-director-of-data-science-mission-lane",
+      "destination": "/fff-nikki-cross.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-nitya-rajendran-senior-associate-tribeca-venture-partners",
+      "destination": "/fff-nitya-rajendran.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-nyc-fintech-women-steering-committee",
+      "destination": "/fff-nyc-fintech-women-steering-committee.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-petal",
+      "destination": "/fff-petal.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-ramona-ortega-founder-and-ceo-my-money-my-future",
+      "destination": "/fff-ramona-ortega.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-ratika-ghandi-program-manager-mongo-db",
+      "destination": "/fff-ratika-gandhi.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-rebecca-kersh-ceo-and-founder-tang-app",
+      "destination": "/fff-rebecca-kersh.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sabrina-lamb-ceo-and-founder-wekeza",
+      "destination": "/fff-sabrina-lamb.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sabrina-tharani-director-of-partnerships-mastercard-start-path",
+      "destination": "/fff-sabrina-tharani.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sallie-jian-head-of-sap-io-foundry-new-york-at-sap",
+      "destination": "/fff-sallie-jian.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sara-weed-of-counsel-paul-hastings",
+      "destination": "/fff-sara-weed.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sasha-pilch-sales-plaid-co-founder-nyc-fintech-women",
+      "destination": "/fff-sasha-pilch.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-shana-hennigan-chief-commercial-officer-safened",
+      "destination": "/fff-shana-hennigan.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sharla-godbehere-alternative-finance-fintech-leader-equifax",
+      "destination": "/fff-sharla-godbehere.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sheena-allen-ceo-and-founder-capway",
+      "destination": "/fff-sheena-allen.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-shira-frank-co-founder-maiden",
+      "destination": "/fff-shira-frank.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-sofia-gonzalez",
+      "destination": "/fff-sofia-gonzalez.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-stella-voutsina-cto-mdc-media-partners",
+      "destination": "/fff-stella-voutsina.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-stephany-zoo-head-of-marketing-branding-and-communications-aza",
+      "destination": "/fff-stephany-zoo.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-team-dailypay",
+      "destination": "/fff-team-dailypay.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-viola-llewellyn-president-co-founder-ovamba-solutions",
+      "destination": "/fff-viola-llewellyn.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-wendy-cai-lee-ceo-of-piermont-bank",
+      "destination": "/fff-wendy-cai-lee.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/fintech-female-fridays-zoe-chaves-senior-product-manager-splitwise",
+      "destination": "/fff-zoe-chaves.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/marketaxess-is-hiring",
+      "destination": "/fff-marketaxess.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/petal-is-hiring",
+      "destination": "/fff-petal.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/petal-is-hiring-1",
+      "destination": "/fff-petal.html",
+      "permanent": true
+    },
+    {
+      "source": "/post/:slug*",
+      "destination": "/fintech-female-fridays.html",
+      "permanent": true
+    },
+    {
+      "source": "/event-info/:slug*",
+      "destination": "/events.html",
+      "permanent": true
+    },
+    {
+      "source": "/jobs-and-happenings/:slug*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/profile/:slug*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/booking-calendar/:slug*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/service-page/:slug*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/talkofhertownpodcast/:slug*",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/so/:slug*",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "headers": [
     {
       "source": "/lib/(.*).mjs",
-      "headers": [{ "key": "Content-Type", "value": "text/javascript; charset=utf-8" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/javascript; charset=utf-8"
+        }
+      ]
     }
   ]
 }
