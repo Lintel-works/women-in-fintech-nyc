@@ -2,3 +2,5 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /brand.html
+
+Sitemap: https://www.nycfintechwomen.com/sitemap.xml
