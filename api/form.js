@@ -14,10 +14,12 @@
  * handlers would drift -- the same split that put two slugify implementations
  * in this codebase and corrupted a published post.
  *
- * Env: see lib/mailer.mjs.
+ * Env: see lib/mailer.mjs for sending, lib/brevo-contacts.mjs for the
+ * mailing-list subscription a membership signup can ask for.
  */
 import { validateSubmission } from '../lib/form-schema.mjs';
 import { resolveProvider } from '../lib/mailer.mjs';
+import { resolveSubscriber } from '../lib/brevo-contacts.mjs';
 
 /* A bot fills every field it can see. A real person never sees this one, so a
    value in it is a bot -- answered with the normal success body and no send,
@@ -28,6 +30,55 @@ const HONEYPOT = 'website';
    line to defeat. It is here because it is free and stops the unsophisticated
    majority, not because it is a control. */
 const MIN_FILL_MS = 3000;
+
+/* Puts the submitter on the mailing list when they asked to be on it.
+ *
+ * Never throws and never changes the response. The notification email has
+ * already been sent by the time this runs, so the submission is not lost
+ * whatever happens here -- and failing the request would make the person
+ * resubmit, sending the team a second copy of answers they already have.
+ *
+ * Every outcome short of success is logged with the address, because the log
+ * is then the only record of someone who believes they subscribed and did
+ * not, and an operator needs to be able to add them by hand. The free text
+ * never goes here; only the address and the kind, matching the convention in
+ * the catch block below.
+ */
+async function subscribeIfAsked(valid) {
+  if (valid.fields.subscribe !== 'Yes') return;
+
+  const at = new Date().toISOString();
+  const subscriber = resolveSubscriber();
+  if (!subscriber) {
+    console.error(
+      'Subscribe requested but no contact list is configured; add this person by hand',
+      JSON.stringify({ kind: valid.kind, email: valid.replyTo, at })
+    );
+    return;
+  }
+
+  try {
+    const result = await subscriber.subscribe({
+      email: valid.replyTo,
+      firstName: valid.fields.firstName,
+      lastName: valid.fields.lastName
+    });
+    if (!result.attributed) {
+      /* On the list, but under no name: the account's name attributes are not
+         the ones lib/brevo-contacts.mjs sends. Worth fixing once, and not
+         worth failing anyone's submission over. */
+      console.warn(
+        'Subscribed without name attributes; check the list\'s attribute names',
+        JSON.stringify({ email: valid.replyTo, at })
+      );
+    }
+  } catch (error) {
+    console.error(
+      'Subscribe failed; add this person to the list by hand',
+      JSON.stringify({ kind: valid.kind, email: valid.replyTo, at, code: error.code })
+    );
+  }
+}
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -69,6 +120,10 @@ export default async function handler(request, response) {
 
   try {
     await provider.send({ subject: valid.subject, text: valid.text, replyTo: valid.replyTo });
+    /* Deliberately inside the try and deliberately incapable of throwing: a
+       list failure must not reach the catch below, which would tell someone
+       their submission failed after the notification had already been sent. */
+    await subscribeIfAsked(valid);
     return response.status(200).json({ ok: true });
   } catch (error) {
     /* The submitter's address and the kind, never the free text: this line is
