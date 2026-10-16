@@ -222,6 +222,93 @@ test('the co-founder subject is unchanged by the subjectFields default', () => {
   assert.equal(validateSubmission('co-founder', good()).subject, 'Co-founder matching — Jane Doe');
 });
 
-test('both form kinds are registered', () => {
-  assert.deepEqual(Object.keys(FORM_KINDS).sort(), ['co-founder', 'membership']);
+test('every form kind is registered', () => {
+  assert.deepEqual(Object.keys(FORM_KINDS).sort(), ['co-founder', 'membership', 'nomination']);
+});
+
+/* ───────────────── IFF nominations ───────────────── */
+
+const NOMINATION = {
+  nominatorFirstName: 'Ada',
+  nominatorLastName: 'Byron',
+  nominatorEmail: 'ada@example.com',
+  nomineeFirstName: 'Grace',
+  nomineeLastName: 'Hopper',
+  nomineeEmail: 'grace@example.com',
+  category: 'Leaders',
+  impact: 'Built the first compiler.',
+  supportsWomen: 'Mentored a generation of engineers.',
+  oneLine: 'The woman who taught computers English.'
+};
+
+test('a nomination is accepted and names the nominee in the subject', () => {
+  const result = validateSubmission('nomination', NOMINATION);
+  assert.equal(result.ok, true);
+  assert.equal(result.subject, 'IFF nomination — Grace Hopper');
+});
+
+/* The nominee has filled nothing in and may not know she was nominated.
+   Replying to the notification must reach the nominator. */
+test('the reply-to is the nominator, never the nominee', () => {
+  const result = validateSubmission('nomination', NOMINATION);
+  assert.equal(result.replyTo, 'ada@example.com');
+  assert.notEqual(result.replyTo, NOMINATION.nomineeEmail);
+});
+
+test('a ticked box subscribes the nominator and nobody else', () => {
+  const result = validateSubmission('nomination', { ...NOMINATION, subscribe: 'Yes' });
+  assert.deepEqual(result.subscriber, {
+    email: 'ada@example.com',
+    firstName: 'Ada',
+    lastName: 'Byron'
+  });
+});
+
+test('an unticked box subscribes nobody', () => {
+  for (const subscribe of ['No', '', undefined, 'yes', 'true']) {
+    const result = validateSubmission('nomination', { ...NOMINATION, subscribe });
+    assert.equal(result.subscriber, null, String(subscribe));
+  }
+});
+
+/* Someone can know a woman's work well enough to nominate her without holding
+   her private address. Refusing over it loses the nomination. */
+test('the nominee email is optional', () => {
+  const { nomineeEmail, ...without } = NOMINATION;
+  const result = validateSubmission('nomination', without);
+  assert.equal(result.ok, true);
+  assert.equal(result.fields.nomineeEmail, undefined);
+});
+
+test('a nomination with no nominator is refused', () => {
+  for (const key of ['nominatorFirstName', 'nominatorLastName', 'nominatorEmail']) {
+    const body = { ...NOMINATION };
+    delete body[key];
+    assert.equal(validateSubmission('nomination', body).ok, false, key);
+  }
+});
+
+test('the substance of a nomination is required', () => {
+  for (const key of ['category', 'impact', 'supportsWomen', 'oneLine']) {
+    const body = { ...NOMINATION };
+    delete body[key];
+    assert.equal(validateSubmission('nomination', body).ok, false, key);
+  }
+});
+
+test('a nomination renders both people into the email body', () => {
+  const { text } = validateSubmission('nomination', NOMINATION);
+  assert.match(text, /Nominator email:\nada@example\.com/);
+  assert.match(text, /Nominee first name:\nGrace/);
+  assert.match(text, /Built the first compiler\./);
+});
+
+/* The co-founder form has no subscribe concept at all. */
+test('a co-founder submission subscribes nobody', () => {
+  const result = validateSubmission('co-founder', {
+    name: 'Jane Doe', email: 'jane@example.com', role: 'CTO',
+    vision: 'A thing', looking: 'A partner', subscribe: 'Yes'
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.subscriber, null);
 });

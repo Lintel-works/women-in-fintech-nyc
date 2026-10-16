@@ -45,37 +45,37 @@ const MIN_FILL_MS = 3000;
  * the catch block below.
  */
 async function subscribeIfAsked(valid) {
-  if (valid.fields.subscribe !== 'Yes') return;
+  /* Who to subscribe is decided by lib/form-schema.mjs, not here. On a
+     nomination the submitter and the person described are two different
+     people, and only the submitter consented to anything. */
+  const person = valid.subscriber;
+  if (!person) return;
 
   const at = new Date().toISOString();
-  const subscriber = resolveSubscriber();
+  const subscriber = resolveSubscriber(valid.kind);
   if (!subscriber) {
     console.error(
       'Subscribe requested but no contact list is configured; add this person by hand',
-      JSON.stringify({ kind: valid.kind, email: valid.replyTo, at })
+      JSON.stringify({ kind: valid.kind, email: person.email, at })
     );
     return;
   }
 
   try {
-    const result = await subscriber.subscribe({
-      email: valid.replyTo,
-      firstName: valid.fields.firstName,
-      lastName: valid.fields.lastName
-    });
+    const result = await subscriber.subscribe(person);
     if (!result.attributed) {
       /* On the list, but under no name: the account's name attributes are not
          the ones lib/brevo-contacts.mjs sends. Worth fixing once, and not
          worth failing anyone's submission over. */
       console.warn(
         'Subscribed without name attributes; check the list\'s attribute names',
-        JSON.stringify({ email: valid.replyTo, at })
+        JSON.stringify({ email: person.email, at })
       );
     }
   } catch (error) {
     console.error(
       'Subscribe failed; add this person to the list by hand',
-      JSON.stringify({ kind: valid.kind, email: valid.replyTo, at, code: error.code })
+      JSON.stringify({ kind: valid.kind, email: person.email, at, code: error.code })
     );
   }
 }
