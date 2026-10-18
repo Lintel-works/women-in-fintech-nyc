@@ -5,6 +5,9 @@
   "functions": {
     "api/events.js": {
       "includeFiles": "src/_data/manual-events/**"
+    },
+    "api/form.js": {
+      "maxDuration": 60
     }
   },
   "redirects": [
