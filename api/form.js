@@ -20,6 +20,7 @@
 import { validateSubmission } from '../lib/form-schema.mjs';
 import { resolveProvider } from '../lib/mailer.mjs';
 import { resolveSubscriber } from '../lib/brevo-contacts.mjs';
+import { resolveSheet } from '../lib/nomination-sheet.mjs';
 
 /* A bot fills every field it can see. A real person never sees this one, so a
    value in it is a bot -- answered with the normal success body and no send,
@@ -80,6 +81,54 @@ async function subscribeIfAsked(valid) {
   }
 }
 
+/* Writes the submission to its review spreadsheet, where one is configured.
+ *
+ * Never throws, for the same reason subscribeIfAsked does not: the email has
+ * already gone and carries every answer, so the sheet is a second copy. A
+ * missing row can be restored from the inbox; a nominator told her nomination
+ * failed, when it had not, cannot be, and she would simply submit again.
+ *
+ * The failure is logged with enough to find the email it belongs to and
+ * re-enter it by hand. The answers themselves never go to the log.
+ */
+async function recordIfConfigured(valid) {
+  const at = new Date().toISOString();
+  try {
+    /* Inside the try, not before it: this is the one line here that could
+       throw without being caught, and an escape would reach the handler's
+       catch and answer 502 for a submission already emailed. */
+    const sheet = resolveSheet(valid.kind);
+    if (!sheet) return;
+
+    /* The RESOLVED consent, not the raw field: this endpoint is public, so a
+       direct POST could carry subscribe: 'true', which validateSubmission
+       correctly declines to treat as consent.
+
+       It records what was ASKED, which is all this can honestly know -- the
+       subscription may still have failed or been unconfigured, and
+       subscribeIfAsked swallows both. The column is named "Nominator asked to
+       subscribe" for that reason: a column promising they are on a list would
+       be a false record for whoever later mails from it. */
+    await sheet.append({ ...valid.fields, subscribe: valid.subscriber ? 'Yes' : 'No' }, at);
+  } catch (error) {
+    /* The message as well as the code: every message this path raises is
+       deliberately sanitised, and an error from outside that set -- a socket
+       failure, a response that was not JSON -- carries no code at all,
+       leaving an operator with nothing to act on. */
+    /* Guarded: a thrown null, string or undefined would make `error.code`
+       throw a TypeError INSIDE this catch, which would escape, reach the
+       handler's catch and answer 502 for a nomination already emailed --
+       precisely the outcome this function exists to prevent. */
+    console.error(
+      'Submission was emailed but not written to the sheet; re-enter it by hand',
+      JSON.stringify({
+        kind: valid.kind, from: valid.replyTo, at,
+        code: error && error.code, message: error && error.message
+      })
+    );
+  }
+}
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
@@ -124,6 +173,7 @@ export default async function handler(request, response) {
        list failure must not reach the catch below, which would tell someone
        their submission failed after the notification had already been sent. */
     await subscribeIfAsked(valid);
+    await recordIfConfigured(valid);
     return response.status(200).json({ ok: true });
   } catch (error) {
     /* The submitter's address and the kind, never the free text: this line is
