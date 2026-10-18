@@ -44,10 +44,15 @@
  * nothing at all.
  */
 
-/* Must match IFF_SHEET_SECRET in Vercel. The deployed URL is public, so this
-   is what actually stops anyone who finds it from writing rows into the
-   sheet. */
-const SECRET = 'PASTE_A_LONG_RANDOM_STRING_HERE';
+/* DO NOT PUT THE REAL SECRET IN THIS FILE. This copy is the template you
+   paste FROM; it is committed to the repository, so a secret written here
+   would be published the moment anyone runs `git add`. Change it in the Apps
+   Script editor, in the browser, after pasting -- and in Vercel as
+   IFF_SHEET_SECRET. The two must match each other and neither belongs here.
+
+   The deployed URL is public, so this is what actually stops anyone who finds
+   it from writing rows into the sheet. */
+const SECRET = 'PASTE_IN_APPS_SCRIPT_NOT_IN_THIS_FILE';
 
 /* The spreadsheet, named explicitly rather than taken from context.
  *
