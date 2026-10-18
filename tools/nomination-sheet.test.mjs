@@ -302,3 +302,24 @@ test('the grid is grown before it is written to', () => {
 test('the script never returns a stack trace', () => {
   assert.ok(!/error\.stack/.test(GS.replace(/\/\*[\s\S]*?\*\//g, '')));
 });
+
+/* getActive() returns null in a standalone project, and a script BOUND to a
+   spreadsheet can only be deployed by that spreadsheet's owner — so a sheet
+   shared with you cannot carry its own script. Addressing the sheet by id
+   works either way, and must not regress to the bound-only form. */
+test('the script addresses the spreadsheet by id, not by context', () => {
+  assert.ok(!/getActive\(\)/.test(GS.replace(/\/\*[\s\S]*?\*\//g, '')),
+    'getActive() would break a standalone project');
+  assert.match(GS, /SpreadsheetApp\.openById\(SHEET_ID\)/);
+  assert.match(GS, /const SHEET_ID = '[A-Za-z0-9_-]{20,}'/, 'the id must be filled in');
+});
+
+/* A spreadsheet the running account cannot open is a different problem from a
+   missing tab, and has a different fix. */
+test('no access to the spreadsheet is reported as config, not a missing tab', async () => {
+  const f = script({ answer: { ok: false, error: 'no_access' } });
+  await assert.rejects(
+    () => sheetRecorder(ENV, f).append(FIELDS),
+    (e) => e.code === 'config' && /edit access/.test(e.message)
+  );
+});

@@ -6,8 +6,16 @@
  * lib/nomination-sheet.mjs, which calls it -- otherwise the only copy would be
  * inside one person's Google account, with no history and no review.
  *
+ * It does NOT have to be created from the spreadsheet. It addresses the sheet
+ * by id, so a standalone project in any account with edit access to that sheet
+ * works too -- which is the way round it has to be when the spreadsheet is
+ * owned by someone else, since only a file's owner can deploy a script bound
+ * to it.
+ *
  * SETUP, once, IN THIS ORDER:
- *   1. Open the spreadsheet -> Extensions -> Apps Script.
+ *   1. Either the spreadsheet -> Extensions -> Apps Script (if you own the
+ *      sheet), or script.google.com -> New project (if it was shared with
+ *      you). Set SHEET_ID below either way.
  *   2. Replace everything in Code.gs with this file.
  *   3. Change SECRET below to a long random string, BEFORE deploying.
  *      Generate one with:
@@ -40,6 +48,22 @@
    is what actually stops anyone who finds it from writing rows into the
    sheet. */
 const SECRET = 'PASTE_A_LONG_RANDOM_STRING_HERE';
+
+/* The spreadsheet, named explicitly rather than taken from context.
+ *
+ * SpreadsheetApp.getActive() only works in a script BOUND to a spreadsheet --
+ * one created from that sheet's Extensions -> Apps Script. In a standalone
+ * project it returns null and every nomination fails with no_such_tab.
+ *
+ * Naming the id works in both cases, and means this script can live in
+ * whichever Google account can actually deploy it: a bound script belongs to
+ * the spreadsheet's OWNER, so an editor who was merely shared the file cannot
+ * create a deployment of it at all -- which presents as "You do not have
+ * permission to perform this action" and looks like an account problem.
+ *
+ * Whoever deploys this must have edit access to the spreadsheet, because the
+ * web app runs as them ("Execute as: Me"). */
+const SHEET_ID = '14XVJS_Y0Joqb8tqxdLdRjZz5SY3DVAdVJHCClfridbE';
 
 const TAB = 'IFF Nominations List';
 
@@ -135,7 +159,15 @@ function doPost(e) {
       return reply({ ok: false, error: 'bad_shape' });
     }
 
-    var sheet = SpreadsheetApp.getActive().getSheetByName(TAB);
+    var book;
+    try {
+      book = SpreadsheetApp.openById(SHEET_ID);
+    } catch (openError) {
+      /* Distinct from a missing tab: the id is wrong, or the account this web
+         app runs as has not been given access to the spreadsheet. */
+      return reply({ ok: false, error: 'no_access' });
+    }
+    var sheet = book.getSheetByName(TAB);
     if (!sheet) return reply({ ok: false, error: 'no_such_tab' });
 
     /* A lock because two nominations arriving together would otherwise both
