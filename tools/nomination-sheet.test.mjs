@@ -250,14 +250,27 @@ const GS = await import('node:fs').then((fs) =>
 /* setValues treats a leading "=" as a FORMULA. Nominee text is written by the
    public, so a bio of =IMPORTXML(...) would exfiltrate the panel's sheet the
    moment a judge opened the tab. Setting the format to text must come FIRST. */
-test('every cell is written as text, with the format set before the values', () => {
+/* This test reads source text. It can prove the three calls are in the right
+   order and nothing else -- it cannot observe what Sheets does with them, and
+   it passed happily while the guard was broken in production: a submission of
+   "=1+1 ..." was parsed and stored as #ERROR! on 2026-10-19. The flush is what
+   changed, and only a write to a real sheet can confirm it. Treat a pass here
+   as "the shape is right", never as "formula injection is handled". */
+test('every cell is written as text, with the format committed before the values', () => {
   const write = /function writeTextRow[\s\S]*?\n}/.exec(GS);
   assert.ok(write, 'writeTextRow must exist');
   const body = write[0];
   assert.match(body, /setNumberFormat\('@'\)/, 'the range must be forced to plain text');
+
+  const format = body.indexOf("setNumberFormat('@')");
+  const flush = body.indexOf('SpreadsheetApp.flush()');
+  const values = body.indexOf('setValues');
+
+  assert.ok(format < values, 'the format must be set BEFORE the values');
   assert.ok(
-    body.indexOf("setNumberFormat('@')") < body.indexOf('setValues'),
-    'the format must be set BEFORE the values, or the formula is already evaluated'
+    flush > format && flush < values,
+    'the format must be FLUSHED between the two: both calls are otherwise '
+      + 'committed together and the value is parsed before the format exists'
   );
   assert.ok(!/appendRow/.test(GS), 'appendRow bypasses the text format');
 });

