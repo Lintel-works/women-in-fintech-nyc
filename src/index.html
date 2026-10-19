@@ -250,6 +250,17 @@
   .foot-col a { color: rgba(255,255,255,0.75); font-size: 14.5px; transition: color .2s; }
   .foot-col a:hover { color: #fff; }
   .foot-bot { padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.12); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: rgba(255,255,255,0.55); }
+  /* nominate -- the same band as in inspiring-fintech-females.html, minus that
+     page's margin-top, which the .iff section above already supplies here.
+     This page links no stylesheet, so a rule in site.css would not reach it;
+     that is why these are duplicated rather than shared. */
+  .nominate { background: var(--plum); color: #fff; padding: 88px 0; position: relative; overflow: hidden; }
+  .nominate::before { content: ""; position: absolute; top: -160px; right: -120px; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(224,37,123,0.30) 0%, transparent 70%); }
+  .nominate-inner { max-width: 720px; position: relative; z-index: 1; }
+  .nominate .kicker { color: #ffb4d3; }
+  .nominate h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.025em; line-height: 1.1; margin: 0 0 18px; }
+  .nominate h2 em { font-style: italic; color: #ffb4d3; font-weight: 400; }
+  .nominate p { color: rgba(255,255,255,0.75); font-size: 17px; line-height: 1.65; margin: 0 0 30px; }
 </style>
 </head>
 <body>
@@ -384,6 +395,19 @@
         <div class="iff-info"><h4 class="name">Ruth Blader</h4><div class="role">Founder and Managing Partner · Foxe Capital</div></div>
       </a>
     </div>
+  </div>
+</section>
+
+<!-- NOMINATE -->
+<!-- Open/closed state is stated in two other places: the pill in the hero of
+     inspiring-fintech-females.html and that page's own nominate band. If
+     nominations close, this copy is wrong until all three are changed. -->
+<section class="nominate" id="nominate">
+  <div class="wrap nominate-inner">
+    <div class="kicker">Nominate</div>
+    <h2>Know a woman who <em>belongs on this list?</em></h2>
+    <p>Nominations for the 2026 Inspiring FinTech Females program are open now. If you know a woman in fintech doing meaningful work and advocating for others along the way, we want to know about her.</p>
+    <a href="nominate.html" class="btn btn-pink btn-lg">Submit a Nomination →</a>
   </div>
 </section>
 
