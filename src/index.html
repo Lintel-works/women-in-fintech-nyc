@@ -170,6 +170,15 @@
   .event-cta { margin-top: 12px; padding: 10px 16px; background: var(--soft); color: var(--pink-deep); border-radius: 999px; font-size: 13px; font-weight: 600; align-self: flex-start; transition: background .2s, color .2s; }
   .event:hover .event-cta { background: var(--pink); color: #fff; }
   .sec-foot { margin-top: 40px; text-align: center; }
+  /* Needed by the cards luma-events.js builds. They live in site.css for every
+     other page; this one links no stylesheet. */
+  .event-img.has-cover { background-size: cover; background-position: center; }
+  .event-img.has-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 55%); }
+  .events-grid.is-loading { opacity: .55; transition: opacity .2s; }
+  /* The fallback, spanning the grid. Deliberately NOT event cards: see the
+     comment on the section itself. */
+  .events-empty { grid-column: 1 / -1; text-align: center; padding: 56px 32px; border: 1px dashed var(--line); border-radius: 22px; background: var(--soft); }
+  .events-empty p { margin: 0 0 20px; color: var(--muted); font-size: 16px; }
 
   /* ---------- IFF CAROUSEL ---------- */
   .iff { background: var(--plum); color: #fff; padding: 96px 0; position: relative; overflow: hidden; }
@@ -338,6 +347,35 @@
   </div>
 </section>
 
+<!-- UPCOMING EVENTS -->
+<!-- The cards are rendered by luma-events.js from /api/events, the same proxy
+     the Events page and the three chapter pages use. The Luma key is
+     calendar-scoped and grants write access, so it never reaches the browser.
+
+     The fallback below is deliberately NOT a set of hardcoded event cards,
+     which is what the other four pages ship. Those go stale silently: with
+     LUMA_API_KEY unset, the live New York page has been advertising a 14 Jun
+     event since June. On the home page that is the first thing a visitor sees,
+     so the fallback says only what is still true whenever it is read, and
+     sends them to the events page for the rest. -->
+<section class="section" id="events">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="left">
+        <div class="kicker">Upcoming</div>
+        <h2>Where the community <em>actually meets</em>.</h2>
+      </div>
+      <a href="events.html" class="btn btn-pink">See all events →</a>
+    </div>
+    <div class="events-grid" id="home-events">
+      <div class="events-empty">
+        <p>Our next events are listed on the events page — in New York, San Francisco and Chicago.</p>
+        <a href="events.html" class="btn btn-dark">Browse events →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 {% import "post-card.njk" as cards %}
 
 <!-- FINTECH FEMALE FRIDAYS -->
@@ -489,6 +527,19 @@
     });
     io.observe(num);
   }
+</script>
+<script src="luma-events.js"></script>
+<script>
+  /* The next three events across all three chapters. If /api/events is
+     unconfigured or has nothing upcoming, load() leaves the grid alone and the
+     fallback panel stays -- which is why the fallback must read correctly on
+     its own. Variants are empty because this page colours the cards by
+     position (.event:nth-child(2)/(3)), not by class. */
+  LumaEvents.load({
+    grid: document.getElementById('home-events'),
+    limit: 3,
+    variants: ['']
+  });
 </script>
 <script src="nav-mobile.js"></script>
 
