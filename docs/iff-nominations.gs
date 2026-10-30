@@ -23,12 +23,14 @@
  *      Deploying first would publish a writable URL whose secret is the
  *      placeholder printed in this public repository. doPost refuses to run
  *      until this is changed, so a mistake here fails closed rather than open.
- *   4. Make sure the tab named by TAB is either EMPTY or already has exactly
- *      the header the site sends. The site sends its header with every write
- *      and this script refuses to write when row 1 disagrees -- a tab with any
- *      other row 1 rejects every nomination, and the nominator still sees
- *      success, so the rejection is quiet. An empty tab is simplest: this
- *      script writes the header itself on the first nomination.
+ *   4. Make sure every tab listed in TABS exists, and is either EMPTY or
+ *      already has exactly the header the site sends for it. The site sends
+ *      its header with every write and this script refuses to write when row 1
+ *      disagrees -- a tab with any other row 1 rejects every submission, and
+ *      the person still sees success, so the rejection is quiet. An empty tab
+ *      is simplest: this script writes the header itself on the first write.
+ *
+ *      "Membership Signups" is normally a NEW, EMPTY tab added by hand.
  *   5. Deploy -> New deployment -> type "Web app".
  *        Execute as:      Me
  *        Who has access:  Anyone
@@ -70,7 +72,17 @@ const SECRET = 'PASTE_IN_APPS_SCRIPT_NOT_IN_THIS_FILE';
  * web app runs as them ("Execute as: Me"). */
 const SHEET_ID = '14XVJS_Y0Joqb8tqxdLdRjZz5SY3DVAdVJHCClfridbE';
 
-const TAB = 'IFF Nominations List';
+/* The tabs this script will write, named by the request.
+ *
+ * An allowlist rather than "whatever the caller asks for": the deployed URL is
+ * public and the secret is the only thing in front of it, so a leaked secret
+ * should not also mean the ability to write over any tab in the spreadsheet --
+ * including the "Questions" tab the panel scores against.
+ *
+ * A request naming no tab gets the nominations tab, which is what every
+ * request sent before membership signups existed looks like. */
+const TABS = ['IFF Nominations List', 'Membership Signups'];
+const DEFAULT_TAB = 'IFF Nominations List';
 
 /* Shorter than the caller's own budget (BUDGET_MS in lib/nomination-sheet.mjs)
    with room left for the write. If this wait could outlast the caller, a
@@ -187,8 +199,17 @@ function doPost(e) {
          app runs as has not been given access to the spreadsheet. */
       return reply({ ok: false, error: 'no_access' });
     }
-    var sheet = book.getSheetByName(TAB);
-    if (!sheet) return reply({ ok: false, error: 'no_such_tab' });
+    var tab = body.tab == null ? DEFAULT_TAB : String(body.tab);
+    if (TABS.indexOf(tab) === -1) {
+      /* Named separately from no_such_tab: that one means the spreadsheet is
+         missing a tab this script is willing to write, which is an operator's
+         problem. This one means the request asked for a tab it is not allowed
+         to touch, which is a caller's problem or an attack. */
+      return reply({ ok: false, error: 'tab_not_allowed', tab: tab });
+    }
+
+    var sheet = book.getSheetByName(tab);
+    if (!sheet) return reply({ ok: false, error: 'no_such_tab', tab: tab });
 
     /* A lock because two nominations arriving together would otherwise both
        read the same last row and the second would overwrite the first. */

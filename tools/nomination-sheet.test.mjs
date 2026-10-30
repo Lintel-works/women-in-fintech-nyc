@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveSheet, sheetRecorder, rowFor, COLUMNS, HEADER_ROW } from '../lib/nomination-sheet.mjs';
+import { resolveSheet, sheetRecorder, rowFor, headerFor, sheetFor, COLUMNS, HEADER_ROW } from '../lib/nomination-sheet.mjs';
+import { FORM_KINDS } from '../lib/form-schema.mjs';
 
 const ENV = {
   IFF_SHEET_WEBHOOK_URL: 'https://script.google.com/macros/s/AKfy_fake/exec',
@@ -148,11 +149,68 @@ test('resolveSheet needs both the URL and the secret', () => {
   assert.equal(resolveSheet('nomination', {}), null);
 });
 
-/* Adding a form to the site must not quietly start writing into a spreadsheet. */
-test('only nominations are ever recorded', () => {
-  for (const kind of ['membership', 'co-founder', 'whatever', '', null, undefined]) {
+/* Adding a form to the site must not quietly start writing into a spreadsheet:
+   a kind earns a tab by being listed, never by existing. co-founder is the
+   live proof -- it is a real form on the site and it records nothing. */
+test('only the kinds with a tab are recorded', () => {
+  for (const kind of ['co-founder', 'whatever', '', null, undefined, 'Nomination', ' ']) {
     assert.equal(resolveSheet(kind, ENV), null, String(kind));
   }
+});
+
+test('nominations and membership each record to their own tab', () => {
+  assert.equal(resolveSheet('nomination', ENV).tab, 'IFF Nominations List');
+  assert.equal(resolveSheet('membership', ENV).tab, 'Membership Signups');
+});
+
+/* The two tabs must not share a header. They are written by position, so if
+   these ever matched, the script's header guard -- the thing that catches a
+   row landing in the wrong tab -- would pass on a misrouted write. */
+test('the two tabs have different headers', () => {
+  assert.notDeepEqual(headerFor('nomination'), headerFor('membership'));
+  assert.equal(headerFor('co-founder'), null);
+});
+
+test('a membership row carries every answer, in header order', () => {
+  const header = headerFor('membership');
+  const row = rowFor({
+    firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com',
+    jobTitle: 'Engineer', company: 'Analytical Engines',
+    support: ['Networking Opportunities', 'Job Search'],
+    testimonial: 'The best room in fintech.', subscribe: 'Yes'
+  }, '2026-10-30T12:00:00.000Z', 'membership');
+
+  assert.equal(row.length, header.length);
+  assert.equal(row[header.indexOf('Submitted')], '2026-10-30T12:00:00.000Z');
+  assert.equal(row[header.indexOf('First Name')], 'Ada');
+  assert.equal(row[header.indexOf('Email')], 'ada@example.com');
+  assert.equal(row[header.indexOf('Testimonial')], 'The best room in fintech.');
+  /* Joined, not stringified: String(['a','b']) loses the space after the
+     comma, and the panel reads this column. */
+  assert.equal(row[header.indexOf('How We Can Support Them')], 'Networking Opportunities, Job Search');
+  /* An unanswered optional question is empty, never the text "undefined". */
+  assert.equal(row[header.indexOf('Comments')], '');
+});
+
+/* The membership form posts more fields than any other, and a field the schema
+   accepts but this file forgot would be dropped silently -- the row would be
+   the right length, the header would match, and the answer would simply never
+   appear. */
+test('every membership field the form accepts reaches the sheet', () => {
+  const recorded = new Set(headerFor('membership'));
+  const missing = FORM_KINDS.membership.fields
+    .map((f) => f.key)
+    .filter((key) => {
+      const row = rowFor({ [key]: 'SENTINEL-VALUE' }, 'now', 'membership');
+      return !row.includes('SENTINEL-VALUE');
+    });
+  assert.deepEqual(missing, [], `these answers would be lost: ${missing.join(', ')}`);
+  assert.ok(recorded.has('Submitted'));
+});
+
+test('an unknown kind is refused rather than written somewhere', () => {
+  assert.throws(() => rowFor({}, 'now', 'co-founder'), /No sheet is configured/);
+  assert.throws(() => sheetRecorder(ENV, async () => {}, 'co-founder'), /No sheet is configured/);
 });
 
 /* ──────────── what review found ──────────── */
@@ -341,4 +399,97 @@ test('no access to the spreadsheet is reported as config, not a missing tab', as
     () => sheetRecorder(ENV, f).append(FIELDS),
     (e) => e.code === 'config' && /edit access/.test(e.message)
   );
+});
+
+/* ──────────── the script and the site must agree about tabs ──────────── */
+
+/* docs/iff-nominations.gs allowlists the tabs it will write. The site names a
+   tab in every request. If those two lists drift -- a tab added here and not
+   there -- every write of that kind fails with tab_not_allowed, and because
+   this path is swallowed by design the submitter still sees success. That is
+   the silent-loss shape this whole file exists to prevent, so it is asserted
+   rather than remembered.
+
+   The script is read as text because it runs in Google's runtime, not Node;
+   the array literal is evaluated so a reordering or a comment cannot break the
+   comparison the way matching source text would. */
+test('every tab the site writes is one the script allows', () => {
+  const source = /const TABS = (\[[\s\S]*?\]);/.exec(GS);
+  assert.ok(source, 'TABS is no longer a plain array literal in the script');
+  const allowed = new Set(JSON.parse(source[1].replace(/'/g, '"')));
+
+  for (const kind of ['nomination', 'membership']) {
+    const tab = resolveSheet(kind, ENV).tab;
+    assert.ok(allowed.has(tab), `the script would refuse ${kind} writes to ${JSON.stringify(tab)}`);
+  }
+});
+
+/* The fallback exists so a request sent before membership existed still lands.
+   If it ever pointed at the membership tab, those old-shaped requests would be
+   written into the wrong one -- caught by the header guard, but only there. */
+test('the script falls back to the nominations tab, not the membership one', () => {
+  const fallback = /const DEFAULT_TAB = '([^']+)';/.exec(GS);
+  assert.ok(fallback, 'DEFAULT_TAB is no longer a plain string in the script');
+  assert.equal(fallback[1], resolveSheet('nomination', ENV).tab);
+});
+
+test('a membership write names the membership tab in the request', async () => {
+  let sent = null;
+  const capture = async (url, options) => {
+    sent = JSON.parse(options.body);
+    return new Response(JSON.stringify({ ok: true, row: 2 }), { status: 200 });
+  };
+  await sheetRecorder(ENV, capture, 'membership')
+    .append({ firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com' }, 'now');
+
+  assert.equal(sent.tab, 'Membership Signups');
+  assert.deepEqual(sent.header, headerFor('membership'));
+  assert.equal(sent.row.length, sent.header.length);
+  /* The secret still travels, and still is not the tab's problem. */
+  assert.equal(sent.secret, ENV.IFF_SHEET_SECRET);
+});
+
+test('a nomination write still names the nominations tab', async () => {
+  let sent = null;
+  const capture = async (url, options) => {
+    sent = JSON.parse(options.body);
+    return new Response(JSON.stringify({ ok: true, row: 2 }), { status: 200 });
+  };
+  await sheetRecorder(ENV, capture).append(FIELDS, 'now');
+  assert.equal(sent.tab, 'IFF Nominations List');
+  assert.deepEqual(sent.header, HEADER_ROW);
+});
+
+/* A deployment that predates this change ignores `tab` and writes the
+   nominations tab. Its header guard then rejects the membership header, so the
+   caller is told the columns disagree rather than finding membership rows in
+   the panel's tab. This asserts the caller surfaces that as a CONFIG problem
+   an operator can act on. */
+test('an un-redeployed script reports a header mismatch an operator can act on', async () => {
+  const stale = async () => new Response(JSON.stringify({
+    ok: false, error: 'header_mismatch', tab: 'IFF Nominations List',
+    column: 2, expected: 'First Name', found: 'Nominator First Name'
+  }), { status: 200 });
+
+  await assert.rejects(
+    () => sheetRecorder(ENV, stale, 'membership').append({ firstName: 'Ada' }, 'now'),
+    (error) => {
+      assert.equal(error.code, 'header');
+      assert.match(error.message, /IFF Nominations List/);
+      assert.match(error.message, /column 2/);
+      return true;
+    }
+  );
+});
+
+/* SHEETS is a plain object, so an inherited property name must not read as a
+   configured sheet. Before this was guarded, resolveSheet('toString') threw a
+   TypeError with no `code` -- which api/form.js logs as "an error from outside
+   that set", leaving an operator nothing to act on. It has to return null. */
+test('an inherited property name is not a form kind', () => {
+  for (const kind of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'prototype']) {
+    assert.equal(sheetFor(kind), null, kind);
+    assert.equal(resolveSheet(kind, ENV), null, kind);
+    assert.throws(() => rowFor({}, 'now', kind), /No sheet is configured/, kind);
+  }
 });
