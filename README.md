@@ -253,20 +253,29 @@ compute it from position: the founders run `g1`–`g5` but the committee runs
 
 The **Upcoming** section of `events.html` is populated from a Luma calendar.
 
-The Luma API key is scoped to an entire calendar and grants **full access** to
-it — creating and cancelling events, reading guest lists. It can never be sent
-to the browser, so `api/events.js` (a Vercel Function) is the only thing that
-holds it. The browser calls `/api/events`, which returns a narrow allowlist of
-public display fields.
-
 ### Setup
 
-1. Get a key at `luma.com/calendar/manage/api-keys` (Settings → Developer).
-   Requires a **Luma Plus** subscription on that calendar.
-2. Local: `cp .env.example .env` and paste the key into `.env`. It is
-   gitignored — never commit it.
-3. Production: add `LUMA_API_KEY` in the Vercel dashboard under
-   Settings → Environment Variables, then redeploy.
+**There is none.** No key, no environment variable, nothing to configure.
+
+Luma's REST API requires a **Luma Plus** subscription (~$70/month), which this
+calendar does not have. `api/events.js` reads two public sources instead, both
+parsed in `lib/luma-feed.mjs`:
+
+1. **The calendar's iCal feed** lists the events — a name, a start, an end and
+   a link, for about 1KB.
+2. **Each event's own public page** carries a JSON-LD block, emitted for search
+   engines, with the cover image, the locality and the start time in its local
+   offset.
+
+The feed enumerates; the pages enrich. One request per event is not free, so
+only the soonest eight are enriched — everything after that keeps its name,
+date and link and gets the card's existing placeholder instead of a cover.
+
+The calendar id lives in `lib/luma-feed.mjs`, not an environment variable: it
+is public, it is the same id in the embed URL, and it does not rotate.
+
+Two fields the paid API had are simply gone: `tags` and `membersOnly`. The card
+already falls back to "In person" / "Online" without them.
 
 ### Local development
 
@@ -276,22 +285,36 @@ section will show its fallback. To run the function locally use `vercel dev`
 
 ### Behaviour
 
-- Events are fetched at page load, sorted soonest-first, capped at 24.
-- Private events are excluded; members-only events are shown and labelled.
-- `geo_address_json.city` maps onto the New York / San Francisco / Chicago
-  filter chips. Anything else appears only under "All cities".
-- Responses are CDN-cached for 5 minutes (`s-maxage=300`) so traffic never
-  approaches Luma's rate limit of 200 requests/minute per calendar.
-- **If Luma is unreachable, unconfigured, or empty, the hardcoded events in
-  `events.html` stay on the page.** That fallback is deliberate — edit those
-  cards if you want a different safety net. Check the browser console for a
-  `[events]` warning explaining which case was hit.
+- Events are sorted soonest-first and capped at 24. The feed carries past
+  events indefinitely, so they are filtered out on the server, measured on the
+  end time — an event that started an hour ago is still on.
+- The locality from the event page maps onto the New York / San Francisco /
+  Chicago filter chips. An event past the eighth is not enriched, so it falls
+  back to the `GEO:` coordinates in the feed, matched against rough boxes for
+  the three cities. That also picks the timezone the card is formatted in, so
+  getting it wrong would list an event at the wrong hour, not merely under the
+  wrong chip. An online event has no coordinates and is correctly neither.
+- **An event in both the feed and `src/_data/manual-events/` is shown once.**
+  `mergeEvents` de-duplicates on the Luma slug, so `lu.ma/abc` and
+  `luma.com/abc` are one event, and the live copy wins. Committing a manual
+  copy of an event that is also in Luma is therefore safe, and is the right
+  thing to do for anything that must not disappear if the feed breaks.
+- Responses are CDN-cached for 5 minutes (`s-maxage=300`). That also bounds how
+  often the event pages are read on Luma's behalf — roughly twelve rounds an
+  hour however busy the site is.
+- **If Luma is unreachable or the feed stops parsing, the events in
+  `src/_data/manual-events/` still ship**, flagged `degraded: true`. With no
+  manual events either, the hardcoded cards in `events.html` stay on the page.
+  Check the browser console for a `[events]` warning explaining which case was
+  hit.
+- **If an event's page cannot be read**, that event still ships without its
+  cover. JSON-LD is undocumented, so a Luma redesign costs the cards their
+  pictures and nothing more.
 
 ## Environment variables
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `LUMA_API_KEY` | `api/events.js` | Reads the Luma calendar for the events section. See [Luma events integration](#luma-events-integration). |
 | `CLERK_PUBLISHABLE_KEY` | build (`/admin`) | Public Clerk key, baked into the editor at **build** time. Changing it needs a redeploy; the build fails if it is missing. |
 | `CLERK_FRONTEND_API_URL` | build (`/admin`) | Clerk's Frontend API URL, baked in at **build** time like the key above. |
 | `CLERK_SECRET_KEY` | `api/invite.js`, `api/authors.js` | Server-side only. Lets the site invite, list, remove and promote users. Never expose it to the browser. |
