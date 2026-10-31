@@ -4,7 +4,8 @@
   "outputDirectory": "_site",
   "functions": {
     "api/events.js": {
-      "includeFiles": "src/_data/manual-events/**"
+      "includeFiles": "src/_data/manual-events/**",
+      "maxDuration": 30
     },
     "api/form.js": {
       "maxDuration": 60
