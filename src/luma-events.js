@@ -2,12 +2,17 @@
  *
  * Four pages show upcoming events: the Events page (all cities, every event)
  * and the three chapter pages (one city, the next two). They all read the same
- * /api/events proxy — the Luma API key is calendar-scoped and grants full
- * write access, so it never reaches the browser.
+ * /api/events endpoint, which reads Luma's public feed on the server and
+ * merges in the manually committed events.
  *
  * Every caller keeps the events already in its HTML as the fallback: if the
- * proxy is unreachable, unconfigured, or has nothing for that city, the markup
- * on the page is left untouched rather than replaced with an empty section.
+ * endpoint is unreachable, or has nothing for that city, the markup on the
+ * page is left untouched rather than replaced with an empty section.
+ *
+ * An event may legitimately arrive with no coverUrl and no tags -- the feed
+ * does not carry tags at all, and only the soonest few events are enriched
+ * with a cover. card() below renders both cases, and that is not a bug to be
+ * tidied away.
  */
 (function () {
   const DEFAULT_VARIANTS = ['', 'v-pink', 'v-plum', 'v-sun', 'v-mint'];
