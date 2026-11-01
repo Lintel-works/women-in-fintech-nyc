@@ -4,5 +4,6 @@
     "numeric": 20000,
     "plus": "+"
   },
-  "membershipUrl": "become-a-member.html"
+  "membershipUrl": "become-a-member.html",
+  "calendarUrl": "https://luma.com/nycfintechwomen"
 }

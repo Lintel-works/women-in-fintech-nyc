@@ -5,9 +5,13 @@
  * /api/events endpoint, which reads Luma's public feed on the server and
  * merges in the manually committed events.
  *
- * Every caller keeps the events already in its HTML as the fallback: if the
- * endpoint is unreachable, or has nothing for that city, the markup on the
- * page is left untouched rather than replaced with an empty section.
+ * Every caller keeps the markup already in its grid as the fallback: if the
+ * endpoint is unreachable, or has nothing for that city, the page is left
+ * untouched rather than replaced with an empty section. That markup is a
+ * panel pointing at the Luma calendar, so it has to read correctly on its
+ * own -- it is what a visitor sees for the whole of any outage. It must not
+ * be example events: standing in for the real calendar, they are read as the
+ * real calendar.
  *
  * An event may legitimately arrive with no coverUrl and no tags -- the feed
  * does not carry tags at all, and only the soonest few events are enriched
