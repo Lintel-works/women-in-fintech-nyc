@@ -10,31 +10,16 @@ selfPage: "events.html"
 <title>Events — NYC Fintech Women</title>
 <link rel="stylesheet" href="site.css" />
 <style>
-  /* The nav is sticky (~91px), so anchor jumps must clear it or the section
-     heading lands underneath it. #upcoming needs this most: it overrides
+  /* The nav is sticky (~91px), so an anchor jump must clear it or the section
+     heading lands underneath it. #upcoming needs it because it overrides
      .section's 80px top padding down to 8px. */
-  #upcoming, #past { scroll-margin-top: 104px; }
+  #upcoming { scroll-margin-top: 104px; }
   .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; align-items: center; }
   .filters .lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
   .chip { padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--plum); font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .18s; }
   .chip:hover { border-color: var(--pink); color: var(--pink-deep); }
   .chip.active { background: var(--pink); border-color: var(--pink); color: #fff; }
   .empty { display: none; text-align: center; color: var(--muted); padding: 48px; font-size: 15px; }
-  /* past events */
-  .past { background: linear-gradient(135deg, var(--soft) 0%, var(--soft-2) 100%); }
-  .past-list { display: flex; flex-direction: column; gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
-  .past-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 22px; align-items: center; padding: 22px 26px; border-bottom: 1px solid var(--line); transition: background .2s; }
-  .past-row:last-child { border-bottom: none; }
-  .past-row:hover { background: var(--soft); }
-  .past-date { font-family: var(--font-display); color: var(--plum); }
-  .past-date .d { font-weight: 600; font-size: 26px; line-height: 1; }
-  .past-date .m { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pink); }
-  .past-main .nm { font-family: var(--font-display); font-weight: 600; font-size: 19px; color: var(--plum); margin: 0 0 4px; letter-spacing: -0.01em; }
-  .past-main .meta { font-size: 13.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
-  .past-main .meta .sep { color: var(--line); }
-  .past-link { font-size: 13px; font-weight: 600; color: var(--pink-deep); white-space: nowrap; }
-  .past-link:hover { color: var(--pink); }
-  @media (max-width: 640px) { .past-row { grid-template-columns: 64px 1fr; } .past-link { grid-column: 2; } }
 </style>
 </head>
 <body>
@@ -73,26 +58,6 @@ selfPage: "events.html"
       <article class="event" data-city="chi"><div class="event-img"><div class="date-chip"><div class="d">24</div><div class="m">Jul</div></div><span>Event photo</span></div><div class="event-body"><span class="event-tag">Roundtable · In person</span><h3 class="event-name">Founders &amp; Investors Roundtable</h3><div class="event-meta"><span>Jul 24 · 6:00 PM</span><span class="sep">·</span><span>River North, Chicago</span></div><span class="event-cta">RSVP →</span></div></article>
     </div>
     <div class="empty" id="empty">No upcoming events in this city right now — new dates are added every month.</div>
-  </div>
-</section>
-
-<!-- PAST EVENTS -->
-<section class="section past" id="past">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="left">
-        <div class="kicker">The archive</div>
-        <h2>Where we've <em>already been.</em></h2>
-      </div>
-    </div>
-    <div class="past-list">
-      <div class="past-row"><div class="past-date"><div class="d">21</div><div class="m">May</div></div><div class="past-main"><h3 class="nm">Building in Public: A Conversation with Stage Founders</h3><div class="meta"><span>Panel</span><span class="sep">·</span><span>NYC</span><span class="sep">·</span><span>140 attendees</span></div></div></div>
-      <div class="past-row"><div class="past-date"><div class="d">09</div><div class="m">May</div></div><div class="past-main"><h3 class="nm">Women in Payments: Where the Money Moves Next</h3><div class="meta"><span>Fireside</span><span class="sep">·</span><span>SF</span><span class="sep">·</span><span>95 attendees</span></div></div></div>
-      <div class="past-row"><div class="past-date"><div class="d">24</div><div class="m">Apr</div></div><div class="past-main"><h3 class="nm">Spring Member Mixer</h3><div class="meta"><span>Mixer</span><span class="sep">·</span><span>Chicago</span><span class="sep">·</span><span>120 attendees</span></div></div></div>
-      <div class="past-row"><div class="past-date"><div class="d">12</div><div class="m">Apr</div></div><div class="past-main"><h3 class="nm">From Operator to Founder: Making the Leap</h3><div class="meta"><span>Workshop</span><span class="sep">·</span><span>NYC</span><span class="sep">·</span><span>80 attendees</span></div></div></div>
-      <div class="past-row"><div class="past-date"><div class="d">28</div><div class="m">Mar</div></div><div class="past-main"><h3 class="nm">Capital &amp; Connections: Meet the Investors</h3><div class="meta"><span>Roundtable</span><span class="sep">·</span><span>SF</span><span class="sep">·</span><span>65 attendees</span></div></div></div>
-    </div>
-    
   </div>
 </section>
 

@@ -21,10 +21,6 @@
         {
           "label": "Upcoming Events",
           "href": "events.html#upcoming"
-        },
-        {
-          "label": "Past Events",
-          "href": "events.html#past"
         }
       ]
     },
@@ -104,10 +100,6 @@
         {
           "label": "Upcoming Events",
           "href": "events.html#upcoming"
-        },
-        {
-          "label": "Past Events",
-          "href": "events.html#past"
         }
       ]
     },
@@ -157,10 +149,6 @@
           {
             "label": "Events",
             "href": "events.html"
-          },
-          {
-            "label": "Past Events",
-            "href": "events.html#past"
           },
           {
             "label": "Inspiring Fintech Females",
