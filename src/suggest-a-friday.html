@@ -48,6 +48,7 @@ active: "fintech-female-fridays.html"
   .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 560px) { .two { grid-template-columns: 1fr; gap: 0; } }
   .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; color: var(--muted); line-height: 1.5; }
+  .field label.checkline { display: flex; font-weight: 400; margin-bottom: 0; }
   .checkline input { width: auto; flex-shrink: 0; margin-top: 3px; accent-color: var(--pink); }
   .group-head { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--plum); margin: 34px 0 16px; padding-top: 26px; border-top: 1px solid var(--line); }
   .group-head:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -63,7 +64,6 @@ active: "fintech-female-fridays.html"
   .success .ico::after { content: ""; position: absolute; left: 20px; top: 16px; width: 14px; height: 24px; border: solid var(--pink-deep); border-width: 0 3px 3px 0; transform: rotate(45deg); }
   .success h2 { font-family: var(--font-display); font-weight: 500; font-size: 27px; color: var(--plum); margin: 0 0 10px; }
   .success p { color: var(--muted); font-size: 15.5px; line-height: 1.6; max-width: 440px; margin: 0 auto 22px; }
-</style>
   .rail .note-card p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.6; color: #ffd7e8; position: relative; }
   .rail .note-card p:last-child { margin-bottom: 0; }
 </style>
@@ -95,18 +95,18 @@ active: "fintech-female-fridays.html"
         <ul class="points">
           <li><span class="ic">1</span><div><p class="t">Tell us what she is working on</p><p class="d">The company she is building, the problem she keeps going back to, the thing she changed her mind about. That is what a good conversation grows from.</p></div></li>
           <li><span class="ic">2</span><div><p class="t">Say why now</p><p class="d">A launch, a hard year, a move into something new. A reason to talk to her this month helps us place her.</p></div></li>
-          <li><span class="ic">3</span><div><p class="t">Pitching yourself is welcome</p><p class="d">Plenty of the women we have interviewed put themselves forward. Tick the box and tell us in your own words. She does not need to be a member.</p></div></li>
+          <li><span class="ic">3</span><div><p class="t">Pitching yourself is welcome</p><p class="d">Tick the box and tell us in your own words. She does not need to be a member.</p></div></li>
         </ul>
         <div class="cats note-card">
           <p class="hd">What happens next</p>
-          <p>A person on the team reads every pitch. We cannot interview everyone, but we keep every name on file for future Fridays.</p>
+          <p>We cannot interview everyone, but we keep every name on file for future Fridays.</p>
           <p>If it is a fit, we will email you, and her if you gave us her address.</p>
         </div>
       </div>
 
       <!-- FORM -->
       <div class="form-card">
-        <div class="err-box" id="nom-error"><strong>That did not send.</strong> <span id="nom-error-text">Please check the form and try again.</span></div>
+        <div class="err-box" id="nom-error" role="alert"><strong>That did not send.</strong> <span id="nom-error-text">Please check the form and try again.</span></div>
 
         <form id="nom-form" novalidate>
           <!-- Honeypot: not a real field. A visitor never sees it, so anything
@@ -156,7 +156,7 @@ active: "fintech-female-fridays.html"
           <div class="form-actions">
             <button type="submit" class="btn btn-pink btn-lg">Send this pitch →</button>
           </div>
-          <p class="form-foot">A person reads every pitch. We never sell your details, and we never pass them to the woman you are suggesting.</p>
+          <p class="form-foot">We never sell your details, and we never pass them to the woman you are suggesting.</p>
         </form>
 
         <!-- SUCCESS -->
