@@ -493,3 +493,43 @@ test('an inherited property name is not a form kind', () => {
     assert.throws(() => rowFor({}, 'now', kind), /No sheet is configured/, kind);
   }
 });
+
+const PITCH_AT = '2026-11-15T12:00:00.000Z';
+const PITCH_KEYS = FORM_KINDS['fff-pitch'].fields.map((field) => field.key);
+
+test('an fff-pitch row lands in the documented column order', () => {
+  const row = rowFor({ pitcherFirstName: 'Jane', nomineeFirstName: 'Ada', why: 'Because.' }, PITCH_AT, 'fff-pitch');
+  const header = headerFor('fff-pitch');
+  assert.equal(header.length, row.length);
+  assert.equal(row[header.indexOf('Submitted')], PITCH_AT);
+  assert.equal(row[header.indexOf('Pitcher First Name')], 'Jane');
+  assert.equal(row[header.indexOf('Nominee First Name')], 'Ada');
+  assert.equal(row[header.indexOf('Why Her')], 'Because.');
+});
+
+test('the fff-pitch header is the documented Title Case list, in order', () => {
+  assert.deepEqual(headerFor('fff-pitch'), [
+    'Submitted', 'Pitcher First Name', 'Pitcher Last Name', 'Pitcher Email',
+    'Pitcher Is the Nominee', 'Nominee First Name', 'Nominee Last Name',
+    'Nominee Email', 'Nominee Title', 'Nominee Company', 'Nominee LinkedIn',
+    'How They Know Her', 'Why Her', 'In One Sentence'
+  ]);
+});
+
+test('every fff-pitch form field reaches its own column', () => {
+  const fields = Object.fromEntries(PITCH_KEYS.map((key) => [key, `value-${key}`]));
+  const row = rowFor(fields, PITCH_AT, 'fff-pitch');
+  for (const key of PITCH_KEYS) {
+    assert.ok(row.includes(`value-${key}`), `no column reads ${key}`);
+  }
+  assert.equal(new Set(row).size, row.length, 'two columns read the same field');
+});
+
+test('a missing optional pitch answer becomes an empty cell, not null', () => {
+  const row = rowFor({ pitcherFirstName: 'Jane' }, PITCH_AT, 'fff-pitch');
+  assert.ok(row.every((cell) => cell !== null && cell !== undefined));
+});
+
+test('fff-pitch writes its own tab', () => {
+  assert.equal(sheetFor('fff-pitch').tab, 'FFF Pitches');
+});
