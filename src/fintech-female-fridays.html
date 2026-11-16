@@ -10,6 +10,14 @@ active: "fintech-female-fridays.html"
 <link rel="stylesheet" href="site.css" />
 <style>
 {% include "post-cards.css" %}
+  /* suggest a friday: same band as the IFF nominate band */
+  .suggest { background: var(--plum); color: #fff; padding: 88px 0; position: relative; overflow: hidden; margin-top: 24px; }
+  .suggest::before { content: ""; position: absolute; top: -160px; right: -120px; width: 480px; height: 480px; border-radius: 50%; background: radial-gradient(circle, rgba(224,37,123,0.30) 0%, transparent 70%); }
+  .suggest-inner { max-width: 720px; position: relative; z-index: 1; }
+  .suggest .kicker { color: #ffb4d3; }
+  .suggest h2 { font-family: var(--font-display); font-weight: 500; font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.025em; line-height: 1.1; margin: 0 0 18px; }
+  .suggest h2 em { font-style: italic; color: #ffb4d3; font-weight: 400; }
+  .suggest p { color: rgba(255,255,255,0.75); font-size: 17px; line-height: 1.65; margin: 0 0 30px; }
 </style>
 </head>
 <body>
@@ -43,6 +51,16 @@ active: "fintech-female-fridays.html"
     {# No "see all" link: every profile Wix ever published is on this page.
        This used to point at the old Wix category, which was the only route to
        the archive while just seven of the 261 interviews had been migrated. #}
+  </div>
+</section>
+
+<!-- SUGGEST -->
+<section class="suggest" id="suggest">
+  <div class="wrap suggest-inner">
+    <div class="kicker">Your turn</div>
+    <h2>Who should we <em>talk to next?</em></h2>
+    <p>The best Fridays start with someone telling us about a woman we had not heard of. Put forward a colleague, a founder you admire, or yourself. A person on our team reads every pitch.</p>
+    <a href="suggest-a-friday.html" class="btn btn-pink btn-lg">Suggest a Friday →</a>
   </div>
 </section>
 
