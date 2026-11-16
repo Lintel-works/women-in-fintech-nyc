@@ -11,7 +11,7 @@
 import { authenticateClerkRequest } from '../lib/clerk-request.mjs';
 import { authorNameFromSub } from '../lib/session.mjs';
 import { slugify, postPath } from '../lib/publish-validate.mjs';
-import { commitWithRetry, getFileContent } from '../lib/github.mjs';
+import { commitWithRetry, getFileContent, pathExists } from '../lib/github.mjs';
 import { resolveGithubToken } from '../lib/github-auth.mjs';
 import { parsePost } from '../lib/post-file.mjs';
 import { POST_TYPES, typeKeyOf, coverPathFor } from '../lib/post-types.mjs';
@@ -127,7 +127,25 @@ export default async function handler(request, response) {
     const live = String(post.coverPath || '').trim();
     const conventional = COVER_EXTS.map((ext) => coverPathFor(typeKey, slug, ext));
     if (conventional.includes(live)) {
-      files.push({ path: `src/${live}`, delete: true });
+      /* Checked before it is deleted, because the editor writes `coverPath`
+         into front matter whether or not an image was ever uploaded. A tree
+         entry deleting a path that is not in the base tree is a 422, which
+         lib/github.mjs reports as "The branch moved before this commit could
+         be written" -- so an author taking down a cover-less post was shown a
+         concurrency error for a request that was merely malformed, and the
+         post stayed up however many times they tried.
+
+         A failed check skips the cover rather than failing the unpublish: the
+         post coming down is what was asked for, and a leftover image is
+         invisible to readers, whereas a post that will not come down is the
+         bug being fixed here. */
+      let coverExists = false;
+      try {
+        coverExists = await pathExists({ token, owner, repo, branch, path: `src/${live}` });
+      } catch (error) {
+        console.error('Could not check whether the cover image exists; leaving it in place', error && error.message);
+      }
+      if (coverExists) files.push({ path: `src/${live}`, delete: true });
     }
   }
 

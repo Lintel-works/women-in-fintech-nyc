@@ -291,6 +291,7 @@ test('the cover image path is included in the tree delete when coverPath matches
   });
   const fetchStub = stubFetchWithBodies([
     contentsResponse(post),
+    { status: 200, body: { name: 'post-october-recap.jpg' } },  // the cover exists
     { status: 200, body: { object: { sha: 'HEADSHA' } } },
     { status: 200, body: { tree: { sha: 'BASETREE' } } },
     { status: 201, body: { sha: 'NEWTREE' } },
@@ -400,6 +401,7 @@ test('a PNG cover at the conventional path is deleted too', () => withEnv(async 
   });
   const fetchStub = stubFetchWithBodies([
     contentsResponse(post),
+    { status: 200, body: { name: 'post-october-recap.png' } },  // the cover exists
     { status: 200, body: { object: { sha: 'HEADSHA' } } },
     { status: 200, body: { tree: { sha: 'BASETREE' } } },
     { status: 201, body: { sha: 'NEWTREE' } },
@@ -499,5 +501,47 @@ test('a malformed App private key is reported distinctly from a GitHub-rejected 
     assert.match(response.body.message, /key could not be read/);
   } finally {
     restore();
+  }
+}));
+
+/* 2026-11-15, found by running unpublish end to end for the first time against
+   production. The editor writes `coverPath` into front matter even when no
+   image was uploaded, so a post can be published whose conventional cover path
+   names a file that does not exist. Unpublish added that path to the tree as a
+   delete anyway; GitHub answers 422 for deleting a path absent from the base
+   tree, and lib/github.mjs maps 422 to "The branch moved before this commit
+   could be written" -- so the author was told a concurrent-write story about a
+   request that was simply malformed, and the post could never be taken down.
+
+   The cover is now checked before it is deleted. The post's own file is not:
+   its existence was already established by the read above. */
+test('a conventional cover path that does not exist is not added to the delete tree', () => withEnv(async () => {
+  const post = serializePost({
+    type: 'post', slug: 'october-recap', title: 'October Recap',
+    coverPath: 'images/post-october-recap.jpg',
+    blocks: []
+  });
+  const fetchStub = stubFetchWithBodies([
+    contentsResponse(post),
+    { status: 404, body: { message: 'Not Found' } },   // the cover existence check
+    { status: 200, body: { object: { sha: 'HEADSHA' } } },
+    { status: 200, body: { tree: { sha: 'BASETREE' } } },
+    { status: 201, body: { sha: 'NEWTREE' } },
+    { status: 201, body: { sha: 'NEWCOMMIT' } },
+    { status: 200, body: { object: { sha: 'NEWCOMMIT' } } }
+  ]);
+  try {
+    const request = makeRequest({ authorization: bearer(), body: { type: 'post', slug: 'october-recap' } });
+    const response = makeResponse();
+    await handler(request, response);
+    assert.equal(response.statusCode, 200, 'a missing cover must not stop the post coming down');
+    const treeCall = fetchStub.calls.find((c) => c.url.endsWith('/git/trees'));
+    assert.deepEqual(
+      treeCall.body.tree.map((entry) => entry.path),
+      ['src/posts/october-recap.html'],
+      'only the post file -- asking GitHub to delete an absent path is what 422s'
+    );
+  } finally {
+    fetchStub.restore();
   }
 }));
