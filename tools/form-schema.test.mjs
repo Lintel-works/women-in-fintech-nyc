@@ -223,7 +223,7 @@ test('the co-founder subject is unchanged by the subjectFields default', () => {
 });
 
 test('every form kind is registered', () => {
-  assert.deepEqual(Object.keys(FORM_KINDS).sort(), ['co-founder', 'membership', 'nomination']);
+  assert.deepEqual(Object.keys(FORM_KINDS).sort(), ['co-founder', 'fff-pitch', 'membership', 'nomination']);
 });
 
 /* ───────────────── IFF nominations ───────────────── */
@@ -311,4 +311,66 @@ test('a co-founder submission subscribes nobody', () => {
   });
   assert.equal(result.ok, true);
   assert.equal(result.subscriber, null);
+});
+
+const pitch = () => ({
+  pitcherFirstName: 'Jane', pitcherLastName: 'Doe', pitcherEmail: 'jane@example.com',
+  nomineeFirstName: 'Ada', nomineeLastName: 'Rivera',
+  why: 'She rebuilt the settlement pipeline and mentors three juniors.',
+  oneLine: 'The engineer every payments team wishes they had.'
+});
+
+test('a complete pitch is accepted and replies to the pitcher, not the nominee', () => {
+  const r = validateSubmission('fff-pitch', { ...pitch(), nomineeEmail: 'ada@example.com' });
+  assert.equal(r.ok, true);
+  assert.equal(r.replyTo, 'jane@example.com');
+  assert.match(r.subject, /^FFF pitch — Ada Rivera$/);
+});
+
+test('a pitch without the nominee email is accepted', () => {
+  assert.equal(validateSubmission('fff-pitch', pitch()).ok, true);
+});
+
+test('a self-pitch still replies to the pitcher', () => {
+  const r = validateSubmission('fff-pitch', { ...pitch(), isSelf: 'Yes' });
+  assert.equal(r.replyTo, 'jane@example.com');
+  assert.equal(r.fields.isSelf, 'Yes');
+});
+
+test('a pitch never subscribes anyone, even when asked directly', () => {
+  const r = validateSubmission('fff-pitch', { ...pitch(), subscribe: 'Yes' });
+  assert.equal(r.subscriber, null);
+});
+
+test('an over-long why is refused rather than truncated', () => {
+  const r = validateSubmission('fff-pitch', { ...pitch(), why: 'x'.repeat(2001) });
+  assert.equal(r.ok, false);
+  assert.match(r.message, /too long/i);
+});
+
+test('a pitch without the pitcher email is refused, since replies depend on it', () => {
+  const { pitcherEmail, ...rest } = pitch();
+  assert.equal(validateSubmission('fff-pitch', rest).ok, false);
+});
+
+test('every required pitch field is refused when blank', () => {
+  const required = ['pitcherFirstName', 'pitcherLastName', 'pitcherEmail',
+    'nomineeFirstName', 'nomineeLastName', 'why', 'oneLine'];
+  for (const key of required) {
+    assert.equal(validateSubmission('fff-pitch', { ...pitch(), [key]: '' }).ok, false, key);
+  }
+});
+
+test('a malformed pitcher or nominee email is refused', () => {
+  for (const key of ['pitcherEmail', 'nomineeEmail']) {
+    const r = validateSubmission('fff-pitch', { ...pitch(), [key]: 'not-an-email' });
+    assert.equal(r.ok, false, key);
+  }
+});
+
+test('every pitch field is refused one character over its max', () => {
+  for (const field of FORM_KINDS['fff-pitch'].fields.filter((f) => f.max)) {
+    const r = validateSubmission('fff-pitch', { ...pitch(), [field.key]: 'x'.repeat(field.max + 1) });
+    assert.equal(r.ok, false, field.key);
+  }
 });

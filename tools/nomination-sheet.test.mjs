@@ -493,3 +493,44 @@ test('an inherited property name is not a form kind', () => {
     assert.throws(() => rowFor({}, 'now', kind), /No sheet is configured/, kind);
   }
 });
+
+const PITCH_AT = '2026-11-15T12:00:00.000Z';
+const PITCH_KEYS = FORM_KINDS['fff-pitch'].fields.map((field) => field.key);
+
+test('the fff-pitch header is the documented Title Case list, in order', () => {
+  assert.deepEqual(headerFor('fff-pitch'), [
+    'Submitted', 'Pitcher First Name', 'Pitcher Last Name', 'Pitcher Email',
+    'Pitcher Is the Nominee', 'Nominee First Name', 'Nominee Last Name',
+    'Nominee Email', 'Nominee Title', 'Nominee Company', 'Nominee LinkedIn',
+    'How They Know Her', 'Why Her', 'In One Sentence'
+  ]);
+});
+
+test('every fff-pitch column reads its own field, in the documented position', () => {
+  const fields = Object.fromEntries(PITCH_KEYS.map((key) => [key, `value-${key}`]));
+  assert.deepEqual(rowFor(fields, PITCH_AT, 'fff-pitch'), [
+    PITCH_AT,
+    'value-pitcherFirstName',
+    'value-pitcherLastName',
+    'value-pitcherEmail',
+    'value-isSelf',
+    'value-nomineeFirstName',
+    'value-nomineeLastName',
+    'value-nomineeEmail',
+    'value-nomineeTitle',
+    'value-nomineeCompany',
+    'value-nomineeLinkedin',
+    'value-relationship',
+    'value-why',
+    'value-oneLine'
+  ]);
+});
+
+test('a missing optional pitch answer becomes an empty cell, not null', () => {
+  const row = rowFor({ pitcherFirstName: 'Jane' }, PITCH_AT, 'fff-pitch');
+  assert.ok(row.every((cell) => cell !== null && cell !== undefined));
+});
+
+test('fff-pitch writes its own tab', () => {
+  assert.equal(sheetFor('fff-pitch').tab, 'FFF Pitches');
+});

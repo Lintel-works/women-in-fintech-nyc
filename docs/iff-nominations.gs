@@ -81,7 +81,7 @@ const SHEET_ID = '14XVJS_Y0Joqb8tqxdLdRjZz5SY3DVAdVJHCClfridbE';
  *
  * A request naming no tab gets the nominations tab, which is what every
  * request sent before membership signups existed looks like. */
-const TABS = ['IFF Nominations List', 'Membership Signups'];
+const TABS = ['IFF Nominations List', 'Membership Signups', 'FFF Pitches'];
 const DEFAULT_TAB = 'IFF Nominations List';
 
 /* Shorter than the caller's own budget (BUDGET_MS in lib/nomination-sheet.mjs)
