@@ -347,3 +347,30 @@ test('an over-long why is refused rather than truncated', () => {
   assert.equal(r.ok, false);
   assert.match(r.message, /too long/i);
 });
+
+test('a pitch without the pitcher email is refused, since replies depend on it', () => {
+  const { pitcherEmail, ...rest } = pitch();
+  assert.equal(validateSubmission('fff-pitch', rest).ok, false);
+});
+
+test('every required pitch field is refused when blank', () => {
+  const required = ['pitcherFirstName', 'pitcherLastName', 'pitcherEmail',
+    'nomineeFirstName', 'nomineeLastName', 'why', 'oneLine'];
+  for (const key of required) {
+    assert.equal(validateSubmission('fff-pitch', { ...pitch(), [key]: '' }).ok, false, key);
+  }
+});
+
+test('a malformed pitcher or nominee email is refused', () => {
+  for (const key of ['pitcherEmail', 'nomineeEmail']) {
+    const r = validateSubmission('fff-pitch', { ...pitch(), [key]: 'not-an-email' });
+    assert.equal(r.ok, false, key);
+  }
+});
+
+test('every pitch field is refused one character over its max', () => {
+  for (const field of FORM_KINDS['fff-pitch'].fields.filter((f) => f.max)) {
+    const r = validateSubmission('fff-pitch', { ...pitch(), [field.key]: 'x'.repeat(field.max + 1) });
+    assert.equal(r.ok, false, field.key);
+  }
+});
