@@ -1,6 +1,6 @@
 /* ===========================================================
    NYC Fintech Women — shared site system (v6 "Refresh" direction)
-   Pink-magenta + deep plum · Fraunces display · soft radial washes
+   Pink-magenta + deep plum · Georgia display · soft radial washes
    =========================================================== */
 :root {
   --bg: #ffffff;
@@ -14,8 +14,9 @@
   --pink-deep: #b91767;
   --plum: #3b0d3a;
   --accent: #ffd24a;
-  --font-display: 'Fraunces', 'GT Sectra', 'Iowan Old Style', Georgia, serif;
+  --font-display: Georgia, 'Times New Roman', serif;  /* deliberate: a system face, so headlines need no webfont download. Do not reinstate Fraunces without loading it. */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --font-body: var(--font-sans);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--font-sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }

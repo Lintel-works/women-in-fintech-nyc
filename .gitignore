@@ -25,3 +25,6 @@ _site/
 .env*
 .worktrees/
 .playwright-mcp/
+
+# Recovered personal data — real names, emails and employers. Never commit.
+membership-recovered*.csv
