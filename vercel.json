@@ -13,6 +13,46 @@
   },
   "redirects": [
     {
+      "source": "/become-a-member",
+      "destination": "/become-a-member.html",
+      "permanent": false
+    },
+    {
+      "source": "/brand",
+      "destination": "/brand.html",
+      "permanent": false
+    },
+    {
+      "source": "/chicago",
+      "destination": "/chicago.html",
+      "permanent": false
+    },
+    {
+      "source": "/co-founder-matching",
+      "destination": "/co-founder-matching.html",
+      "permanent": false
+    },
+    {
+      "source": "/fintech-female-fridays",
+      "destination": "/fintech-female-fridays.html",
+      "permanent": false
+    },
+    {
+      "source": "/new-york",
+      "destination": "/new-york.html",
+      "permanent": false
+    },
+    {
+      "source": "/san-francisco",
+      "destination": "/san-francisco.html",
+      "permanent": false
+    },
+    {
+      "source": "/suggest-a-friday",
+      "destination": "/suggest-a-friday.html",
+      "permanent": false
+    },
+    {
       "source": "/admin",
       "destination": "/admin/",
       "permanent": false
