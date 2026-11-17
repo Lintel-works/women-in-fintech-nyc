@@ -1,0 +1,48 @@
+{#
+  Open Graph, Twitter card and meta description for the hand-written pages.
+
+  Why this exists: until now NONE of these pages carried any of it. Sharing
+  nycfintechwomen.com in LinkedIn, Slack or iMessage produced a bare link with
+  no image, no title beyond the <title> tag and no description, and search
+  results had no description either. Published FFF posts already had their own
+  tags via lib/render-blocks.mjs; the static pages had nothing.
+
+  Each page sets three values in its front matter:
+
+    ogTitle   the headline on the share card. NOT the same as <title>: the
+              <title> carries "— NYC Fintech Women" for the browser tab, which
+              is wasted space on a card that already shows og:site_name.
+    ogDesc    one or two sentences, ~160 characters. Also the page's meta
+              description, so it is read by search engines as well.
+    pagePath  the page's own filename, e.g. "become-a-member.html". The home
+              page passes "".
+
+  The card image is shared by every page deliberately. It is the brand card,
+  built from the home hero — see tools/social-card.html, which is the source
+  for src/images/og-default.jpg and explains how to regenerate it. A per-page
+  image would be better for each page in isolation, but it is five images to
+  keep in step with the brand rather than one, and the title and description
+  already carry the per-page meaning.
+
+  ORIGIN is written out here rather than read from a data file because
+  lib/render-blocks.mjs:15 already hardcodes the same value as SITE_ORIGIN for
+  the post pages. Two copies in two places is the existing situation; if the
+  domain ever changes, both must change, and a grep for the origin finds both.
+#}
+<meta name="description" content="{{ ogDesc }}" />
+<link rel="canonical" href="https://www.nycfintechwomen.com/{{ pagePath }}" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="NYC Fintech Women" />
+<meta property="og:title" content="{{ ogTitle }}" />
+<meta property="og:description" content="{{ ogDesc }}" />
+<meta property="og:url" content="https://www.nycfintechwomen.com/{{ pagePath }}" />
+<meta property="og:image" content="https://www.nycfintechwomen.com/images/og-default.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="You belong at the table. Build it with us. NYC Fintech Women — 20,000+ women in fintech across New York, San Francisco and Chicago." />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{{ ogTitle }}" />
+<meta name="twitter:description" content="{{ ogDesc }}" />
+<meta name="twitter:image" content="https://www.nycfintechwomen.com/images/og-default.jpg" />
