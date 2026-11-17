@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<!--
+  The source of src/images/og-default.jpg — the card that appears when any key
+  page of this site is shared on LinkedIn, Slack, iMessage or X.
+
+  Why a template rather than a one-off export: the card has to stay in step
+  with the brand, and a PNG someone made once in a design tool drifts the
+  moment a colour or the member count changes. This is the same palette and
+  the same display font as site.css, so editing it is editing the card.
+
+  It is in tools/ deliberately. Eleventy's input is src/, so this file is NOT
+  published — only the rendered image is.
+
+  TO REGENERATE after editing:
+    open this file in a browser at exactly 1200x630 and screenshot it, or ask
+    Claude to re-render it. Save over src/images/og-default.jpg, rebuild, and
+    re-share a link to bust the scrapers' caches (LinkedIn Post Inspector,
+    Slack will re-unfurl after a while).
+
+  FONT WARNING, read before regenerating. The headline is set in Iowan Old
+  Style, which is a macOS SYSTEM font — it is not loaded over the network and
+  cannot be. Regenerate this card on a Mac. On Linux or in CI the headline
+  silently falls back to Georgia and the card will look wrong in a way no
+  error reports. Only Inter, used for the small sans text, comes from Google.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Tokens copied verbatim from src/site.css so the card cannot drift from
+     the site by accident. */
+  :root {
+    --soft: #fdf2f7;
+    --pink: #e0257b;
+    --plum: #3b0d3a;
+    --accent: #ffd24a;
+    --pink-light: #ffb4d3;
+    /* Iowan Old Style FIRST, which is the opposite order to site.css.
+       Deliberate: site.css lists Fraunces first but nothing ever loads it, so
+       what the site actually renders — and what the brand reads as — is Iowan
+       Old Style. The card is a baked image, so it must match what people see
+       on the site, not what the stylesheet aspires to. */
+    --font-display: 'Iowan Old Style', 'GT Sectra', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--plum);
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* The same radial wash the plum bands use on the site (.nominate::before),
+     scaled up for the canvas. */
+  .glow-a {
+    position: absolute; top: -220px; right: -160px;
+    width: 680px; height: 680px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(224,37,123,0.38) 0%, transparent 70%);
+  }
+  .glow-b {
+    position: absolute; bottom: -300px; left: -180px;
+    width: 620px; height: 620px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,210,74,0.14) 0%, transparent 70%);
+  }
+
+  .card {
+    position: relative; z-index: 1;
+    height: 100%;
+    padding: 64px 72px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    /* Without this the logo centres itself: a column flex container stretches
+       its items, and an img with width:auto resolves to centred. */
+    align-items: flex-start;
+  }
+
+  .logo { height: 76px; width: auto; }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 76px;
+    line-height: 1.06;
+    letter-spacing: -0.02em;
+    /* No max-width. The line breaks are set by hand with <br>, and a measure
+       in ch is wrong here: Iowan Old Style is noticeably wider than the
+       Fraunces this was first drawn in, so a ch-based cap wrapped "table."
+       onto a line of its own. */
+  }
+  h1 em { font-style: italic; font-weight: 400; color: var(--pink-light); }
+
+  /* The yellow rule under "Build it", as on the home hero. A background
+     gradient rather than a border so it sits behind the descenders. */
+  .mark {
+    background: linear-gradient(to top, var(--accent) 0 14px, transparent 14px);
+    padding: 0 2px;
+  }
+
+  /* align-items:flex-start on .card would otherwise shrink the footer to its
+     content and break the left/right split. */
+  .foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; width: 100%; }
+
+  .stat { display: flex; align-items: baseline; gap: 10px; }
+  .stat .n {
+    font-family: var(--font-display);
+    font-weight: 500; font-size: 46px; letter-spacing: -0.02em;
+  }
+  .stat .n span { color: var(--pink-light); }
+  .stat .label {
+    font-size: 17px; font-weight: 600; color: rgba(255,255,255,0.80);
+    letter-spacing: 0.01em;
+  }
+
+  .chapters {
+    text-align: right;
+    font-size: 15px; font-weight: 600;
+    color: rgba(255,255,255,0.62);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    line-height: 1.7;
+  }
+  .chapters .url { color: var(--accent); letter-spacing: 0.06em; text-transform: none; font-size: 16px; }
+</style>
+</head>
+<body>
+  <div class="glow-a"></div>
+  <div class="glow-b"></div>
+
+  <div class="card">
+    <img class="logo" src="../src/images/nyc%20logo%20white.svg" alt="NYC Fintech Women" />
+
+    <h1>You belong at the <em>table.</em><br /><span class="mark">Build it</span> with us.</h1>
+
+    <div class="foot">
+      <div class="stat">
+        <div class="n">20,000<span>+</span></div>
+        <div class="label">women in fintech</div>
+      </div>
+      <div class="chapters">
+        New York · San Francisco · Chicago<br />
+        <span class="url">nycfintechwomen.com</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
