@@ -43,6 +43,11 @@
       "permanent": false
     },
     {
+      "source": "/nominate",
+      "destination": "/nominate.html",
+      "permanent": false
+    },
+    {
       "source": "/san-francisco",
       "destination": "/san-francisco.html",
       "permanent": false
