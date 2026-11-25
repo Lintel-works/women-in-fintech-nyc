@@ -26,5 +26,5 @@ _site/
 .worktrees/
 .playwright-mcp/
 
-# Exported member/form data — contains PII, never commit
-*-recovered.csv
+# Recovered personal data — real names, emails and employers. Never commit.
+membership-recovered*.csv

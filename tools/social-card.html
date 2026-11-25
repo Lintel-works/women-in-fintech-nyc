@@ -20,11 +20,12 @@
     re-share a link to bust the scrapers' caches (LinkedIn Post Inspector,
     Slack will re-unfurl after a while).
 
-  FONT WARNING, read before regenerating. The headline is set in Iowan Old
-  Style, which is a macOS SYSTEM font — it is not loaded over the network and
-  cannot be. Regenerate this card on a Mac. On Linux or in CI the headline
-  silently falls back to Georgia and the card will look wrong in a way no
-  error reports. Only Inter, used for the small sans text, comes from Google.
+  FONTS. The headline is Georgia, the same face site.css now sets for all
+  display type. Georgia ships on macOS, Windows and iOS, so this card can be
+  regenerated on any of them and will look the same — the old "regenerate on a
+  Mac only" rule died with Iowan Old Style on 2026-11-17. Only Inter, used for
+  the small sans text, comes from Google. If you regenerate on Linux or in CI,
+  check the headline: Georgia is usually absent there and it will fall back.
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,12 +39,12 @@
     --plum: #3b0d3a;
     --accent: #ffd24a;
     --pink-light: #ffb4d3;
-    /* Iowan Old Style FIRST, which is the opposite order to site.css.
-       Deliberate: site.css lists Fraunces first but nothing ever loads it, so
-       what the site actually renders — and what the brand reads as — is Iowan
-       Old Style. The card is a baked image, so it must match what people see
-       on the site, not what the stylesheet aspires to. */
-    --font-display: 'Iowan Old Style', 'GT Sectra', Georgia, serif;
+    /* Matches src/site.css exactly. It did not always: this card used to lead
+       with Iowan Old Style because site.css asked for Fraunces and never
+       loaded it, so Iowan was what visitors actually saw. Since 2026-11-17 the
+       site sets Georgia outright, so card and site agree again. The card is a
+       baked image and must match what people see on the site. */
+    --font-display: Georgia, 'Times New Roman', serif;
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -88,9 +89,10 @@
     line-height: 1.06;
     letter-spacing: -0.02em;
     /* No max-width. The line breaks are set by hand with <br>, and a measure
-       in ch is wrong here: Iowan Old Style is noticeably wider than the
-       Fraunces this was first drawn in, so a ch-based cap wrapped "table."
-       onto a line of its own. */
+       in ch is wrong here — a ch-based cap once wrapped "table." onto a line
+       of its own. Georgia is marginally narrower than the Iowan this was last
+       baked in (705px vs 715px for the first line at 68px), so the hand-set
+       breaks still hold. Re-check them if the headline text changes. */
   }
   h1 em { font-style: italic; font-weight: 400; color: var(--pink-light); }
 
