@@ -25,3 +25,6 @@ _site/
 .env*
 .worktrees/
 .playwright-mcp/
+
+# Exported member/form data — contains PII, never commit
+*-recovered.csv
