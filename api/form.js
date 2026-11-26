@@ -32,6 +32,37 @@ const HONEYPOT = 'website';
    majority, not because it is a control. */
 const MIN_FILL_MS = 3000;
 
+/* End of Sunday 6 December 2026 in New York, expressed in UTC: December is
+ * EST, so -05:00. The nominate page is served year-round and has no closed
+ * state of its own, so without this a nomination arriving in January
+ * validated, sent, and landed in the sheet as though it counted.
+ *
+ * Exported so the test can assert the instant rather than restate it.
+ */
+export const NOMINATIONS_CLOSE_DEFAULT = '2026-12-07T05:00:00Z';
+
+/* The deadline moves more often than the code does -- it has already moved
+ * once -- so an operator can extend or shut the window through
+ * NOMINATIONS_CLOSE_AT without a deploy.
+ *
+ * A malformed value falls back to the built-in date instead of refusing
+ * everyone: a typo in an env var must not quietly close a window the team
+ * believes is open. The fallback is logged, because that is then the only
+ * sign the override is not doing anything.
+ */
+function nominationsCloseAt() {
+  const raw = String(process.env.NOMINATIONS_CLOSE_AT || '').trim();
+  if (raw) {
+    const at = Date.parse(raw);
+    if (Number.isFinite(at)) return at;
+    console.error(
+      'NOMINATIONS_CLOSE_AT is not a parseable date; using the built-in deadline',
+      JSON.stringify({ default: NOMINATIONS_CLOSE_DEFAULT })
+    );
+  }
+  return Date.parse(NOMINATIONS_CLOSE_DEFAULT);
+}
+
 /* Puts the submitter on the mailing list when they asked to be on it.
  *
  * Never throws and never changes the response. The notification email has
@@ -150,6 +181,17 @@ export default async function handler(request, response) {
     : null;
   if (elapsed !== null && elapsed >= 0 && elapsed < MIN_FILL_MS) {
     return response.status(200).json({ ok: true });
+  }
+
+  /* Refused before validation, and never disguised as success: the window is
+     shut, so there is no corrected resubmission that would be accepted and
+     nothing for the person to fix. Telling them plainly is the whole point --
+     this endpoint exists because a form once thanked people and dropped their
+     answers. The page shows `message` and keeps every answer on screen. */
+  if (String(body.kind || '') === 'nomination' && Date.now() >= nominationsCloseAt()) {
+    return response.status(403).json({
+      message: 'Nominations for 2026 have closed. Thank you — join the community to hear when next year\'s open.'
+    });
   }
 
   const valid = validateSubmission(body.kind, body);

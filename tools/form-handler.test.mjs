@@ -31,7 +31,7 @@ const good = () => ({
 let n = 0;
 async function run(body, env = ENV, sendStatus = 201) {
   n += 1;
-  for (const k of ['FORM_PROVIDER', 'BREVO_API_KEY', 'RESEND_API_KEY', 'FORM_FROM_EMAIL', 'FORM_TO_EMAIL', 'FORM_BCC_EMAIL']) {
+  for (const k of ['FORM_PROVIDER', 'BREVO_API_KEY', 'RESEND_API_KEY', 'FORM_FROM_EMAIL', 'FORM_TO_EMAIL', 'FORM_BCC_EMAIL', 'NOMINATIONS_CLOSE_AT']) {
     delete process.env[k];
   }
   Object.assign(process.env, env);
@@ -137,4 +137,81 @@ test('a hostile body does not throw', async () => {
     const { r } = await run(body);
     assert.ok(r.code >= 400, `no status for ${JSON.stringify(body)}`);
   }
+});
+
+/* ---- The nomination window ------------------------------------------------
+ *
+ * The nominate page has no closed state of its own: it is served year-round
+ * and the copy is the only thing that says the window shut. Before this
+ * check, a nomination arriving in January validated, sent, and recorded to
+ * the sheet as though it counted.
+ *
+ * Time is controlled through NOMINATIONS_CLOSE_AT rather than by faking the
+ * clock, so the production code needs no test seam.
+ */
+
+const PAST = '2000-01-01T00:00:00Z';
+const FUTURE = '2099-01-01T00:00:00Z';
+
+const nomination = () => ({
+  kind: 'nomination',
+  nominatorFirstName: 'Jane',
+  nominatorLastName: 'Doe',
+  nominatorEmail: 'jane@example.com',
+  nomineeFirstName: 'Ada',
+  nomineeLastName: 'Lovelace',
+  category: 'Leaders',
+  oneLine: 'She rebuilt the settlement stack.',
+  impact: 'Led the payments rewrite end to end.',
+  supportsWomen: 'Mentors and sponsors women into senior roles.',
+  elapsedMs: 9000
+});
+
+test('a nomination after the window closed is refused and never sent', async () => {
+  const { r, sends } = await run(nomination(), { ...ENV, NOMINATIONS_CLOSE_AT: PAST });
+  assert.equal(r.code, 403);
+  assert.equal(sends, 0, 'a late nomination must not reach the provider');
+  assert.ok(r.body.message, 'the page needs a message to show');
+  assert.ok(!r.body.ok, 'a refusal must never look like a success');
+});
+
+test('a nomination inside the window is sent normally', async () => {
+  const { r, sends } = await run(nomination(), { ...ENV, NOMINATIONS_CLOSE_AT: FUTURE });
+  assert.equal(r.code, 200);
+  assert.deepEqual(r.body, { ok: true });
+  assert.equal(sends, 1);
+});
+
+test('the window closes only nominations, never the other forms', async () => {
+  for (const body of [good()]) {
+    const { r, sends } = await run(body, { ...ENV, NOMINATIONS_CLOSE_AT: PAST });
+    assert.equal(r.code, 200, `${body.kind} must be unaffected by the nomination window`);
+    assert.equal(sends, 1);
+  }
+});
+
+test('the cutoff is inclusive of its own instant: at the boundary the window is shut', async () => {
+  /* A cutoff one second ago is past; one second ahead is open. This pins the
+     comparison direction, so a flipped >= cannot pass unnoticed. */
+  const justPast = new Date(Date.now() - 1000).toISOString();
+  const justAhead = new Date(Date.now() + 60000).toISOString();
+
+  const shut = await run(nomination(), { ...ENV, NOMINATIONS_CLOSE_AT: justPast });
+  assert.equal(shut.r.code, 403);
+
+  const open = await run(nomination(), { ...ENV, NOMINATIONS_CLOSE_AT: justAhead });
+  assert.equal(open.r.code, 200);
+});
+
+test('a malformed cutoff falls back to the built-in date rather than refusing everyone', async () => {
+  for (const bad of ['', 'not a date', 'soon', '2026-13-45T99:00:00Z']) {
+    const { r } = await run(nomination(), { ...ENV, NOMINATIONS_CLOSE_AT: bad });
+    assert.notEqual(r.code, 500, `a malformed cutoff must not throw: ${bad}`);
+    assert.ok(r.code === 200 || r.code === 403, `unexpected ${r.code} for ${bad}`);
+  }
+});
+
+test('the built-in cutoff is the end of 6 December 2026 in New York', async () => {
+  const { NOMINATIONS_CLOSE_DEFAULT } = await import('../api/form.js');
+  assert.equal(new Date(NOMINATIONS_CLOSE_DEFAULT).toISOString(), '2026-12-07T05:00:00.000Z');
 });
