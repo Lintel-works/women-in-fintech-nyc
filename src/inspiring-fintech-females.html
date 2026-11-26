@@ -13,6 +13,8 @@ pagePath: "inspiring-fintech-females.html"
 {% include "social-meta.njk" %}
 <link rel="stylesheet" href="site.css" />
 <style>
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 30px; }
+  .hero-cta-note { font-size: 14px; color: var(--muted); }
   .cat-intro { font-size: 14px; color: var(--muted); margin: 0 0 18px; font-weight: 600; }
   .tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
   .tab { padding: 10px 18px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--plum); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .18s; }
@@ -63,6 +65,13 @@ pagePath: "inspiring-fintech-females.html"
     <div class="pill"><span class="pulse"></span> 2026 nominations close 6 December</div>
     <h1>Recognizing the women <em>transforming fintech</em> from the inside out.</h1>
     <p>The Inspiring FinTech Females list recognizes women who are transforming fintech and who are advocates for women and gender equity. Every year, we shine a light on the founders building from scratch, leaders creating impact at scale, and the builders holding it all together behind the scenes.</p>
+    <!-- The nominate band at the foot of this page carries the same CTA, but it
+         sits below the full honoree grid. This one is the only nomination route
+         above the fold. Both go when nominations close. -->
+    <div class="hero-cta">
+      <a href="nominate.html" class="btn btn-pink btn-lg">Submit a Nomination &rarr;</a>
+      <span class="hero-cta-note">Open until Sunday 6 December</span>
+    </div>
   </div>
 </section>
 
